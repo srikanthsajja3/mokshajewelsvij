@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, ScrollView } from "react-native";
+import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, ScrollView, Platform } from "react-native";
 import { Product, PRODUCTS } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
@@ -23,6 +23,8 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) 
   const { countryCode } = useCountry();
   const [sortBy, setSortBy] = useState<SortOption>("popularity");
   const [showSortOptions, setShowSortOptions] = useState(false);
+
+  const isMobile = width < 768;
 
   const sortOptions: { label: string; value: SortOption }[] = [
     { label: "Sort by popularity", value: "popularity" },
@@ -77,21 +79,29 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) 
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>{category} Collection</Text>
+      <View style={[styles.headerRow, isMobile && styles.headerRowMobile]}>
+        <View style={styles.titleContainer}>
+          <Text 
+            numberOfLines={1} 
+            adjustsFontSizeToFit 
+            style={styles.title}
+          >
+            {category} Collection
+          </Text>
+        </View>
         
-        <View style={styles.sortContainer}>
+        <View style={[styles.sortContainer, isMobile && styles.sortContainerMobile]}>
           <TouchableOpacity 
             style={styles.sortButton} 
             onPress={() => setShowSortOptions(!showSortOptions)}
           >
-            <Text style={styles.sortButtonText}>
-              {sortOptions.find(o => o.value === sortBy)?.label} ▾
+            <Text style={styles.sortButtonText} numberOfLines={1}>
+              {isMobile ? "Sort ▾" : (sortOptions.find(o => o.value === sortBy)?.label + " ▾")}
             </Text>
           </TouchableOpacity>
           
           {showSortOptions && (
-            <View style={styles.dropdown}>
+            <View style={[styles.dropdown, isMobile && styles.dropdownMobile]}>
               {sortOptions.map((option) => (
                 <TouchableOpacity 
                   key={option.value}
@@ -147,20 +157,32 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     marginBottom: 20,
     zIndex: 10,
+    gap: 10,
+  },
+  headerRowMobile: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 15,
+  },
+  titleContainer: {
+    flex: 1,
+    minWidth: 150,
   },
   title: {
     fontFamily: "TrajanPro",
     fontSize: 22,
     color: "#fff",
     textTransform: "uppercase",
-    flex: 1,
   },
   sortContainer: {
     width: 220,
     position: "relative",
+  },
+  sortContainerMobile: {
+    width: '100%',
   },
   sortButton: {
     borderWidth: 1,
@@ -190,6 +212,11 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
     zIndex: 100,
+  },
+  dropdownMobile: {
+    position: "relative",
+    top: 5,
+    right: 0,
   },
   dropdownOption: {
     paddingVertical: 10,
