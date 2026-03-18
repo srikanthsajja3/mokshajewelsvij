@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "MOKSHA JEWELS",
+    "slug": "MOKSHA JEWELS",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#888888"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourname.mokshajewels"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "package": "com.yourname.mokshajewels"
+    },
+    "web": {
+      "favicon": "./assets/logo.jpg"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      "expo-localization"
+    ]
+  }
+}
