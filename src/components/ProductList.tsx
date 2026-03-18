@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, ScrollView, Platform } from "react-native";
-import { Product, PRODUCTS } from "../data/products";
+import React, { useState, useMemo, useEffect } from "react";
+import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, ScrollView, Platform, ActivityIndicator } from "react-native";
+import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
 
@@ -21,8 +21,28 @@ type SortOption =
 const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) => {
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("popularity");
   const [showSortOptions, setShowSortOptions] = useState(false);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchProductsFromSupabase(category);
+        setProducts(data);
+      } catch (err) {
+        setError("Failed to connect to the gallery.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [category]);
 
   const isMobile = width < 768;
 
@@ -37,9 +57,7 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) 
   ];
 
   const filteredAndSortedProducts = useMemo(() => {
-    let result = category === "All" 
-      ? [...PRODUCTS] 
-      : PRODUCTS.filter(p => p.category === category);
+    let result = [...products];
 
     switch (sortBy) {
       case "popularity":
@@ -65,7 +83,7 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) 
         break;
     }
     return result;
-  }, [category, sortBy]);
+  }, [products, sortBy]);
 
   let numColumns = 2;
   if (width > 1400) numColumns = 6;
@@ -121,28 +139,51 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) 
         </View>
       </View>
 
-      <View style={styles.grid}>
-        {filteredAndSortedProducts.map((item) => (
-          <TouchableOpacity 
-            key={item.id} 
-            style={[styles.productCard, { width: itemWidth }]}
-            activeOpacity={0.8}
-            onPress={() => onSelectProduct(item)}
-          >
-            <Image source={{ uri: item.image }} style={styles.productImage} />
-            <View style={styles.productInfo}>
-              <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.productWeight}>{item.grossWeight.toFixed(2)}g | {item.purity}</Text>
-              <Text style={styles.productPrice}>{formatPrice(item.price, countryCode)}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {filteredAndSortedProducts.length === 0 && (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No products found in this category.</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#D4AF37" />
+          <Text style={styles.loadingText}>Fetching Masterpieces...</Text>
         </View>
+      ) : error ? (
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.emptyText, { color: "#ff4444" }]}>{error}</Text>
+          <TouchableOpacity 
+            style={[styles.sortButton, { marginTop: 20 }]} 
+            onPress={() => {
+                // Trigger reload
+                setProducts([]);
+                setLoading(true);
+            }}
+          >
+            <Text style={styles.sortButtonText}>Retry Connection</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <View style={styles.grid}>
+            {filteredAndSortedProducts.map((item) => (
+              <TouchableOpacity 
+                key={item.id} 
+                style={[styles.productCard, { width: itemWidth }]}
+                activeOpacity={0.8}
+                onPress={() => onSelectProduct(item)}
+              >
+                <Image source={{ uri: item.image }} style={styles.productImage} />
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.productWeight}>{item.grossWeight.toFixed(2)}g | {item.purity}</Text>
+                  <Text style={styles.productPrice}>{formatPrice(item.price, countryCode)}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {filteredAndSortedProducts.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No products found in this category.</Text>
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -153,6 +194,19 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#291c0e",
     zIndex: 1,
+    minHeight: 400,
+  },
+  loadingContainer: {
+    padding: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    color: "#D4AF37",
+    marginTop: 20,
+    fontFamily: "TrajanPro",
+    fontSize: 14,
+    letterSpacing: 1,
   },
   headerRow: {
     flexDirection: "row",

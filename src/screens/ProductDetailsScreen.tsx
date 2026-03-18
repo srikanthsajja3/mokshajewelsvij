@@ -1,8 +1,8 @@
-import React, { useRef } from "react";
-import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform } from "react-native";
+import React, { useRef, useState, useEffect } from "react";
+import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator } from "react-native";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { Product, PRODUCTS } from "../data/products";
+import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
 
@@ -16,6 +16,8 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, on
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
   const scrollRef = useRef<ScrollView>(null);
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState(true);
 
   const isLargeScreen = width > 768;
   
@@ -23,19 +25,24 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, on
     ? { width: "100%", alignSelf: "flex-start", flexDirection: "row" as const } 
     : { width: "100%" };
 
-  // Get recommendations (products in same category, excluding current)
-  const recommendations = PRODUCTS
-    .filter(p => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      setLoadingRecs(true);
+      const data = await fetchProductsFromSupabase(product.category);
+      // Filter out current product and take top 4
+      setRecommendations(data.filter(p => p.id !== product.id).slice(0, 4));
+      setLoadingRecs(false);
+    };
+
+    loadRecommendations();
+    // Scroll to top when product changes
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, [product.id, product.category]);
 
   const handleRecommendationPress = (p: Product) => {
-    // We need to navigate to the new product
-    // The parent App handles state, but for this simple implementation:
-    onBack(); // Go back
-    setTimeout(() => {
-        // This is a bit of a hack since we don't have a direct "change product" prop here
-        // In a real app with a router, this would just be navigate(p.id)
-    }, 0);
+    // This would require a way to change the selected product in the parent
+    // For now, we'll just log it or wait for a more robust navigation implementation
+    console.log("Selected recommendation:", p.name);
   };
 
   return (

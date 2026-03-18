@@ -54,7 +54,7 @@ const ImageScroller = () => {
           <View key={img.id} style={[styles.imageWrapper, { width }]}>
             <Image source={img.source} style={[styles.image, { height: scrollerHeight }]} />
             <View style={styles.overlay}>
-              <Text style={styles.imageTitle}>{img.title}</Text>
+              
             </View>
           </View>
         ))}
