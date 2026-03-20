@@ -5,15 +5,18 @@ import { useFonts } from "expo-font";
 import HomeScreen from "./src/screens/HomeScreen";
 import CategoryScreen from "./src/screens/CategoryScreen";
 import ProductDetailsScreen from "./src/screens/ProductDetailsScreen";
+import LoginScreen from "./src/screens/LoginScreen";
 import { Product } from "./src/data/products";
 import { CountryProvider } from "./src/contexts/CountryContext";
 import { GoldRateProvider } from "./src/contexts/GoldRateContext";
+import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import SwipeBackView from "./src/components/SwipeBackView";
 
-export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details">("home");
+function AppContent() {
+  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login">("home");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const { user, isLoading: authLoading } = useAuth();
 
   const [fontsLoaded] = useFonts({
     "TrajanPro": require("./assets/fonts/TrajanPro-Regular.ttf"),
@@ -33,11 +36,15 @@ export default function App() {
     setCurrentScreen("home");
   };
 
+  const navigateToLogin = () => {
+    setCurrentScreen("login");
+  };
+
   const navigateBackToList = () => {
     setCurrentScreen("category");
   };
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || authLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#D4AF37" />
@@ -46,39 +53,60 @@ export default function App() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <CountryProvider>
-        <GoldRateProvider>
-          <View style={styles.container}>
-            <StatusBar barStyle="light-content" />
-            
-            {currentScreen === "home" && (
-              <HomeScreen onSelectCategory={navigateToCategory} onGoHome={navigateToHome} />
-            )}
-            
-            {currentScreen === "category" && (
-              <SwipeBackView onSwipeBack={navigateToHome}>
-                <CategoryScreen 
-                  category={selectedCategory} 
-                  onSelectCategory={navigateToCategory} 
-                  onSelectProduct={navigateToProduct}
-                  onGoHome={navigateToHome} 
-                />
-              </SwipeBackView>
-            )}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      {currentScreen === "home" && (
+        <HomeScreen 
+          onSelectCategory={navigateToCategory} 
+          onGoHome={navigateToHome} 
+          onPressLogin={navigateToLogin}
+        />
+      )}
+      
+      {currentScreen === "category" && (
+        <SwipeBackView onSwipeBack={navigateToHome}>
+          <CategoryScreen 
+            category={selectedCategory} 
+            onSelectCategory={navigateToCategory} 
+            onSelectProduct={navigateToProduct}
+            onGoHome={navigateToHome} 
+            onPressLogin={navigateToLogin}
+          />
+        </SwipeBackView>
+      )}
 
-            {currentScreen === "details" && selectedProduct && (
-              <SwipeBackView onSwipeBack={navigateBackToList}>
-                <ProductDetailsScreen 
-                  product={selectedProduct} 
-                  onGoHome={navigateToHome}
-                  onBack={navigateBackToList}
-                />
-              </SwipeBackView>
-            )}
-          </View>
-        </GoldRateProvider>
-      </CountryProvider>
+      {currentScreen === "details" && selectedProduct && (
+        <SwipeBackView onSwipeBack={navigateBackToList}>
+          <ProductDetailsScreen 
+            product={selectedProduct} 
+            onGoHome={navigateToHome}
+            onBack={navigateBackToList}
+            onPressLogin={navigateToLogin}
+          />
+        </SwipeBackView>
+      )}
+
+      {currentScreen === "login" && (
+        <LoginScreen 
+          onLoginSuccess={navigateToHome} 
+          onGoHome={navigateToHome} 
+        />
+      )}
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <CountryProvider>
+          <GoldRateProvider>
+            <AppContent />
+          </GoldRateProvider>
+        </CountryProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }

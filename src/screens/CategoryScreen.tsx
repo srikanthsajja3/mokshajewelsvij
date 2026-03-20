@@ -11,15 +11,16 @@ interface CategoryScreenProps {
   onSelectCategory: (cat: string) => void;
   onSelectProduct: (product: Product) => void;
   onGoHome: () => void;
+  onPressLogin: () => void;
 }
 
-const CategoryScreen: React.FC<CategoryScreenProps> = ({ category, onSelectCategory, onSelectProduct, onGoHome }) => {
+const CategoryScreen: React.FC<CategoryScreenProps> = ({ category, onSelectCategory, onSelectProduct, onGoHome, onPressLogin }) => {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
 
   return (
     <View style={styles.container}>
-      <Header onPressLogo={onGoHome} onBack={onGoHome} />
+      <Header onPressLogo={onGoHome} onPressLogin={onPressLogin} />
 
       <ScrollView 
         ref={scrollRef} 

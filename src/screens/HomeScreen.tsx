@@ -7,9 +7,10 @@ import Footer from "../components/Footer";
 interface HomeScreenProps {
   onSelectCategory: (category: string) => void;
   onGoHome: () => void;
+  onPressLogin: () => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onPressLogin }) => {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -17,7 +18,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome }) =
 
   return (
     <View style={styles.container}>
-      <Header onPressLogo={onGoHome} />
+      <Header onPressLogo={onGoHome} onPressLogin={onPressLogin} />
 
       <ScrollView 
         ref={scrollRef} 

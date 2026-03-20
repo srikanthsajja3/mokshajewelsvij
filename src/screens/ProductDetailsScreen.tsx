@@ -5,16 +5,19 @@ import Footer from "../components/Footer";
 import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
+import { useAuth } from "../contexts/AuthContext";
 
 interface ProductDetailsScreenProps {
   product: Product;
   onGoHome: () => void;
   onBack: () => void;
+  onPressLogin: () => void;
 }
 
-const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, onGoHome, onBack }) => {
+const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, onGoHome, onBack, onPressLogin }) => {
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
+  const { user } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
@@ -45,9 +48,18 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, on
     console.log("Selected recommendation:", p.name);
   };
 
+  const handleBuyNow = () => {
+    if (!user) {
+      onPressLogin();
+    } else {
+      // Proceed to checkout or contact
+      alert("Proceeding to checkout for " + product.name);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Header onPressLogo={onGoHome} />
+      <Header onPressLogo={onGoHome} onPressLogin={onPressLogin} />
 
       <ScrollView 
         ref={scrollRef} 
@@ -112,7 +124,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, on
 
             <View style={styles.divider} />
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
               <Text style={styles.actionButtonText}>Buy Now</Text>
             </TouchableOpacity>
             

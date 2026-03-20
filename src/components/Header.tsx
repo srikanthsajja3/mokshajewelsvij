@@ -1,16 +1,18 @@
 import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
 import { useCountry } from "../contexts/CountryContext";
+import { useAuth } from "../contexts/AuthContext";
 import GoldRateBanner from "./GoldRateBanner";
 
 interface HeaderProps {
   onPressLogo?: () => void;
-  // onBack removed
+  onPressLogin?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onPressLogo }) => {
+const Header: React.FC<HeaderProps> = ({ onPressLogo, onPressLogin }) => {
   const { width } = useWindowDimensions();
   const { countryCode, setCountryCode } = useCountry();
+  const { user, signOut } = useAuth();
   
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
@@ -44,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({ onPressLogo }) => {
               source={require("../../assets/logo.jpg")}
               style={[styles.logo, { width: logoSize, height: logoSize, borderRadius: 12 }]}
             />
-            <View style={[styles.textContainer, { maxWidth: width - 120 }]}>
+            <View style={[styles.textContainer, { maxWidth: width - 180 }]}>
               <Text 
                 numberOfLines={1} 
                 adjustsFontSizeToFit 
@@ -53,11 +55,24 @@ const Header: React.FC<HeaderProps> = ({ onPressLogo }) => {
                 MOKSHA JEWELS
               </Text>
               
-              <TouchableOpacity style={styles.countrySelector} onPress={toggleCountry}>
-                <Text style={styles.countryText}>
-                  {countryCode === "IN" ? "🇮🇳 INDIA" : "🇺🇸 USA"}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.controlsRow}>
+                <TouchableOpacity style={styles.countrySelector} onPress={toggleCountry}>
+                  <Text style={styles.countryText}>
+                    {countryCode === "IN" ? "🇮🇳 INDIA" : "🇺🇸 USA"}
+                  </Text>
+                </TouchableOpacity>
+
+                {user ? (
+                  <TouchableOpacity style={styles.authContainer} onPress={signOut}>
+                    <Text style={styles.userEmail} numberOfLines={1}>{user.email}</Text>
+                    <Text style={styles.logoutText}>Logout</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.authContainer} onPress={onPressLogin}>
+                    <Text style={styles.loginText}>LOGIN</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </TouchableOpacity>
         </View>
@@ -105,15 +120,44 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     fontWeight: "600",
   },
-  countrySelector: {
+  controlsRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 8,
+  },
+  countrySelector: {
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.3)",
     borderRadius: 4,
+    marginRight: 10,
   },
   countryText: {
+    color: "#D4AF37",
+    fontSize: 10,
+    fontWeight: "bold",
+    letterSpacing: 1.5,
+  },
+  authContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  userEmail: {
+    color: "#aaa",
+    fontSize: 10,
+    marginRight: 8,
+    maxWidth: 100,
+  },
+  logoutText: {
+    color: "#D4AF37",
+    fontSize: 10,
+    fontWeight: "bold",
+    textDecorationLine: "underline",
+  },
+  loginText: {
     color: "#D4AF37",
     fontSize: 10,
     fontWeight: "bold",
