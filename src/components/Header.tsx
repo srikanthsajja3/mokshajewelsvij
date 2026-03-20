@@ -2,79 +2,105 @@ import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
 import { useCountry } from "../contexts/CountryContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useCart } from "../contexts/CartContext";
 import GoldRateBanner from "./GoldRateBanner";
 
 interface HeaderProps {
   onPressLogo?: () => void;
   onPressLogin?: () => void;
+  onPressCart?: () => void;
+  onPressOrders?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onPressLogo, onPressLogin }) => {
+const Header: React.FC<HeaderProps> = ({ onPressLogo, onPressLogin, onPressCart, onPressOrders }) => {
   const { width } = useWindowDimensions();
-  const { countryCode, setCountryCode } = useCountry();
+  const { countryCode } = useCountry();
   const { user, signOut } = useAuth();
+  const { cartCount } = useCart();
   
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
   
-  // User manual logo sizes preserved:
-  const logoSize = width > 768 ? 110 : (isIOS ? 80 : 40);
+  // Adjusted logo sizes for mobile safety
+  const logoSize = width > 768 ? 110 : (isIOS ? 55 : 45);
   
-  // Dynamic title size based on screen width
-  const titleSize = width > 768 ? 40 : (width < 380 ? 20 : 24);
+  // Dynamic title size - more conservative for mobile
+  const titleSize = width > 768 ? 40 : (width < 380 ? 18 : 20);
   const letterSpacing = width > 768 ? 3 : 1;
   
   const paddingHorz = isWeb 
     ? (width > 1400 ? 40 : 20)
-    : (width > 1200 ? width * 0.05 : 15);
-
-  const toggleCountry = () => {
-    setCountryCode(countryCode === "IN" ? "US" : "IN");
-  };
+    : 15;
 
   return (
     <View style={styles.container}>
-      {/* Main Header Area */}
+      {/* Main Header Area - Brand Aligned Left */}
       <View style={[styles.header, { paddingHorizontal: paddingHorz }]}>
-        <View style={styles.leftGroup}>
+        <TouchableOpacity 
+          style={styles.brandContainer}
+          onPress={onPressLogo}
+          activeOpacity={0.7}
+        >
+          <Image
+            source={require("../../assets/logo.jpg")}
+            style={[styles.logo, { width: logoSize, height: logoSize, borderRadius: 8 }]}
+          />
+          <Text 
+            numberOfLines={1} 
+            adjustsFontSizeToFit 
+            style={[styles.title, { fontSize: titleSize, letterSpacing: letterSpacing }]}
+          >
+            MOKSHA JEWELS
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Action Bar (Below Header) - All Actions Aligned Right (No Icons) */}
+      <View style={[styles.actionBar, { paddingHorizontal: paddingHorz }]}>
+        <View style={styles.actionsRightGroup}>
+          {/* Home Button */}
           <TouchableOpacity 
-            style={styles.logoContainer}
+            style={styles.actionItem} 
             onPress={onPressLogo}
             activeOpacity={0.7}
           >
-            <Image
-              source={require("../../assets/logo.jpg")}
-              style={[styles.logo, { width: logoSize, height: logoSize, borderRadius: 12 }]}
-            />
-            <View style={[styles.textContainer, { maxWidth: width - 180 }]}>
-              <Text 
-                numberOfLines={1} 
-                adjustsFontSizeToFit 
-                style={[styles.title, { fontSize: titleSize, letterSpacing: letterSpacing }]}
-              >
-                MOKSHA JEWELS
-              </Text>
-              
-              <View style={styles.controlsRow}>
-                <TouchableOpacity style={styles.countrySelector} onPress={toggleCountry}>
-                  <Text style={styles.countryText}>
-                    {countryCode === "IN" ? "🇮🇳 INDIA" : "🇺🇸 USA"}
-                  </Text>
-                </TouchableOpacity>
-
-                {user ? (
-                  <TouchableOpacity style={styles.authContainer} onPress={signOut}>
-                    <Text style={styles.userEmail} numberOfLines={1}>{user.email}</Text>
-                    <Text style={styles.logoutText}>Logout</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity style={styles.authContainer} onPress={onPressLogin}>
-                    <Text style={styles.loginText}>LOGIN</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+            <Text style={styles.actionText}>HOME</Text>
           </TouchableOpacity>
+
+          {/* Orders Section (If logged in) */}
+          {user && (
+            <TouchableOpacity 
+              style={styles.actionItem} 
+              onPress={onPressOrders}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionText}>ORDERS</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Bag Section */}
+          <TouchableOpacity 
+            style={styles.actionItem} 
+            onPress={onPressCart}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionText}>
+              {cartCount === 0 ? "BAG" : `BAG (${cartCount})`}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Login/Account Section */}
+          <View style={styles.authGroup}>
+            {user ? (
+              <TouchableOpacity style={styles.actionItem} onPress={signOut}>
+                <Text style={styles.actionText}>LOGOUT</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.actionItem} onPress={onPressLogin}>
+                <Text style={styles.actionText}>LOGIN</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -89,79 +115,69 @@ const styles = StyleSheet.create({
     backgroundColor: "#291c0e",
   },
   header: {
-    paddingTop: Platform.OS === "ios" ? 60 : 20, 
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(212, 175, 55, 0.15)",
+    // Standard safe padding for iOS
+    paddingTop: Platform.OS === "ios" ? 50 : 15, 
+    paddingBottom: 15,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
   },
-  leftGroup: {
+  brandContainer: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-  },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
+    overflow: "hidden", // Prevent text from bleeding out
   },
   logo: {
-    marginRight: 15,
-  },
-  textContainer: {
-    justifyContent: "center",
-    alignItems: "flex-start",
+    marginRight: 12,
   },
   title: {
     fontFamily: "TrajanPro",
     color: "#D4AF37",
     textTransform: "uppercase",
     fontWeight: "600",
+    flexShrink: 1, // Allow text to shrink to fit screen
   },
-  controlsRow: {
+  actionBar: {
+    backgroundColor: "rgba(212, 175, 55, 0.08)",
+    paddingVertical: 10,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
+  },
+  actionsRightGroup: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
   },
-  countrySelector: {
+  actionItem: {
     paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.3)",
-    borderRadius: 4,
-    marginRight: 10,
+    marginLeft: 18, 
   },
-  countryText: {
+  actionText: {
     color: "#D4AF37",
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "bold",
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
-  authContainer: {
+  authGroup: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+  },
+  userInfo: {
+    alignItems: "flex-end",
   },
   userEmail: {
-    color: "#aaa",
+    color: "#fff",
     fontSize: 10,
-    marginRight: 8,
-    maxWidth: 100,
+    fontWeight: "600",
+    maxWidth: 70,
   },
   logoutText: {
     color: "#D4AF37",
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: "bold",
     textDecorationLine: "underline",
-  },
-  loginText: {
-    color: "#D4AF37",
-    fontSize: 10,
-    fontWeight: "bold",
-    letterSpacing: 1.5,
   },
 });
 

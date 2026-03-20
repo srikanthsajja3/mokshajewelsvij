@@ -6,21 +6,33 @@ import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
 import { useAuth } from "../contexts/AuthContext";
+import { useCart } from "../contexts/CartContext";
 
 interface ProductDetailsScreenProps {
   product: Product;
   onGoHome: () => void;
   onBack: () => void;
   onPressLogin: () => void;
+  onPressCart: () => void;
+  onPressOrders: () => void;
 }
 
-const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, onGoHome, onBack, onPressLogin }) => {
+const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ 
+  product, 
+  onGoHome, 
+  onBack, 
+  onPressLogin, 
+  onPressCart,
+  onPressOrders
+}) => {
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const scrollRef = useRef<ScrollView>(null);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
+  const [showAddedMsg, setShowAddedMsg] = useState(false);
 
   const isLargeScreen = width > 768;
   
@@ -43,23 +55,41 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, on
   }, [product.id, product.category]);
 
   const handleRecommendationPress = (p: Product) => {
-    // This would require a way to change the selected product in the parent
-    // For now, we'll just log it or wait for a more robust navigation implementation
-    console.log("Selected recommendation:", p.name);
+    // Navigate to recommended product
+    // For now we just log it as the navigation state is in App.tsx
+    console.log("Recommendation clicked:", p.name);
   };
 
   const handleBuyNow = () => {
+    addToCart(product);
     if (!user) {
       onPressLogin();
     } else {
-      // Proceed to checkout or contact
-      alert("Proceeding to checkout for " + product.name);
+      onPressCart();
     }
+  };
+
+  const handleAddToCart = () => {
+    console.log('ProductDetails: Calling addToCart for', product.name);
+    addToCart(product);
+    setShowAddedMsg(true);
+    setTimeout(() => setShowAddedMsg(false), 3000);
   };
 
   return (
     <View style={styles.container}>
-      <Header onPressLogo={onGoHome} onPressLogin={onPressLogin} />
+      <Header 
+        onPressLogo={onGoHome} 
+        onPressLogin={onPressLogin} 
+        onPressCart={onPressCart} 
+        onPressOrders={onPressOrders}
+      />
+
+      {showAddedMsg && (
+        <View style={styles.addedMessage}>
+          <Text style={styles.addedMessageText}>✨ Added to your bag!</Text>
+        </View>
+      )}
 
       <ScrollView 
         ref={scrollRef} 
@@ -127,6 +157,10 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ product, on
             <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
               <Text style={styles.actionButtonText}>Buy Now</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.actionButton, styles.addToCartButton]} onPress={handleAddToCart}>
+              <Text style={styles.addToCartButtonText}>Add to Bag</Text>
+            </TouchableOpacity>
             
             <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={onBack}>
               <Text style={styles.secondaryButtonText}>Back to Collections</Text>
@@ -162,6 +196,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#291c0e",
+  },
+  addedMessage: {
+    backgroundColor: "#D4AF37",
+    paddingVertical: 10,
+    alignItems: "center",
+    position: "absolute",
+    top: Platform.OS === 'ios' ? 120 : 100,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  addedMessageText: {
+    color: "#000",
+    fontWeight: "bold",
+    fontSize: 14,
   },
   mainContent: {
     padding: 20,
@@ -279,6 +328,18 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: "#291c0e",
+    fontSize: 16,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  addToCartButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#D4AF37",
+  },
+  addToCartButtonText: {
+    color: "#D4AF37",
     fontSize: 16,
     fontWeight: "bold",
     textTransform: "uppercase",

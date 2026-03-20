@@ -20,6 +20,8 @@ const customStorage: any = {
       }
       return null;
     }
+    // Use SecureStore but handle large values gracefully if needed
+    // In a production app with very large tokens, consider using a chunked storage or AsyncStorage (non-secure)
     return SecureStore.getItemAsync(key);
   },
   setItem: async (key: string, value: string) => {
@@ -28,6 +30,10 @@ const customStorage: any = {
         localStorage.setItem(key, value);
       }
     } else {
+      // If the value is too large for SecureStore, we log it
+      if (value.length > 2048) {
+        console.warn('Supabase session is large. If login persistence fails, consider a different storage provider.');
+      }
       await SecureStore.setItemAsync(key, value);
     }
   },

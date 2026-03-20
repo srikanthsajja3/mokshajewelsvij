@@ -8,9 +8,11 @@ interface HomeScreenProps {
   onSelectCategory: (category: string) => void;
   onGoHome: () => void;
   onPressLogin: () => void;
+  onPressCart: () => void;
+  onPressOrders: () => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onPressLogin }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onPressLogin, onPressCart, onPressOrders }) => {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -18,7 +20,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onP
 
   return (
     <View style={styles.container}>
-      <Header onPressLogo={onGoHome} onPressLogin={onPressLogin} />
+      <Header 
+        onPressLogo={onGoHome} 
+        onPressLogin={onPressLogin} 
+        onPressCart={onPressCart} 
+        onPressOrders={onPressOrders}
+      />
 
       <ScrollView 
         ref={scrollRef} 
@@ -38,7 +45,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onP
               
               <TouchableOpacity 
                 style={styles.exploreButton}
-                onPress={() => onSelectCategory("All")}
+                onPress={() => onSelectCategory("Gold")}
                 activeOpacity={0.8}
               >
                 <Text style={styles.exploreButtonText}>View All Products</Text>

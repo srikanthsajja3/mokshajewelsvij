@@ -6,15 +6,20 @@ import HomeScreen from "./src/screens/HomeScreen";
 import CategoryScreen from "./src/screens/CategoryScreen";
 import ProductDetailsScreen from "./src/screens/ProductDetailsScreen";
 import LoginScreen from "./src/screens/LoginScreen";
+import CartScreen from "./src/screens/CartScreen";
+import CheckoutScreen from "./src/screens/CheckoutScreen";
+import OrdersScreen from "./src/screens/OrdersScreen";
 import { Product } from "./src/data/products";
 import { CountryProvider } from "./src/contexts/CountryContext";
 import { GoldRateProvider } from "./src/contexts/GoldRateContext";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
+import { CartProvider } from "./src/contexts/CartContext";
 import SwipeBackView from "./src/components/SwipeBackView";
+import { StripeWrapper } from "./src/components/StripeWrapper";
 
 function AppContent() {
-  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login">("home");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders">("home");
+  const [selectedCategory, setSelectedCategory] = useState("Gold");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { user, isLoading: authLoading } = useAuth();
 
@@ -40,8 +45,36 @@ function AppContent() {
     setCurrentScreen("login");
   };
 
+  const navigateToCart = () => {
+    setCurrentScreen("cart");
+  };
+
+  const navigateToCheckout = () => {
+    setCurrentScreen("checkout");
+  };
+
+  const navigateToOrders = () => {
+    setCurrentScreen("orders");
+  };
+
   const navigateBackToList = () => {
     setCurrentScreen("category");
+  };
+
+  const handleCheckout = () => {
+    if (!user) {
+      navigateToLogin();
+    } else {
+      navigateToCheckout();
+    }
+  };
+
+  const handleOrders = () => {
+    if (!user) {
+      navigateToLogin();
+    } else {
+      navigateToOrders();
+    }
   };
 
   if (!fontsLoaded || authLoading) {
@@ -61,6 +94,8 @@ function AppContent() {
           onSelectCategory={navigateToCategory} 
           onGoHome={navigateToHome} 
           onPressLogin={navigateToLogin}
+          onPressCart={navigateToCart}
+          onPressOrders={handleOrders}
         />
       )}
       
@@ -72,6 +107,8 @@ function AppContent() {
             onSelectProduct={navigateToProduct}
             onGoHome={navigateToHome} 
             onPressLogin={navigateToLogin}
+            onPressCart={navigateToCart}
+            onPressOrders={handleOrders}
           />
         </SwipeBackView>
       )}
@@ -83,6 +120,8 @@ function AppContent() {
             onGoHome={navigateToHome}
             onBack={navigateBackToList}
             onPressLogin={navigateToLogin}
+            onPressCart={navigateToCart}
+            onPressOrders={handleOrders}
           />
         </SwipeBackView>
       )}
@@ -91,6 +130,35 @@ function AppContent() {
         <LoginScreen 
           onLoginSuccess={navigateToHome} 
           onGoHome={navigateToHome} 
+          onClose={navigateToHome}
+        />
+      )}
+
+      {currentScreen === "cart" && (
+        <CartScreen 
+          onGoHome={navigateToHome}
+          onCheckout={handleCheckout}
+          onPressLogin={navigateToLogin}
+          onPressOrders={handleOrders}
+        />
+      )}
+
+      {currentScreen === "checkout" && (
+        <CheckoutScreen 
+          onGoHome={navigateToHome}
+          onSuccess={navigateToOrders}
+          onPressLogin={navigateToLogin}
+          onPressOrders={handleOrders}
+          onPressCart={navigateToCart}
+        />
+      )}
+
+      {currentScreen === "orders" && (
+        <OrdersScreen 
+          onGoHome={navigateToHome}
+          onPressLogin={navigateToLogin}
+          onPressOrders={handleOrders}
+          onPressCart={navigateToCart}
         />
       )}
     </View>
@@ -101,11 +169,15 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <CountryProvider>
-          <GoldRateProvider>
-            <AppContent />
-          </GoldRateProvider>
-        </CountryProvider>
+        <CartProvider>
+          <CountryProvider>
+            <GoldRateProvider>
+              <StripeWrapper>
+                <AppContent />
+              </StripeWrapper>
+            </GoldRateProvider>
+          </CountryProvider>
+        </CartProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

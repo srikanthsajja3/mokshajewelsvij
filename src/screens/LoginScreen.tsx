@@ -18,9 +18,10 @@ import Header from '../components/Header';
 interface LoginScreenProps {
   onLoginSuccess: () => void;
   onGoHome: () => void;
+  onClose: () => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -67,6 +68,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome }) =
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.formContainer}>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+
             <Text style={styles.title}>{isRegistering ? 'Create Account' : 'Welcome Back'}</Text>
             <Text style={styles.subtitle}>
               {isRegistering 
@@ -146,6 +151,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#D4AF37',
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  closeButtonText: {
+    color: '#D4AF37',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   title: {
     fontFamily: 'TrajanPro',
@@ -153,6 +174,7 @@ const styles = StyleSheet.create({
     color: '#D4AF37',
     marginBottom: 10,
     textAlign: 'center',
+    marginTop: 10,
   },
   subtitle: {
     fontSize: 14,

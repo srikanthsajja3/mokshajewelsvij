@@ -2,15 +2,11 @@
 
 -- Ensure Categories exist first
 INSERT INTO categories (name) VALUES 
-('Rings'), 
-('Necklaces'), 
-('Earrings'), 
-('Bracelets'), 
-('Bangles')
+('Gold'), 
+('Diamonds')
 ON CONFLICT (name) DO NOTHING;
 
--- Insert Sample Products
--- Make sure category_name matches exactly the values in the 'categories' table.
+-- Insert/Update Sample Products
 INSERT INTO products (
     name, 
     category_name, 
@@ -30,7 +26,7 @@ INSERT INTO products (
 ) VALUES 
 (
     'Eternal Radiance Ring', 
-    'Rings', 
+    'Gold', 
     'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=800', 
     'MJ-RG-001', 
     4.500, 
@@ -47,7 +43,7 @@ INSERT INTO products (
 ),
 (
     'Royal Heritage Necklace', 
-    'Necklaces', 
+    'Gold', 
     'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800', 
     'MJ-NK-002', 
     25.500, 
@@ -64,7 +60,7 @@ INSERT INTO products (
 ),
 (
     'Divine Grace Earrings', 
-    'Earrings', 
+    'Gold', 
     'https://images.unsplash.com/photo-1635767798638-3e25273a8236?auto=format&fit=crop&q=80&w=800', 
     'MJ-ER-003', 
     8.200, 
@@ -80,36 +76,34 @@ INSERT INTO products (
     95
 ),
 (
-    'Rose Petal Bracelet', 
-    'Bracelets', 
-    'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&q=80&w=800', 
-    'MJ-BR-004', 
-    12.400, 
-    11.200, 
+    'Diamond Solitaire Studs', 
+    'Diamonds', 
+    'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=800', 
+    'MJ-DM-006', 
+    3.200, 
+    2.800, 
     '18 KT', 
-    'Rose Gold', 
-    1150.00, 
-    850.00, 
-    180.00, 
-    20.00, 
+    'White Gold', 
+    1250.00, 
+    250.00, 
     100.00, 
-    4.6, 
-    80
-),
-(
-    'Traditional Gold Bangle', 
-    'Bangles', 
-    'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=800', 
-    'MJ-BN-005', 
-    18.000, 
-    17.500, 
-    '22 KT', 
-    'Yellow Gold', 
-    1650.00, 
-    1350.00, 
-    200.00, 
-    0.00, 
+    800.00, 
     100.00, 
-    4.5, 
-    60
-);
+    4.9, 
+    210
+)
+ON CONFLICT (product_code) DO UPDATE SET
+    name = EXCLUDED.name,
+    category_name = EXCLUDED.category_name,
+    image_url = EXCLUDED.image_url,
+    gross_weight = EXCLUDED.gross_weight,
+    gold_weight = EXCLUDED.gold_weight,
+    purity = EXCLUDED.purity,
+    metal_color = EXCLUDED.metal_color,
+    base_price_usd = EXCLUDED.base_price_usd,
+    metal_price_usd = EXCLUDED.metal_price_usd,
+    va_making_usd = EXCLUDED.va_making_usd,
+    stone_beads_usd = EXCLUDED.stone_beads_usd,
+    tax_usd = EXCLUDED.tax_usd,
+    rating = EXCLUDED.rating,
+    popularity = EXCLUDED.popularity;

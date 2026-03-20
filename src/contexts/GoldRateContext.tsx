@@ -6,6 +6,32 @@ interface GoldRate {
   rate: number; // USD per gram
 }
 
+interface CountryConfig {
+  currency: string;
+  unit: string;
+  factor: number; // multiplier for the unit (e.g., 10 for 10g)
+  exchangeRate: number; // rate vs USD
+  locale: string;
+}
+
+const COUNTRY_CONFIGS: Record<string, CountryConfig> = {
+  'IN': { currency: 'INR', unit: '10g', factor: 10, exchangeRate: 83, locale: 'en-IN' },
+  'US': { currency: 'USD', unit: 'g', factor: 1, exchangeRate: 1, locale: 'en-US' },
+  'GB': { currency: 'GBP', unit: 'g', factor: 1, exchangeRate: 0.79, locale: 'en-GB' },
+  'AE': { currency: 'AED', unit: 'g', factor: 1, exchangeRate: 3.67, locale: 'en-AE' },
+  'CA': { currency: 'CAD', unit: 'g', factor: 1, exchangeRate: 1.35, locale: 'en-CA' },
+  'AU': { currency: 'AUD', unit: 'g', factor: 1, exchangeRate: 1.52, locale: 'en-AU' },
+  'SG': { currency: 'SGD', unit: 'g', factor: 1, exchangeRate: 1.34, locale: 'en-SG' },
+};
+
+const DEFAULT_CONFIG: CountryConfig = { 
+  currency: 'USD', 
+  unit: 'g', 
+  factor: 1, 
+  exchangeRate: 1, 
+  locale: 'en-US' 
+};
+
 interface GoldRateContextType {
   rates: GoldRate[];
   getLocalizedRate: (usdRate: number) => string;
@@ -38,7 +64,6 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => clearInterval(interval);
   }, []);
 
-  // Memoize rates so the reference doesn't change unless baseRate changes
   const rates = useMemo((): GoldRate[] => [
     { purity: '24K', rate: baseRate },
     { purity: '22K', rate: baseRate * 0.9167 },
@@ -46,19 +71,14 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   ], [baseRate]);
 
   const getLocalizedRate = (usdRate: number) => {
-    if (countryCode === 'IN') {
-      const inrRatePer10g = usdRate * 80 * 10;
-      return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 0,
-      }).format(inrRatePer10g) + " (10g)";
-    }
-    return new Intl.NumberFormat('en-US', {
+    const config = COUNTRY_CONFIGS[countryCode] || DEFAULT_CONFIG;
+    const localizedValue = usdRate * config.exchangeRate * config.factor;
+    
+    return new Intl.NumberFormat(config.locale, {
       style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 2,
-    }).format(usdRate) + " (g)";
+      currency: config.currency,
+      maximumFractionDigits: config.currency === 'INR' ? 0 : 2,
+    }).format(localizedValue) + ` (${config.unit})`;
   };
 
   return (

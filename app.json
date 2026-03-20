@@ -29,7 +29,14 @@
     "plugins": [
       "expo-secure-store",
       "expo-font",
-      "expo-localization"
+      "expo-localization",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.mokshajewels",
+          "enableGooglePay": true
+        }
+      ]
     ]
   }
 }

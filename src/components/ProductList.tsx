@@ -1,31 +1,22 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, ScrollView, Platform, ActivityIndicator } from "react-native";
+import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ActivityIndicator } from "react-native";
 import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
+import { SortOption } from "./CategoryBar";
 
 interface ProductListProps {
   category: string;
   onSelectProduct: (product: Product) => void;
+  sortBy: SortOption;
 }
 
-type SortOption = 
-  | "popularity" 
-  | "rating" 
-  | "latest" 
-  | "price_low" 
-  | "price_high" 
-  | "weight_low" 
-  | "weight_high";
-
-const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) => {
+const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, sortBy }) => {
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>("popularity");
-  const [showSortOptions, setShowSortOptions] = useState(false);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -43,18 +34,6 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) 
 
     loadProducts();
   }, [category]);
-
-  const isMobile = width < 768;
-
-  const sortOptions: { label: string; value: SortOption }[] = [
-    { label: "Sort by popularity", value: "popularity" },
-    { label: "Sort by average rating", value: "rating" },
-    { label: "Sort by latest", value: "latest" },
-    { label: "Sort by price: low to high", value: "price_low" },
-    { label: "Sort by price: high to low", value: "price_high" },
-    { label: "Sort by weight: low to high", value: "weight_low" },
-    { label: "Sort by weight: high to low", value: "weight_high" },
-  ];
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
@@ -97,46 +76,9 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) 
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerRow, isMobile && styles.headerRowMobile]}>
-        <View style={styles.titleContainer}>
-          <Text 
-            numberOfLines={1} 
-            adjustsFontSizeToFit 
-            style={styles.title}
-          >
-            {category} Collection
-          </Text>
-        </View>
-        
-        <View style={[styles.sortContainer, isMobile && styles.sortContainerMobile]}>
-          <TouchableOpacity 
-            style={styles.sortButton} 
-            onPress={() => setShowSortOptions(!showSortOptions)}
-          >
-            <Text style={styles.sortButtonText} numberOfLines={1}>
-              {isMobile ? "Sort ▾" : (sortOptions.find(o => o.value === sortBy)?.label + " ▾")}
-            </Text>
-          </TouchableOpacity>
-          
-          {showSortOptions && (
-            <View style={[styles.dropdown, isMobile && styles.dropdownMobile]}>
-              {sortOptions.map((option) => (
-                <TouchableOpacity 
-                  key={option.value}
-                  style={[styles.dropdownOption, sortBy === option.value && styles.activeOption]}
-                  onPress={() => {
-                    setSortBy(option.value);
-                    setShowSortOptions(false);
-                  }}
-                >
-                  <Text style={[styles.optionText, sortBy === option.value && styles.activeOptionText]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>{category} Collection</Text>
+        <Text style={styles.countText}>{filteredAndSortedProducts.length} Items</Text>
       </View>
 
       {loading ? (
@@ -148,14 +90,13 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct }) 
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyText, { color: "#ff4444" }]}>{error}</Text>
           <TouchableOpacity 
-            style={[styles.sortButton, { marginTop: 20 }]} 
+            style={styles.retryButton} 
             onPress={() => {
-                // Trigger reload
                 setProducts([]);
                 setLoading(true);
             }}
           >
-            <Text style={styles.sortButtonText}>Retry Connection</Text>
+            <Text style={styles.retryButtonText}>Retry Connection</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -193,7 +134,6 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     backgroundColor: "#291c0e",
-    zIndex: 1,
     minHeight: 400,
   },
   loadingContainer: {
@@ -211,83 +151,23 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-    zIndex: 10,
-    gap: 10,
-  },
-  headerRowMobile: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 15,
-  },
-  titleContainer: {
-    flex: 1,
-    minWidth: 150,
+    alignItems: "baseline",
+    marginBottom: 25,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212, 175, 55, 0.15)",
   },
   title: {
     fontFamily: "TrajanPro",
-    fontSize: 22,
+    fontSize: 20,
     color: "#fff",
     textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  sortContainer: {
-    width: 220,
-    position: "relative",
-  },
-  sortContainerMobile: {
-    width: '100%',
-  },
-  sortButton: {
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.4)",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    backgroundColor: "#3d2b1a",
-  },
-  sortButtonText: {
-    color: "#D4AF37",
+  countText: {
+    color: "#888",
     fontSize: 12,
     fontWeight: "600",
-  },
-  dropdown: {
-    position: "absolute",
-    top: 40,
-    right: 0,
-    width: "100%",
-    backgroundColor: "#3d2b1a",
-    borderWidth: 1,
-    borderColor: "#D4AF37",
-    borderRadius: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 10,
-    zIndex: 100,
-  },
-  dropdownMobile: {
-    position: "relative",
-    top: 5,
-    right: 0,
-  },
-  dropdownOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(212, 175, 55, 0.1)",
-  },
-  activeOption: {
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-  },
-  optionText: {
-    color: "#aaa",
-    fontSize: 12,
-  },
-  activeOptionText: {
-    color: "#D4AF37",
-    fontWeight: "bold",
   },
   grid: {
     flexDirection: "row",
@@ -296,7 +176,7 @@ const styles = StyleSheet.create({
   },
   productCard: {
     backgroundColor: "#3d2b1a",
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: "hidden",
     marginBottom: 10,
     borderWidth: 1,
@@ -312,15 +192,15 @@ const styles = StyleSheet.create({
   },
   productName: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
     marginBottom: 4,
+    letterSpacing: 0.5,
   },
   productWeight: {
-    color: "#888",
+    color: "#aaa",
     fontSize: 10,
     marginBottom: 6,
-    letterSpacing: 0.5,
   },
   productPrice: {
     color: "#D4AF37",
@@ -336,6 +216,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontStyle: "italic",
   },
+  retryButton: {
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: "#D4AF37",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "bold",
+  }
 });
 
 export default ProductList;

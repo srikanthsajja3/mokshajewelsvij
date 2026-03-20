@@ -54,7 +54,8 @@ export const fetchProductsFromSupabase = async (category: string = "All"): Promi
   try {
     let query = supabase.from("products").select("*");
     
-    if (category !== "All") {
+    // If category is not "All", filter by category_name
+    if (category && category !== "All") {
       query = query.eq("category_name", category);
     }
 
