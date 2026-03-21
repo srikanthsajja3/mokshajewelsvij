@@ -7,28 +7,29 @@ import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
 import { useAuth } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
+import { useWishlist } from "../contexts/WishlistContext";
 
 interface ProductDetailsScreenProps {
   product: Product;
   onGoHome: () => void;
   onBack: () => void;
+  onSelectProduct: (product: Product) => void;
   onPressLogin: () => void;
   onPressCart: () => void;
   onPressOrders: () => void;
+  onPressWishlist: () => void;
+  onPressProfile: () => void;
+  searchQuery: string;
+  onSearch: (query: string) => void;
 }
 
-const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ 
-  product, 
-  onGoHome, 
-  onBack, 
-  onPressLogin, 
-  onPressCart,
-  onPressOrders
-}) => {
+const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
+  const { product, onBack, onSelectProduct } = props;
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const scrollRef = useRef<ScrollView>(null);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
@@ -54,36 +55,36 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }, [product.id, product.category]);
 
-  const handleRecommendationPress = (p: Product) => {
-    // Navigate to recommended product
-    // For now we just log it as the navigation state is in App.tsx
-    console.log("Recommendation clicked:", p.name);
-  };
-
   const handleBuyNow = () => {
     addToCart(product);
     if (!user) {
-      onPressLogin();
+      props.onPressLogin();
     } else {
-      onPressCart();
+      props.onPressCart();
     }
   };
 
   const handleAddToCart = () => {
-    console.log('ProductDetails: Calling addToCart for', product.name);
     addToCart(product);
     setShowAddedMsg(true);
     setTimeout(() => setShowAddedMsg(false), 3000);
   };
 
+  const handleWishlistToggle = async () => {
+    if (!user) {
+      props.onPressLogin();
+      return;
+    }
+    if (isInWishlist(product.id)) {
+      await removeFromWishlist(product.id);
+    } else {
+      await addToWishlist(product.id);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Header 
-        onPressLogo={onGoHome} 
-        onPressLogin={onPressLogin} 
-        onPressCart={onPressCart} 
-        onPressOrders={onPressOrders}
-      />
+      <Header {...props} />
 
       {showAddedMsg && (
         <View style={styles.addedMessage}>
@@ -99,6 +100,14 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({
           <View style={[styles.imageColumn, { width: isLargeScreen ? "50%" : "100%" }]}>
             <View style={styles.imageSection}>
               <Image source={{ uri: product.image }} style={styles.mainImage} />
+              <TouchableOpacity 
+                style={styles.wishlistIcon} 
+                onPress={handleWishlistToggle}
+              >
+                <Text style={[styles.heart, isInWishlist(product.id) && styles.heartActive]}>
+                  {isInWishlist(product.id) ? "♥" : "♡"}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -162,6 +171,12 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({
               <Text style={styles.addToCartButtonText}>Add to Bag</Text>
             </TouchableOpacity>
             
+            <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={handleWishlistToggle}>
+              <Text style={styles.secondaryButtonText}>
+                {isInWishlist(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={onBack}>
               <Text style={styles.secondaryButtonText}>Back to Collections</Text>
             </TouchableOpacity>
@@ -174,13 +189,18 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({
             <Text style={styles.recommendationTitle}>Recommended for You</Text>
             <View style={styles.recommendationGrid}>
               {recommendations.map((item) => (
-                <View key={item.id} style={styles.recommendationCard}>
+                <TouchableOpacity 
+                  key={item.id} 
+                  style={styles.recommendationCard}
+                  onPress={() => onSelectProduct(item)}
+                  activeOpacity={0.8}
+                >
                   <Image source={{ uri: item.image }} style={styles.recImage} />
                   <View style={styles.recInfo}>
                     <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
                     <Text style={styles.recPrice}>{formatPrice(item.price, countryCode)}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -226,11 +246,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#3d2b1a",
     borderWidth: 1,
     borderColor: "#4a3520",
+    position: "relative",
   },
   mainImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
+  },
+  wishlistIcon: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  heart: {
+    color: "#fff",
+    fontSize: 24,
+  },
+  heartActive: {
+    color: "#D4AF37",
   },
   infoSection: {
     paddingVertical: 10,

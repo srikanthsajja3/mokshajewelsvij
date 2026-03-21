@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, StatusBar, View, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import HomeScreen from "./src/screens/HomeScreen";
 import CategoryScreen from "./src/screens/CategoryScreen";
@@ -9,19 +10,25 @@ import LoginScreen from "./src/screens/LoginScreen";
 import CartScreen from "./src/screens/CartScreen";
 import CheckoutScreen from "./src/screens/CheckoutScreen";
 import OrdersScreen from "./src/screens/OrdersScreen";
+import WishlistScreen from "./src/screens/WishlistScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
+import AdminDashboardScreen from "./src/screens/AdminDashboardScreen";
+import VendorDashboardScreen from "./src/screens/VendorDashboardScreen";
 import { Product } from "./src/data/products";
 import { CountryProvider } from "./src/contexts/CountryContext";
 import { GoldRateProvider } from "./src/contexts/GoldRateContext";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { CartProvider } from "./src/contexts/CartContext";
+import { WishlistProvider } from "./src/contexts/WishlistContext";
 import SwipeBackView from "./src/components/SwipeBackView";
 import { StripeWrapper } from "./src/components/StripeWrapper";
 
 function AppContent() {
-  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders">("home");
+  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor">("home");
   const [selectedCategory, setSelectedCategory] = useState("Gold");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const { user, isLoading: authLoading } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user, isAdmin, isVendor, isLoading: authLoading } = useAuth();
 
   const [fontsLoaded] = useFonts({
     "TrajanPro": require("./assets/fonts/TrajanPro-Regular.ttf"),
@@ -57,6 +64,22 @@ function AppContent() {
     setCurrentScreen("orders");
   };
 
+  const navigateToWishlist = () => {
+    setCurrentScreen("wishlist");
+  };
+
+  const navigateToProfile = () => {
+    setCurrentScreen("profile");
+  };
+
+  const navigateToAdmin = () => {
+    setCurrentScreen("admin");
+  };
+
+  const navigateToVendor = () => {
+    setCurrentScreen("vendor");
+  };
+
   const navigateBackToList = () => {
     setCurrentScreen("category");
   };
@@ -77,6 +100,30 @@ function AppContent() {
     }
   };
 
+  const handleProfile = () => {
+    if (!user) {
+      navigateToLogin();
+    } else {
+      navigateToProfile();
+    }
+  };
+
+  const handleWishlist = () => {
+    if (!user) {
+      navigateToLogin();
+    } else {
+      navigateToWishlist();
+    }
+  };
+
+  const handleVendor = () => {
+    if (!user) {
+      navigateToLogin();
+    } else {
+      navigateToVendor();
+    }
+  };
+
   if (!fontsLoaded || authLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -85,6 +132,19 @@ function AppContent() {
     );
   }
 
+  const commonProps = {
+    onGoHome: navigateToHome,
+    onPressLogin: navigateToLogin,
+    onPressCart: navigateToCart,
+    onPressOrders: handleOrders,
+    onPressWishlist: handleWishlist,
+    onPressProfile: handleProfile,
+    onPressAdmin: navigateToAdmin,
+    onPressVendor: handleVendor,
+    searchQuery,
+    onSearch: setSearchQuery,
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -92,10 +152,7 @@ function AppContent() {
       {currentScreen === "home" && (
         <HomeScreen 
           onSelectCategory={navigateToCategory} 
-          onGoHome={navigateToHome} 
-          onPressLogin={navigateToLogin}
-          onPressCart={navigateToCart}
-          onPressOrders={handleOrders}
+          {...commonProps}
         />
       )}
       
@@ -105,10 +162,7 @@ function AppContent() {
             category={selectedCategory} 
             onSelectCategory={navigateToCategory} 
             onSelectProduct={navigateToProduct}
-            onGoHome={navigateToHome} 
-            onPressLogin={navigateToLogin}
-            onPressCart={navigateToCart}
-            onPressOrders={handleOrders}
+            {...commonProps}
           />
         </SwipeBackView>
       )}
@@ -117,11 +171,9 @@ function AppContent() {
         <SwipeBackView onSwipeBack={navigateBackToList}>
           <ProductDetailsScreen 
             product={selectedProduct} 
-            onGoHome={navigateToHome}
             onBack={navigateBackToList}
-            onPressLogin={navigateToLogin}
-            onPressCart={navigateToCart}
-            onPressOrders={handleOrders}
+            onSelectProduct={navigateToProduct}
+            {...commonProps}
           />
         </SwipeBackView>
       )}
@@ -136,29 +188,46 @@ function AppContent() {
 
       {currentScreen === "cart" && (
         <CartScreen 
-          onGoHome={navigateToHome}
           onCheckout={handleCheckout}
-          onPressLogin={navigateToLogin}
-          onPressOrders={handleOrders}
+          {...commonProps}
         />
       )}
 
       {currentScreen === "checkout" && (
         <CheckoutScreen 
-          onGoHome={navigateToHome}
           onSuccess={navigateToOrders}
-          onPressLogin={navigateToLogin}
-          onPressOrders={handleOrders}
-          onPressCart={navigateToCart}
+          {...commonProps}
         />
       )}
 
       {currentScreen === "orders" && (
         <OrdersScreen 
-          onGoHome={navigateToHome}
-          onPressLogin={navigateToLogin}
-          onPressOrders={handleOrders}
-          onPressCart={navigateToCart}
+          {...commonProps}
+        />
+      )}
+
+      {currentScreen === "wishlist" && (
+        <WishlistScreen 
+          onSelectProduct={navigateToProduct}
+          {...commonProps}
+        />
+      )}
+
+      {currentScreen === "profile" && (
+        <ProfileScreen 
+          {...commonProps}
+        />
+      )}
+
+      {currentScreen === "admin" && (
+        <AdminDashboardScreen 
+          {...commonProps}
+        />
+      )}
+
+      {currentScreen === "vendor" && (
+        <VendorDashboardScreen 
+          {...commonProps}
         />
       )}
     </View>
@@ -168,17 +237,21 @@ function AppContent() {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <CartProvider>
-          <CountryProvider>
-            <GoldRateProvider>
-              <StripeWrapper>
-                <AppContent />
-              </StripeWrapper>
-            </GoldRateProvider>
-          </CountryProvider>
-        </CartProvider>
-      </AuthProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <CountryProvider>
+                <GoldRateProvider>
+                  <StripeWrapper>
+                    <AppContent />
+                  </StripeWrapper>
+                </GoldRateProvider>
+              </CountryProvider>
+            </CartProvider>
+          </WishlistProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

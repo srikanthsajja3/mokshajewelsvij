@@ -8,13 +8,15 @@ import {
   ActivityIndicator, 
   StatusBar,
   Image,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
 import { formatPrice } from '../utils/currency';
 import Header from '../components/Header';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface OrderItem {
   id: string;
@@ -37,16 +39,26 @@ interface Order {
 interface OrdersScreenProps {
   onGoHome: () => void;
   onPressLogin: () => void;
-  onPressOrders: () => void;
   onPressCart: () => void;
+  onPressOrders: () => void;
+  onPressWishlist: () => void;
+  onPressProfile: () => void;
+  searchQuery: string;
+  onSearch: (query: string) => void;
 }
 
-const OrdersScreen: React.FC<OrdersScreenProps> = ({ onGoHome, onPressLogin, onPressOrders, onPressCart }) => {
+const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
+  const { onGoHome, onPressLogin, onPressCart, onPressOrders } = props;
   const { user } = useAuth();
+
   const { countryCode } = useCountry();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  
+  // Modal State
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -96,37 +108,36 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ onGoHome, onPressLogin, onP
     }
   };
 
-  const handleDeleteOrder = async (orderId: string) => {
-    Alert.alert(
-      "Cancel Order",
-      "Are you sure you want to cancel this luxury order? This action cannot be undone.",
-      [
-        { text: "No, Keep Order", style: "cancel" },
-        { 
-          text: "Yes, Cancel It", 
-          style: "destructive",
-          onPress: async () => {
-            setIsDeleting(orderId);
-            try {
-              const { error } = await supabase
-                .from('orders')
-                .delete()
-                .eq('id', orderId);
+  const handleDeleteOrder = (orderId: string) => {
+    setOrderToCancel(orderId);
+    setShowCancelModal(true);
+  };
 
-              if (error) throw error;
-              
-              setOrders(prev => prev.filter(o => o.id !== orderId));
-              Alert.alert("Success", "Your order has been cancelled and removed.");
-            } catch (error: any) {
-              console.error('Error deleting order:', error.message);
-              Alert.alert("Error", "We couldn't cancel your order. Please contact support.");
-            } finally {
-              setIsDeleting(null);
-            }
-          }
-        }
-      ]
-    );
+  const confirmCancelOrder = async () => {
+    if (!orderToCancel) return;
+    
+    const orderId = orderToCancel;
+    setShowCancelModal(false);
+    setOrderToCancel(null);
+    
+    setIsDeleting(orderId);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (error) throw error;
+      
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+    } catch (error: any) {
+      console.error('Error deleting order:', error.message);
+      if (Platform.OS !== 'web') {
+        Alert.alert("Error", "We couldn't cancel your order.");
+      }
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   const renderOrderItem = (item: OrderItem) => (
@@ -191,7 +202,7 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ onGoHome, onPressLogin, onP
   if (!user) {
     return (
       <View style={styles.container}>
-        <Header onPressLogo={onGoHome} onPressLogin={onPressLogin} onPressOrders={onPressOrders} onPressCart={onPressCart} />
+        <Header {...props} />
         <View style={styles.centerContent}>
           <Text style={styles.messageText}>Please log in to view your order history.</Text>
           <TouchableOpacity style={styles.loginBtn} onPress={onPressLogin}>
@@ -205,7 +216,7 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ onGoHome, onPressLogin, onP
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Header onPressLogo={onGoHome} onPressLogin={onPressLogin} onPressOrders={onPressOrders} onPressCart={onPressCart} />
+      <Header {...props} />
       
       <View style={styles.content}>
         <Text style={styles.title}>Your Order History</Text>
@@ -231,6 +242,17 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ onGoHome, onPressLogin, onP
           />
         )}
       </View>
+
+      <ConfirmationModal
+        visible={showCancelModal}
+        title="Cancel Masterpiece Order"
+        message="Are you sure you want to cancel this luxury order? This action will remove the selection from your history and cannot be undone."
+        confirmLabel="Yes, Cancel"
+        cancelLabel="No, Keep It"
+        onConfirm={confirmCancelOrder}
+        onCancel={() => setShowCancelModal(false)}
+        isDestructive={true}
+      />
     </View>
   );
 };
@@ -361,7 +383,7 @@ const styles = StyleSheet.create({
   deleteBtnText: {
     color: '#ff4444',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   loginBtn: {
     backgroundColor: '#D4AF37',

@@ -14,29 +14,20 @@ interface CategoryScreenProps {
   onPressLogin: () => void;
   onPressCart: () => void;
   onPressOrders: () => void;
+  onPressWishlist: () => void;
+  onPressProfile: () => void;
+  searchQuery: string;
+  onSearch: (query: string) => void;
 }
 
-const CategoryScreen: React.FC<CategoryScreenProps> = ({ 
-  category, 
-  onSelectCategory, 
-  onSelectProduct, 
-  onGoHome, 
-  onPressLogin, 
-  onPressCart,
-  onPressOrders
-}) => {
+const CategoryScreen: React.FC<CategoryScreenProps> = (props) => {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const [sortBy, setSortBy] = useState<SortOption>("popularity");
 
   return (
     <View style={styles.container}>
-      <Header 
-        onPressLogo={onGoHome} 
-        onPressLogin={onPressLogin} 
-        onPressCart={onPressCart} 
-        onPressOrders={onPressOrders}
-      />
+      <Header {...props} />
 
       <ScrollView 
         ref={scrollRef} 
@@ -45,9 +36,9 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({
         contentContainerStyle={styles.scrollContent}
       >
         <CategoryBar 
-          activeCategory={category} 
+          activeCategory={props.category} 
           onSelectCategory={(cat) => {
-            onSelectCategory(cat);
+            props.onSelectCategory(cat);
             scrollRef.current?.scrollTo({ y: 0, animated: true });
           }} 
           sortBy={sortBy}
@@ -57,9 +48,11 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({
         <View style={styles.fullWidth}>
           <View style={styles.mainArea}>
             <ProductList 
-              category={category} 
-              onSelectProduct={onSelectProduct} 
+              category={props.category} 
+              onSelectProduct={props.onSelectProduct} 
               sortBy={sortBy}
+              searchQuery={props.searchQuery}
+              onPressLogin={props.onPressLogin}
             />
           </View>
           <Footer />

@@ -19,16 +19,20 @@ import Header from '../components/Header';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { usePaymentGateway } from '../utils/paymentHooks';
-
 interface CheckoutScreenProps {
   onGoHome: () => void;
   onSuccess: () => void;
   onPressLogin: () => void;
   onPressOrders: () => void;
   onPressCart: () => void;
+  onPressWishlist: () => void;
+  onPressProfile: () => void;
+  searchQuery: string;
+  onSearch: (query: string) => void;
 }
 
-const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, onPressLogin, onPressOrders, onPressCart }) => {
+const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
+  const { onGoHome, onSuccess, onPressLogin, onPressOrders, onPressCart } = props;
   const { cart, cartTotal, clearCart } = useCart();
   const { user } = useAuth();
   const { countryCode } = useCountry();
@@ -36,11 +40,51 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, on
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReady, setIsReady] = useState(Platform.OS === 'web' || countryCode === 'IN');
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   
   // Form State - Shipping
+  const [fullName, setFullName] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [zip, setZip] = useState('');
+  const [country, setCountry] = useState('United States');
+
+  useEffect(() => {
+    if (user) {
+      fetchSavedAddresses();
+    }
+  }, [user]);
+
+  const fetchSavedAddresses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('is_default', { ascending: false });
+
+      if (error) throw error;
+      setSavedAddresses(data || []);
+      
+      // Auto-select default address
+      const defaultAddr = data?.find(a => a.is_default);
+      if (defaultAddr) {
+        handleSelectAddress(defaultAddr);
+      }
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+    }
+  };
+
+  const handleSelectAddress = (addr: any) => {
+    setSelectedAddressId(addr.id);
+    setFullName(addr.full_name);
+    setAddress(addr.address_line1 + (addr.address_line2 ? `, ${addr.address_line2}` : ''));
+    setCity(addr.city);
+    setZip(addr.zip_code);
+    setCountry(addr.country);
+  };
 
   const fetchPaymentSheetParams = async () => {
     // If we're on web, don't call the edge function for Stripe
@@ -97,8 +141,8 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, on
   }, [user, cartTotal, provider]);
 
   const handlePayment = async () => {
-    if (!address || !city || !zip) {
-      Alert.alert("Shipping Required", "Please enter your full delivery address.");
+    if (!fullName || !address || !city || !zip || !country) {
+      Alert.alert("Shipping Required", "Please enter your full delivery address and destination country.");
       return;
     }
 
@@ -144,8 +188,9 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, on
           shipping_address: address,
           city: city,
           zip_code: zip,
+          shipping_country: country,
+          address_id: selectedAddressId,
           status: 'paid'
-          // In a real app, you'd probably handle this via Webhooks to be more robust
         })
         .select()
         .single();
@@ -172,7 +217,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, on
       
       Alert.alert(
         "Payment Successful", 
-        `Your order has been placed successfully. Thank you for shopping with Moksha Jewels!`,
+        `Your masterpiece will be shipped to ${country}. Thank you for shopping with Moksha Jewels!`,
         [{ text: "View Order History", onPress: () => onSuccess() }]
       );
     } catch (error: any) {
@@ -185,23 +230,65 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, on
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Header 
-        onPressLogo={onGoHome} 
-        onPressLogin={onPressLogin} 
-        onPressOrders={onPressOrders}
-        onPressCart={onPressCart}
-      />
+      <Header {...props} />
       
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.title}>Secure Checkout</Text>
 
+          {/* Saved Addresses Section */}
+          {savedAddresses.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>SELECT SAVED ADDRESS</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.addressList}>
+                {savedAddresses.map((addr) => (
+                  <TouchableOpacity 
+                    key={addr.id} 
+                    style={[styles.addressCard, selectedAddressId === addr.id && styles.selectedAddressCard]}
+                    onPress={() => handleSelectAddress(addr)}
+                  >
+                    <Text style={styles.addressLabel}>{addr.label.toUpperCase()}</Text>
+                    <Text style={styles.addressName}>{addr.full_name}</Text>
+                    <Text style={styles.addressCountry}>{addr.country}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity 
+                  style={styles.addressCard}
+                  onPress={() => {
+                    setSelectedAddressId(null);
+                    setFullName('');
+                    setAddress('');
+                    setCity('');
+                    setZip('');
+                    setCountry('United States');
+                  }}
+                >
+                  <Text style={[styles.addressLabel, { color: '#D4AF37' }]}>+ NEW</Text>
+                  <Text style={styles.addressName}>Enter New Address</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
+
           {/* Shipping Section */}
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>1. SHIPPING ADDRESS</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Receiver's Full Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Name"
+                placeholderTextColor="#666"
+                value={fullName}
+                onChangeText={setFullName}
+              />
+            </View>
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Full Address</Text>
               <TextInput
@@ -212,6 +299,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, on
                 onChangeText={setAddress}
               />
             </View>
+
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 2, marginRight: 10 }]}>
                 <Text style={styles.inputLabel}>City</Text>
@@ -234,6 +322,17 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, on
                 />
               </View>
             </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Destination Country</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="United States, India, UAE..."
+                placeholderTextColor="#666"
+                value={country}
+                onChangeText={setCountry}
+              />
+            </View>
           </View>
 
           {/* Summary Section */}
@@ -244,7 +343,11 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ onGoHome, onSuccess, on
               <Text style={styles.summaryValue}>{cart.length}</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Shipping:</Text>
+              <Text style={styles.summaryLabel}>Shipping to:</Text>
+              <Text style={styles.summaryValue}>{country}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Delivery:</Text>
               <Text style={styles.summaryValue}>Complimentary</Text>
             </View>
             <View style={[styles.summaryRow, styles.finalTotal]}>
@@ -306,6 +409,38 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     letterSpacing: 2,
+  },
+  addressList: {
+    gap: 15,
+    paddingBottom: 10,
+  },
+  addressCard: {
+    backgroundColor: '#3d2b1a',
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    borderRadius: 8,
+    padding: 15,
+    width: 180,
+  },
+  selectedAddressCard: {
+    borderColor: '#D4AF37',
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+  },
+  addressLabel: {
+    color: '#888',
+    fontSize: 9,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  addressName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  addressCountry: {
+    color: '#aaa',
+    fontSize: 12,
   },
   inputGroup: {
     marginBottom: 15,

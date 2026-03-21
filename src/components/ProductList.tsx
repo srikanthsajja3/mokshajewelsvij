@@ -4,16 +4,22 @@ import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
 import { SortOption } from "./CategoryBar";
+import { useWishlist } from "../contexts/WishlistContext";
+import { useAuth } from "../contexts/AuthContext";
 
 interface ProductListProps {
   category: string;
   onSelectProduct: (product: Product) => void;
   sortBy: SortOption;
+  searchQuery?: string;
+  onPressLogin?: () => void;
 }
 
-const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, sortBy }) => {
+const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, sortBy, searchQuery = "", onPressLogin }) => {
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
+  const { user } = useAuth();
+  const { isInWishlist, addToWishlist, removeFromWishlist, wishlist } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +29,18 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchProductsFromSupabase(category);
+        let data: Product[] = [];
+        if (category === "Wishlist") {
+          // If we are in wishlist mode, fetch all and filter by current wishlist IDs
+          const all = await fetchProductsFromSupabase("All");
+          // Use the wishlist array from context directly for filtering
+          data = all.filter(p => wishlist.includes(p.id));
+        } else {
+          data = await fetchProductsFromSupabase(category);
+        }
         setProducts(data);
       } catch (err) {
+        console.error("Error loading products:", err);
         setError("Failed to connect to the gallery.");
       } finally {
         setLoading(false);
@@ -33,11 +48,21 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
     };
 
     loadProducts();
-  }, [category]);
+  }, [category, wishlist]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
 
+    // Search Filtering
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        p.name.toLowerCase().includes(query) || 
+        p.productCode.toLowerCase().includes(query)
+      );
+    }
+
+    // Sorting
     switch (sortBy) {
       case "popularity":
         result.sort((a, b) => b.popularity - a.popularity);
@@ -62,7 +87,19 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
         break;
     }
     return result;
-  }, [products, sortBy]);
+  }, [products, sortBy, searchQuery]);
+
+  const handleWishlistToggle = async (productId: string) => {
+    if (!user) {
+      onPressLogin?.();
+      return;
+    }
+    if (isInWishlist(productId)) {
+      await removeFromWishlist(productId);
+    } else {
+      await addToWishlist(productId);
+    }
+  };
 
   let numColumns = 2;
   if (width > 1400) numColumns = 6;
@@ -77,7 +114,9 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>{category} Collection</Text>
+        <Text style={styles.title}>
+          {searchQuery ? `Search: ${searchQuery}` : `${category} Collection`}
+        </Text>
         <Text style={styles.countText}>{filteredAndSortedProducts.length} Items</Text>
       </View>
 
@@ -109,7 +148,17 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
                 activeOpacity={0.8}
                 onPress={() => onSelectProduct(item)}
               >
-                <Image source={{ uri: item.image }} style={styles.productImage} />
+                <View style={styles.imageContainer}>
+                  <Image source={{ uri: item.image }} style={styles.productImage} />
+                  <TouchableOpacity 
+                    style={styles.wishlistIcon} 
+                    onPress={() => handleWishlistToggle(item.id)}
+                  >
+                    <Text style={[styles.heart, isInWishlist(item.id) && styles.heartActive]}>
+                      {isInWishlist(item.id) ? "♥" : "♡"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.productInfo}>
                   <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
                   <Text style={styles.productWeight}>{item.grossWeight.toFixed(2)}g | {item.purity}</Text>
@@ -121,7 +170,7 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
 
           {filteredAndSortedProducts.length === 0 && (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No products found in this category.</Text>
+              <Text style={styles.emptyText}>No products found matching your criteria.</Text>
             </View>
           )}
         </>
@@ -182,10 +231,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#4a3520",
   },
+  imageContainer: {
+    position: "relative",
+  },
   productImage: {
     width: "100%",
     height: 180,
     resizeMode: "cover",
+  },
+  wishlistIcon: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  heart: {
+    color: "#fff",
+    fontSize: 18,
+  },
+  heartActive: {
+    color: "#D4AF37",
   },
   productInfo: {
     padding: 12,

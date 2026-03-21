@@ -63,8 +63,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
       <Header onPressLogo={onGoHome} />
       
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.formContainer}>

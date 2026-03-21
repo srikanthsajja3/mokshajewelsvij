@@ -40,6 +40,9 @@ interface GoldRateContextType {
 
 const GoldRateContext = createContext<GoldRateContextType | undefined>(undefined);
 
+// Use Expo Environment Variable for API Key
+const GOLD_API_KEY = process.env.EXPO_PUBLIC_GOLD_API_KEY || 'goldapi-placeholder-key';
+
 export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { countryCode } = useCountry();
   const [baseRate, setBaseRate] = useState<number>(75); 
@@ -49,18 +52,41 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const fetchGoldRate = async () => {
       setIsLoading(true);
       try {
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Attempt to fetch real gold rate from GoldAPI.io
+        // XAU is the symbol for Gold
+        const response = await fetch('https://www.goldapi.io/api/XAU/USD', {
+          headers: {
+            'x-access-token': GOLD_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.price_gram_24k) {
+            setBaseRate(data.price_gram_24k);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // Fallback to mock data if API fails
+        console.warn("Gold API failed or key missing, using fallback rates.");
         const mockBase = 72 + Math.random() * 5; 
         setBaseRate(mockBase);
       } catch (error) {
         console.error("Error fetching gold rate:", error);
+        // Fallback
+        const mockBase = 72 + Math.random() * 5; 
+        setBaseRate(mockBase);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchGoldRate();
-    const interval = setInterval(fetchGoldRate, 300000);
+    // Refresh every 30 minutes to stay within free tier limits
+    const interval = setInterval(fetchGoldRate, 1800000);
     return () => clearInterval(interval);
   }, []);
 

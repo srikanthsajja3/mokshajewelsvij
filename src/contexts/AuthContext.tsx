@@ -5,6 +5,9 @@ import { User, Session } from '@supabase/supabase-js';
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  role: 'customer' | 'admin' | 'vendor' | null;
+  isAdmin: boolean;
+  isVendor: boolean;
   isLoading: boolean;
   signOut: () => Promise<void>;
 }
@@ -14,43 +17,84 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [role, setRole] = useState<'customer' | 'admin' | 'vendor' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error getting initial session:', error.message);
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data) {
+        setRole(data.role);
+      } else {
+        setRole('customer');
       }
+    } catch (error) {
+      setRole('customer');
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    // Fast Initial Load: Just check if we have a session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // CRITICAL: Stop the loading screen NOW
       setIsLoading(false);
-    };
 
-    getInitialSession();
+      // Fetch the detailed role in the background
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      }
+    });
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!mounted) return;
+
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        fetchUserRole(newSession?.user?.id || '');
+      } else if (event === 'SIGNED_OUT') {
+        setRole(null);
+      }
+      
       setIsLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error.message);
-    }
+    setRole(null);
+    setUser(null);
+    setSession(null);
+    await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      role, 
+      isAdmin: role === 'admin', 
+      isVendor: role === 'vendor',
+      isLoading, 
+      signOut 
+    }}>
       {children}
     </AuthContext.Provider>
   );

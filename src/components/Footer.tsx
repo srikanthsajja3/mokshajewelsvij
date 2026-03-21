@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Footer = () => {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   
   const paddingHorz = width > 1200 ? width * 0.1 : 25;
   const paddingVert = width > 768 ? 60 : 40;
@@ -10,7 +12,14 @@ const Footer = () => {
   const brandTitleSize = width > 768 ? 28 : 22;
 
   return (
-    <View style={[styles.footer, { paddingHorizontal: paddingHorz, paddingVertical: paddingVert }]}>
+    <View style={[
+      styles.footer, 
+      { 
+        paddingHorizontal: paddingHorz, 
+        paddingTop: paddingVert,
+        paddingBottom: paddingVert + insets.bottom 
+      }
+    ]}>
       <View style={styles.topSection}>
         <Text style={[styles.brandTitle, { fontSize: brandTitleSize }]}>MOKSHA JEWELS</Text>
         <Text style={styles.brandSubtitle}>Fine Jewelry & Timeless Designs</Text>

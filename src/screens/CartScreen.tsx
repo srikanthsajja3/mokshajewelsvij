@@ -21,14 +21,19 @@ interface CartScreenProps {
   onCheckout: () => void;
   onPressLogin: () => void;
   onPressOrders: () => void;
+  onPressWishlist: () => void;
+  onPressProfile: () => void;
+  searchQuery: string;
+  onSearch: (query: string) => void;
 }
 
-const CartScreen: React.FC<CartScreenProps> = ({ 
-  onGoHome, 
-  onCheckout, 
-  onPressLogin,
-  onPressOrders
-}) => {
+const CartScreen: React.FC<CartScreenProps> = (props) => {
+  const { 
+    onGoHome, 
+    onCheckout, 
+    onPressLogin,
+    onPressOrders
+  } = props;
   const { cart, removeFromCart, updateQuantity, cartTotal, isLoading } = useCart();
   const { countryCode } = useCountry();
   const { width } = useWindowDimensions();
@@ -72,11 +77,7 @@ const CartScreen: React.FC<CartScreenProps> = ({
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Header 
-        onPressLogo={onGoHome} 
-        onPressLogin={onPressLogin} 
-        onPressOrders={onPressOrders}
-      />
+      <Header {...props} />
       
       <View style={styles.content}>
         <Text style={styles.title}>Your Shopping Bag</Text>

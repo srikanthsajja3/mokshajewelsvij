@@ -10,9 +10,13 @@ interface HomeScreenProps {
   onPressLogin: () => void;
   onPressCart: () => void;
   onPressOrders: () => void;
+  onPressWishlist: () => void;
+  onPressProfile: () => void;
+  searchQuery: string;
+  onSearch: (query: string) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onPressLogin, onPressCart, onPressOrders }) => {
+const HomeScreen: React.FC<HomeScreenProps> = (props) => {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -20,12 +24,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onP
 
   return (
     <View style={styles.container}>
-      <Header 
-        onPressLogo={onGoHome} 
-        onPressLogin={onPressLogin} 
-        onPressCart={onPressCart} 
-        onPressOrders={onPressOrders}
-      />
+      <Header {...props} />
 
       <ScrollView 
         ref={scrollRef} 
@@ -36,8 +35,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onP
         <View style={styles.fullWidth}>
           <ImageScroller />
           
-          
-          
           <View style={styles.mainArea}>
             <View style={styles.featuredSection}>
               <Text style={styles.sectionTitle}>Crafted for Eternity</Text>
@@ -45,15 +42,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectCategory, onGoHome, onP
               
               <TouchableOpacity 
                 style={styles.exploreButton}
-                onPress={() => onSelectCategory("Gold")}
+                onPress={() => props.onSelectCategory("Gold")}
                 activeOpacity={0.8}
               >
                 <Text style={styles.exploreButtonText}>View All Products</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Visual Promo Banner */}
-            
           </View>
 
           <Footer />

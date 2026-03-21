@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView } from "react-native";
 
 const CATEGORIES = ["Gold", "Diamonds"];
 
@@ -43,7 +43,12 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
     <View style={styles.container}>
       <View style={styles.innerContainer}>
         {/* Categories Section */}
-        <View style={styles.categoriesSection}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesScroll}
+          contentContainerStyle={styles.categoriesSection}
+        >
           {CATEGORIES.map((cat, idx) => {
             const isActive = activeCategory === cat;
             return (
@@ -56,7 +61,7 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
 
         {/* Sort Section */}
         <View style={styles.sortSection}>
@@ -110,6 +115,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 15,
     paddingVertical: 12,
+  },
+  categoriesScroll: {
+    flex: 1,
+    marginRight: 10,
   },
   categoriesSection: {
     flexDirection: "row",
