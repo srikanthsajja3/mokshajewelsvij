@@ -14,6 +14,7 @@ import WishlistScreen from "./src/screens/WishlistScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import AdminDashboardScreen from "./src/screens/AdminDashboardScreen";
 import VendorDashboardScreen from "./src/screens/VendorDashboardScreen";
+import AddProductScreen from "./src/screens/AddProductScreen";
 import { Product } from "./src/data/products";
 import { CountryProvider } from "./src/contexts/CountryContext";
 import { GoldRateProvider } from "./src/contexts/GoldRateContext";
@@ -22,66 +23,125 @@ import { CartProvider } from "./src/contexts/CartContext";
 import { WishlistProvider } from "./src/contexts/WishlistContext";
 import SwipeBackView from "./src/components/SwipeBackView";
 import { StripeWrapper } from "./src/components/StripeWrapper";
+import SideDrawer from "./src/components/SideDrawer";
 
 function AppContent() {
-  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor">("home");
+  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct">("home");
+  const [history, setHistory] = useState<any[]>([{ screen: "home" }]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
   const [selectedCategory, setSelectedCategory] = useState("Gold");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, isAdmin, isVendor, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isVendor, isLoading: authLoading, isRecovering } = useAuth();
+
+  React.useEffect(() => {
+    if (isRecovering) {
+      setCurrentScreen("login");
+    }
+  }, [isRecovering]);
+
+  const navigateTo = (screen: any, params?: any) => {
+    // If params are provided, update state accordingly
+    if (params?.category) setSelectedCategory(params.category);
+    if (params?.product) setSelectedProduct(params.product);
+    if (params?.vendorId !== undefined) setSelectedVendorId(params.vendorId);
+
+    const newHistory = history.slice(0, historyIndex + 1);
+    const newState = { screen, category: params?.category, product: params?.product, vendorId: params?.vendorId };
+    
+    // Don't add if it's the same as current
+    const current = newHistory[newHistory.length - 1];
+    if (current && current.screen === screen && current.category === params?.category && current.product?.id === params?.product?.id) {
+      return;
+    }
+
+    newHistory.push(newState);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    setCurrentScreen(screen);
+  };
+
+  const handleBack = () => {
+    if (historyIndex > 0) {
+      const prev = history[historyIndex - 1];
+      if (prev.category) setSelectedCategory(prev.category);
+      if (prev.product) setSelectedProduct(prev.product);
+      if (prev.vendorId) setSelectedVendorId(prev.vendorId);
+      
+      setHistoryIndex(historyIndex - 1);
+      setCurrentScreen(prev.screen);
+    }
+  };
+
+  const handleForward = () => {
+    if (historyIndex < history.length - 1) {
+      const next = history[historyIndex + 1];
+      if (next.category) setSelectedCategory(next.category);
+      if (next.product) setSelectedProduct(next.product);
+      if (next.vendorId) setSelectedVendorId(next.vendorId);
+      
+      setHistoryIndex(historyIndex + 1);
+      setCurrentScreen(next.screen);
+    }
+  };
 
   const [fontsLoaded] = useFonts({
     "TrajanPro": require("./assets/fonts/TrajanPro-Regular.ttf"),
   });
 
   const navigateToCategory = (cat: string) => {
-    setSelectedCategory(cat);
-    setCurrentScreen("category");
+    navigateTo("category", { category: cat });
   };
 
   const navigateToProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setCurrentScreen("details");
+    navigateTo("details", { product });
   };
 
   const navigateToHome = () => {
-    setCurrentScreen("home");
+    navigateTo("home");
   };
 
   const navigateToLogin = () => {
-    setCurrentScreen("login");
+    navigateTo("login");
   };
 
   const navigateToCart = () => {
-    setCurrentScreen("cart");
+    navigateTo("cart");
   };
 
   const navigateToCheckout = () => {
-    setCurrentScreen("checkout");
+    navigateTo("checkout");
   };
 
   const navigateToOrders = () => {
-    setCurrentScreen("orders");
+    navigateTo("orders");
   };
 
   const navigateToWishlist = () => {
-    setCurrentScreen("wishlist");
+    navigateTo("wishlist");
   };
 
   const navigateToProfile = () => {
-    setCurrentScreen("profile");
+    navigateTo("profile");
   };
 
   const navigateToAdmin = () => {
-    setCurrentScreen("admin");
+    navigateTo("admin");
   };
 
   const navigateToVendor = () => {
-    setCurrentScreen("vendor");
+    navigateTo("vendor");
+  };
+
+  const navigateToAddProduct = (vendorId: string) => {
+    navigateTo("addProduct", { vendorId });
   };
 
   const navigateBackToList = () => {
-    setCurrentScreen("category");
+    handleBack();
   };
 
   const handleCheckout = () => {
@@ -141,6 +201,11 @@ function AppContent() {
     onPressProfile: handleProfile,
     onPressAdmin: navigateToAdmin,
     onPressVendor: handleVendor,
+    onBack: handleBack,
+    onForward: handleForward,
+    onPressMenu: () => setDrawerVisible(true),
+    canGoBack: historyIndex > 0,
+    canGoForward: historyIndex < history.length - 1,
     searchQuery,
     onSearch: setSearchQuery,
   };
@@ -183,6 +248,7 @@ function AppContent() {
           onLoginSuccess={navigateToHome} 
           onGoHome={navigateToHome} 
           onClose={navigateToHome}
+          initialIsUpdatingPassword={isRecovering}
         />
       )}
 
@@ -227,9 +293,25 @@ function AppContent() {
 
       {currentScreen === "vendor" && (
         <VendorDashboardScreen 
+          onAddProduct={navigateToAddProduct}
           {...commonProps}
         />
       )}
+
+      {currentScreen === "addProduct" && (
+        <AddProductScreen 
+          vendorId={selectedVendorId}
+          onBack={navigateToVendor}
+          {...commonProps}
+        />
+      )}
+
+      <SideDrawer 
+        isVisible={drawerVisible} 
+        onClose={() => setDrawerVisible(false)} 
+        onNavigate={(screen: any) => navigateTo(screen)}
+        activeScreen={currentScreen}
+      />
     </View>
   );
 }

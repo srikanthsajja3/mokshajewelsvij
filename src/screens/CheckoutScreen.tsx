@@ -16,6 +16,7 @@ import { useCart } from '../contexts/CartContext';
 import { useCountry } from '../contexts/CountryContext';
 import { formatPrice } from '../utils/currency';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { usePaymentGateway } from '../utils/paymentHooks';
@@ -238,145 +239,148 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>Secure Checkout</Text>
+          <View style={styles.contentWrapper}>
+            <Text style={styles.title}>Secure Checkout</Text>
 
-          {/* Saved Addresses Section */}
-          {savedAddresses.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionHeader}>SELECT SAVED ADDRESS</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.addressList}>
-                {savedAddresses.map((addr) => (
+            {/* Saved Addresses Section */}
+            {savedAddresses.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionHeader}>SELECT SAVED ADDRESS</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.addressList}>
+                  {savedAddresses.map((addr) => (
+                    <TouchableOpacity 
+                      key={addr.id} 
+                      style={[styles.addressCard, selectedAddressId === addr.id && styles.selectedAddressCard]}
+                      onPress={() => handleSelectAddress(addr)}
+                    >
+                      <Text style={styles.addressLabel}>{addr.label.toUpperCase()}</Text>
+                      <Text style={styles.addressName}>{addr.full_name}</Text>
+                      <Text style={styles.addressCountry}>{addr.country}</Text>
+                    </TouchableOpacity>
+                  ))}
                   <TouchableOpacity 
-                    key={addr.id} 
-                    style={[styles.addressCard, selectedAddressId === addr.id && styles.selectedAddressCard]}
-                    onPress={() => handleSelectAddress(addr)}
+                    style={styles.addressCard}
+                    onPress={() => {
+                      setSelectedAddressId(null);
+                      setFullName('');
+                      setAddress('');
+                      setCity('');
+                      setZip('');
+                      setCountry('United States');
+                    }}
                   >
-                    <Text style={styles.addressLabel}>{addr.label.toUpperCase()}</Text>
-                    <Text style={styles.addressName}>{addr.full_name}</Text>
-                    <Text style={styles.addressCountry}>{addr.country}</Text>
+                    <Text style={[styles.addressLabel, { color: '#D4AF37' }]}>+ NEW</Text>
+                    <Text style={styles.addressName}>Enter New Address</Text>
                   </TouchableOpacity>
-                ))}
-                <TouchableOpacity 
-                  style={styles.addressCard}
-                  onPress={() => {
-                    setSelectedAddressId(null);
-                    setFullName('');
-                    setAddress('');
-                    setCity('');
-                    setZip('');
-                    setCountry('United States');
-                  }}
-                >
-                  <Text style={[styles.addressLabel, { color: '#D4AF37' }]}>+ NEW</Text>
-                  <Text style={styles.addressName}>Enter New Address</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-          )}
+                </ScrollView>
+              </View>
+            )}
 
-          {/* Shipping Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeader}>1. SHIPPING ADDRESS</Text>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Receiver's Full Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Name"
-                placeholderTextColor="#666"
-                value={fullName}
-                onChangeText={setFullName}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Street Address, Apt/Suite"
-                placeholderTextColor="#666"
-                value={address}
-                onChangeText={setAddress}
-              />
-            </View>
-
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 2, marginRight: 10 }]}>
-                <Text style={styles.inputLabel}>City</Text>
+            {/* Shipping Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>1. SHIPPING ADDRESS</Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Receiver's Full Name</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="New York"
+                  placeholder="Name"
                   placeholderTextColor="#666"
-                  value={city}
-                  onChangeText={setCity}
+                  value={fullName}
+                  onChangeText={setFullName}
                 />
               </View>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>ZIP / Postal</Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Full Address</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="10001"
+                  placeholder="Street Address, Apt/Suite"
                   placeholderTextColor="#666"
-                  value={zip}
-                  onChangeText={setZip}
+                  value={address}
+                  onChangeText={setAddress}
                 />
               </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Destination Country</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="United States, India, UAE..."
-                placeholderTextColor="#666"
-                value={country}
-                onChangeText={setCountry}
-              />
-            </View>
-          </View>
-
-          {/* Summary Section */}
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>Review Order</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Total Items:</Text>
-              <Text style={styles.summaryValue}>{cart.length}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Shipping to:</Text>
-              <Text style={styles.summaryValue}>{country}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery:</Text>
-              <Text style={styles.summaryValue}>Complimentary</Text>
-            </View>
-            <View style={[styles.summaryRow, styles.finalTotal]}>
-              <Text style={styles.totalLabel}>Grand Total:</Text>
-              <Text style={styles.totalValue}>{formatPrice(cartTotal, countryCode)}</Text>
-            </View>
-            
-            <TouchableOpacity 
-              style={[
-                styles.payButton, 
-                (isProcessing || !isReady) && styles.payButtonDisabled
-              ]} 
-              onPress={handlePayment}
-              disabled={isProcessing || !isReady}
-            >
-              {isProcessing ? (
-                <View style={styles.loadingRow}>
-                  <ActivityIndicator color="#000" size="small" />
-                  <Text style={styles.payButtonTextDisabled}>Processing...</Text>
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, { flex: 2, marginRight: 10 }]}>
+                  <Text style={styles.inputLabel}>City</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="New York"
+                    placeholderTextColor="#666"
+                    value={city}
+                    onChangeText={setCity}
+                  />
                 </View>
-              ) : (
-                <Text style={styles.payButtonText}>
-                  {isReady ? "Authorize Payment" : "Preparing Gateway..."}
-                </Text>
-              )}
-            </TouchableOpacity>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>ZIP / Postal</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="10001"
+                    placeholderTextColor="#666"
+                    value={zip}
+                    onChangeText={setZip}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Destination Country</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="United States, India, UAE..."
+                  placeholderTextColor="#666"
+                  value={country}
+                  onChangeText={setCountry}
+                />
+              </View>
+            </View>
+
+            {/* Summary Section */}
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryTitle}>Review Order</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Total Items:</Text>
+                <Text style={styles.summaryValue}>{cart.length}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Shipping to:</Text>
+                <Text style={styles.summaryValue}>{country}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Delivery:</Text>
+                <Text style={styles.summaryValue}>Complimentary</Text>
+              </View>
+              <View style={[styles.summaryRow, styles.finalTotal]}>
+                <Text style={styles.totalLabel}>Grand Total:</Text>
+                <Text style={styles.totalValue}>{formatPrice(cartTotal, countryCode)}</Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.payButton, 
+                  (isProcessing || !isReady) && styles.payButtonDisabled
+                ]} 
+                onPress={handlePayment}
+                disabled={isProcessing || !isReady}
+              >
+                {isProcessing ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator color="#000" size="small" />
+                    <Text style={styles.payButtonTextDisabled}>Processing...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.payButtonText}>
+                    {isReady ? "Authorize Payment" : "Preparing Gateway..."}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.encryptionNote}>🔒 Powered by {provider === 'razorpay' ? 'Razorpay' : 'Stripe'}. All transactions are end-to-end encrypted.</Text>
           </View>
-          
-          <Text style={styles.encryptionNote}>🔒 Powered by {provider === 'razorpay' ? 'Razorpay' : 'Stripe'}. All transactions are end-to-end encrypted.</Text>
+          <Footer />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -389,8 +393,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#291c0e',
   },
   scrollContent: {
+    flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
     padding: 20,
-    paddingBottom: 60,
   },
   title: {
     fontFamily: 'TrajanPro',

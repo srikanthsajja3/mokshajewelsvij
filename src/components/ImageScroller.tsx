@@ -41,7 +41,7 @@ const ImageScroller = () => {
   };
 
   return (
-    <View style={[styles.container, { height: scrollerHeight + 20 }]}>
+    <View style={[styles.container, { height: scrollerHeight }]}>
       <ScrollView 
         ref={scrollViewRef}
         horizontal 
@@ -78,15 +78,14 @@ const ImageScroller = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#291c0e",
-    marginVertical: 10,
     position: "relative",
   },
   imageWrapper: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 0,
   },
   image: {
     width: "100%",
-    borderRadius: 12,
+    borderRadius: 0,
     resizeMode: "cover",
   },
   overlay: {

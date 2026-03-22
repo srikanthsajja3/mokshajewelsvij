@@ -3,7 +3,7 @@
  * Base prices in PRODUCTS are assumed to be in USD.
  */
 export const formatPrice = (price: number, countryCode: string): string => {
-  const exchangeRate = 80; // 1 USD = 80 INR (Approx)
+  const exchangeRate = 83; // 1 USD = 83 INR
   
   if (countryCode === 'IN') {
     const inrPrice = price * exchangeRate;

@@ -106,14 +106,18 @@ const AdminDashboardScreen: React.FC<any> = (props) => {
     return (
       <View style={styles.container}>
         <Header {...props} />
-        <View style={styles.center}>
-          <Text style={styles.errorText}>Access Denied</Text>
-          <Text style={styles.infoText}>You are logged in as {user?.email}, but you do not have administrative privileges. Please contact the system owner to elevate your role.</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={props.onGoHome}>
-            <Text style={styles.backBtnText}>Return Home</Text>
-          </TouchableOpacity>
-        </View>
-        <Footer />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.contentWrapper}>
+            <View style={styles.center}>
+              <Text style={styles.errorText}>Access Denied</Text>
+              <Text style={styles.infoText}>You are logged in as {user?.email}, but you do not have administrative privileges. Please contact the system owner to elevate your role.</Text>
+              <TouchableOpacity style={styles.backBtn} onPress={props.onGoHome}>
+                <Text style={styles.backBtnText}>Return Home</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <Footer />
+        </ScrollView>
       </View>
     );
   }
@@ -122,132 +126,134 @@ const AdminDashboardScreen: React.FC<any> = (props) => {
     <View style={styles.container}>
       <Header {...props} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.adminHeader}>
-          <Text style={styles.adminTitle}>Admin Oversight</Text>
-          <Text style={styles.adminSubtitle}>Analytical insights and logistical control for Moksha Jewels.</Text>
-        </View>
-
-        {/* Tab Navigation */}
-        <View style={styles.tabBar}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'overview' && styles.activeTab]} 
-            onPress={() => setActiveTab('overview')}
-          >
-            <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'inventory' && styles.activeTab]} 
-            onPress={() => setActiveTab('inventory')}
-          >
-            <Text style={[styles.tabText, activeTab === 'inventory' && styles.activeTabText]}>Inventory</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'vendors' && styles.activeTab]} 
-            onPress={() => setActiveTab('vendors')}
-          >
-            <Text style={[styles.tabText, activeTab === 'vendors' && styles.activeTabText]}>Vendors</Text>
-          </TouchableOpacity>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator color="#D4AF37" size="large" style={{ marginTop: 50 }} />
-        ) : (
-          <View style={styles.dashboard}>
-            
-            {activeTab === 'overview' && (
-              <>
-                {/* Stats Grid */}
-                <View style={styles.statsGrid}>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Total Revenue</Text>
-                    <Text style={styles.statValue}>{formatPrice(stats.totalSales, countryCode)}</Text>
-                  </View>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Active Orders</Text>
-                    <Text style={styles.statValue}>{stats.totalOrders}</Text>
-                  </View>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Inventory Size</Text>
-                    <Text style={styles.statValue}>{stats.totalProducts}</Text>
-                  </View>
-                  <View style={[styles.statCard, stats.lowStockItems > 0 && styles.warningCard]}>
-                    <Text style={styles.statLabel}>Low Stock Alert</Text>
-                    <Text style={[styles.statValue, stats.lowStockItems > 0 && styles.warningText]}>
-                      {stats.lowStockItems} Items
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Recent Orders */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Recent Transactions</Text>
-                  {recentOrders.length === 0 ? (
-                    <Text style={styles.emptyText}>No transactions recorded yet.</Text>
-                  ) : (
-                    <View style={styles.orderList}>
-                      {recentOrders.map(order => (
-                        <View key={order.id} style={styles.orderRow}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.orderId}>ORDER ID: {order.id.slice(0, 8).toUpperCase()}</Text>
-                            <Text style={styles.orderDate}>{new Date(order.created_at).toLocaleDateString()}</Text>
-                          </View>
-                          <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={styles.orderAmount}>{formatPrice(order.total_amount, countryCode)}</Text>
-                            <Text style={styles.orderStatus}>{order.status.toUpperCase()}</Text>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              </>
-            )}
-
-            {activeTab === 'inventory' && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Product Inventory</Text>
-                <View style={styles.inventoryList}>
-                  {inventory.map(item => (
-                    <View key={item.id} style={styles.inventoryCard}>
-                      <Image source={{ uri: item.image }} style={styles.invThumb} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.invName}>{item.name}</Text>
-                        <Text style={styles.invCode}>{item.productCode}</Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={styles.invStock}>Stock: {(item as any).stock_quantity || 0}</Text>
-                        <Text style={styles.invCost}>Cost: {formatPrice((item as any).sourcing_cost || 0, countryCode)}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {activeTab === 'vendors' && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Global Vendors</Text>
-                <View style={styles.vendorList}>
-                  {vendors.length === 0 ? (
-                    <Text style={styles.emptyText}>No vendors linked to the system.</Text>
-                  ) : (
-                    vendors.map(vendor => (
-                      <View key={vendor.id} style={styles.vendorCard}>
-                        <View>
-                          <Text style={styles.vendorName}>{vendor.name}</Text>
-                          <Text style={styles.vendorMeta}>Contact: {vendor.contact_person}</Text>
-                        </View>
-                        <View style={styles.ratingBadge}>
-                          <Text style={styles.ratingText}>★ {vendor.rating}</Text>
-                        </View>
-                      </View>
-                    ))
-                  )}
-                </View>
-              </View>
-            )}
+        <View style={styles.contentWrapper}>
+          <View style={styles.adminHeader}>
+            <Text style={styles.adminTitle}>Admin Oversight</Text>
+            <Text style={styles.adminSubtitle}>Analytical insights and logistical control for Moksha Jewels.</Text>
           </View>
-        )}
+
+          {/* Tab Navigation */}
+          <View style={styles.tabBar}>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'overview' && styles.activeTab]} 
+              onPress={() => setActiveTab('overview')}
+            >
+              <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'inventory' && styles.activeTab]} 
+              onPress={() => setActiveTab('inventory')}
+            >
+              <Text style={[styles.tabText, activeTab === 'inventory' && styles.activeTabText]}>Inventory</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'vendors' && styles.activeTab]} 
+              onPress={() => setActiveTab('vendors')}
+            >
+              <Text style={[styles.tabText, activeTab === 'vendors' && styles.activeTabText]}>Vendors</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator color="#D4AF37" size="large" style={{ marginTop: 50 }} />
+          ) : (
+            <View style={styles.dashboard}>
+              
+              {activeTab === 'overview' && (
+                <>
+                  {/* Stats Grid */}
+                  <View style={styles.statsGrid}>
+                    <View style={styles.statCard}>
+                      <Text style={styles.statLabel}>Total Revenue</Text>
+                      <Text style={styles.statValue}>{formatPrice(stats.totalSales, countryCode)}</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                      <Text style={styles.statLabel}>Active Orders</Text>
+                      <Text style={styles.statValue}>{stats.totalOrders}</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                      <Text style={styles.statLabel}>Inventory Size</Text>
+                      <Text style={styles.statValue}>{stats.totalProducts}</Text>
+                    </View>
+                    <View style={[styles.statCard, stats.lowStockItems > 0 && styles.warningCard]}>
+                      <Text style={styles.statLabel}>Low Stock Alert</Text>
+                      <Text style={[styles.statValue, stats.lowStockItems > 0 && styles.warningText]}>
+                        {stats.lowStockItems} Items
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Recent Orders */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Recent Transactions</Text>
+                    {recentOrders.length === 0 ? (
+                      <Text style={styles.emptyText}>No transactions recorded yet.</Text>
+                    ) : (
+                      <View style={styles.orderList}>
+                        {recentOrders.map(order => (
+                          <View key={order.id} style={styles.orderRow}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.orderId}>ORDER ID: {order.id.slice(0, 8).toUpperCase()}</Text>
+                              <Text style={styles.orderDate}>{new Date(order.created_at).toLocaleDateString()}</Text>
+                            </View>
+                            <View style={{ alignItems: 'flex-end' }}>
+                              <Text style={styles.orderAmount}>{formatPrice(order.total_amount, countryCode)}</Text>
+                              <Text style={styles.orderStatus}>{order.status.toUpperCase()}</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
+
+              {activeTab === 'inventory' && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Product Inventory</Text>
+                  <View style={styles.inventoryList}>
+                    {inventory.map(item => (
+                      <View key={item.id} style={styles.inventoryCard}>
+                        <Image source={{ uri: item.image }} style={styles.invThumb} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.invName}>{item.name}</Text>
+                          <Text style={styles.invCode}>{item.productCode}</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={styles.invStock}>Stock: {(item as any).stock_quantity || 0}</Text>
+                          <Text style={styles.invCost}>Cost: {formatPrice((item as any).sourcing_cost || 0, countryCode)}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {activeTab === 'vendors' && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Global Vendors</Text>
+                  <View style={styles.vendorList}>
+                    {vendors.length === 0 ? (
+                      <Text style={styles.emptyText}>No vendors linked to the system.</Text>
+                    ) : (
+                      vendors.map(vendor => (
+                        <View key={vendor.id} style={styles.vendorCard}>
+                          <View>
+                            <Text style={styles.vendorName}>{vendor.name}</Text>
+                            <Text style={styles.vendorMeta}>Contact: {vendor.contact_person}</Text>
+                          </View>
+                          <View style={styles.ratingBadge}>
+                            <Text style={styles.ratingText}>★ {vendor.rating}</Text>
+                          </View>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
         <Footer />
       </ScrollView>
     </View>
@@ -261,6 +267,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
   },
   center: {
     flex: 1,

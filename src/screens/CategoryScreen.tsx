@@ -45,18 +45,17 @@ const CategoryScreen: React.FC<CategoryScreenProps> = (props) => {
           onSortChange={setSortBy}
         />
         
-        <View style={styles.fullWidth}>
-          <View style={styles.mainArea}>
-            <ProductList 
-              category={props.category} 
-              onSelectProduct={props.onSelectProduct} 
-              sortBy={sortBy}
-              searchQuery={props.searchQuery}
-              onPressLogin={props.onPressLogin}
-            />
-          </View>
-          <Footer />
+        <View style={styles.mainArea}>
+          <ProductList 
+            category={props.category} 
+            onSelectProduct={props.onSelectProduct} 
+            sortBy={sortBy}
+            searchQuery={props.searchQuery}
+            onPressLogin={props.onPressLogin}
+          />
         </View>
+
+        <Footer />
       </ScrollView>
     </View>
   );
@@ -69,7 +68,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
   },
   fullWidth: {
     width: "100%",

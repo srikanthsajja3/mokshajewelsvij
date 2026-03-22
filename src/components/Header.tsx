@@ -16,6 +16,11 @@ interface HeaderProps {
   onPressProfile?: () => void;
   onPressAdmin?: () => void;
   onPressVendor?: () => void;
+  onPressMenu?: () => void;
+  onBack?: () => void;
+  onForward?: () => void;
+  canGoBack?: boolean;
+  canGoForward?: boolean;
 }
 
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -29,23 +34,33 @@ const Header: React.FC<HeaderProps> = ({
   onPressProfile,
   onPressAdmin,
   onPressVendor,
+  onPressMenu,
+  onBack,
+  onForward,
+  canGoBack,
+  canGoForward,
 }) => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { user, isAdmin, isVendor } = useAuth();
   const { cartCount } = useCart();
+  const { countryCode } = useCountry();
   
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
+  const isMobile = width < 768;
   
-  const logoSize = width > 768 ? 120 : (isIOS ? 50 : 40);
-  const titleSize = width > 768 ? 48 : (width < 380 ? 16 : 18);
-  const letterSpacing = width > 768 ? 8 : 1;
-  const iconSize = width > 768 ? 24 : 18;
+  const logoSize = width > 768 ? 80 : (isIOS ? 50 : 40);
+  const titleSize = width > 768 ? 28 : (width < 380 ? 16 : 18);
+  const letterSpacing = width > 768 ? 2 : 1;
+  const iconSize = width > 768 ? 22 : 18;
+  const navIconSize = width > 768 ? 18 : 14;
   
   const paddingHorz = isWeb 
     ? (width > 1400 ? 60 : 30)
-    : 15;
+    : (width < 380 ? 10 : 15);
+
+  const iconMargin = width > 768 ? 25 : (width < 380 ? 12 : 15);
 
   return (
     <View style={styles.container}>
@@ -53,7 +68,8 @@ const Header: React.FC<HeaderProps> = ({
         styles.header, 
         { 
           paddingHorizontal: paddingHorz,
-          paddingTop: Math.max(insets.top, 15),
+          paddingTop: isWeb ? 10 : Math.max(insets.top, 15),
+          paddingBottom: isWeb ? 10 : 15,
         }
       ]}>
         <TouchableOpacity 
@@ -73,56 +89,119 @@ const Header: React.FC<HeaderProps> = ({
             MOKSHA JEWELS
           </Text>
         </TouchableOpacity>
+
+        {!isMobile && (
+          <View style={styles.countryDisplay}>
+            <Text style={styles.countryText}>{countryCode === 'IN' ? 'INDIA' : 'USA'}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.actionBar}>
-        <View style={[styles.actionsRightGroup, { paddingHorizontal: paddingHorz }]}>
-          <TouchableOpacity style={styles.actionItem} onPress={onGoHome}>
-            <FontAwesome5 name="home" size={iconSize} color="#D4AF37" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionItem} onPress={onPressWishlist}>
-            <FontAwesome5 name="heart" size={iconSize} color="#D4AF37" />
-          </TouchableOpacity>
-
-          {user && (
-            <TouchableOpacity style={styles.actionItem} onPress={onPressOrders}>
-              <FontAwesome5 name="history" size={iconSize} color="#D4AF37" />
+        <View style={[
+          styles.actionsContainer, 
+          { 
+            paddingHorizontal: paddingHorz,
+            paddingVertical: isWeb ? 8 : 12 
+          }
+        ]}>
+          <View style={styles.navArrowsGroup}>
+            <TouchableOpacity 
+              style={[styles.navArrowItem, !canGoBack && { opacity: 0.3 }]} 
+              onPress={onBack}
+              disabled={!canGoBack}
+            >
+              <FontAwesome5 name="chevron-left" size={navIconSize} color="#D4AF37" />
             </TouchableOpacity>
-          )}
 
-          <TouchableOpacity style={styles.actionItem} onPress={onPressCart}>
-            <View>
-              <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
-              {cartCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{cartCount}</Text>
-                </View>
-              )}
+            <TouchableOpacity 
+              style={[styles.navArrowItem, !canGoForward && { opacity: 0.3 }]} 
+              onPress={onForward}
+              disabled={!canGoForward}
+            >
+              <FontAwesome5 name="chevron-right" size={navIconSize} color="#D4AF37" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.actionsRightGroup}>
+            <View style={[styles.actionItem, { marginLeft: iconMargin }]}>
+              <View style={styles.mobileFlagContainer}>
+                <Text style={styles.mobileCountryCode}>{countryCode === 'IN' ? 'INDIA' : 'USA'}</Text>
+              </View>
             </View>
-          </TouchableOpacity>
 
-          {isAdmin && (
-            <TouchableOpacity style={styles.actionItem} onPress={onPressAdmin}>
-              <Text style={styles.adminBadge}>ADMIN</Text>
-            </TouchableOpacity>
-          )}
+            {isMobile ? (
+              <>
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onGoHome}>
+                  <FontAwesome5 name="home" size={iconSize} color="#D4AF37" />
+                </TouchableOpacity>
 
-          {isVendor && (
-            <TouchableOpacity style={styles.actionItem} onPress={onPressVendor}>
-              <Text style={styles.vendorBadge}>PARTNER</Text>
-            </TouchableOpacity>
-          )}
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressCart}>
+                  <View>
+                    <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
+                    {cartCount > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{cartCount}</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
 
-          <View style={styles.authGroup}>
-            {user ? (
-              <TouchableOpacity style={styles.actionItem} onPress={onPressProfile}>
-                <FontAwesome5 name="user-circle" size={iconSize} color="#D4AF37" />
-              </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressMenu}>
+                  <FontAwesome5 name="bars" size={iconSize} color="#D4AF37" />
+                </TouchableOpacity>
+              </>
             ) : (
-              <TouchableOpacity style={styles.actionItem} onPress={onPressLogin}>
-                <FontAwesome5 name="sign-in-alt" size={iconSize} color="#D4AF37" />
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onGoHome}>
+                  <FontAwesome5 name="home" size={iconSize} color="#D4AF37" />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressWishlist}>
+                  <FontAwesome5 name="heart" size={iconSize} color="#D4AF37" />
+                </TouchableOpacity>
+
+                {user && (
+                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressOrders}>
+                    <FontAwesome5 name="history" size={iconSize} color="#D4AF37" />
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressCart}>
+                  <View>
+                    <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
+                    {cartCount > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{cartCount}</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {isAdmin && (
+                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressAdmin}>
+                    <Text style={styles.adminBadge}>ADMIN</Text>
+                  </TouchableOpacity>
+                )}
+
+                {isVendor && (
+                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressVendor}>
+                    <Text style={styles.vendorBadge}>PARTNER</Text>
+                  </TouchableOpacity>
+                )}
+
+                <View style={styles.authGroup}>
+                  {user ? (
+                    <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressProfile}>
+                      <FontAwesome5 name="user-circle" size={iconSize} color="#D4AF37" />
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressLogin}>
+                      <FontAwesome5 name="sign-in-alt" size={iconSize} color="#D4AF37" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
             )}
           </View>
         </View>
@@ -149,6 +228,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexShrink: 1,
   },
+  countryDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.15)',
+  },
+  countryText: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  mobileFlagContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  mobileCountryCode: {
+    color: '#D4AF37',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
   logo: {
     marginRight: 12,
   },
@@ -164,11 +272,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.15)",
   },
+  actionsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   actionsRightGroup: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    justifyContent: 'flex-end',
+  },
+  navArrowsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  navArrowItem: {
+    padding: 8,
+    marginHorizontal: 2,
+  },
+  navSeparator: {
+    width: 1,
+    height: 18,
+    backgroundColor: 'rgba(212, 175, 55, 0.25)',
+    marginLeft: 10,
+    marginRight: 5,
   },
   actionItem: {
     paddingVertical: 4,
@@ -176,7 +302,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 40,
-    marginLeft: 25,
   },
   badge: {
     position: 'absolute',

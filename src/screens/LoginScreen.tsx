@@ -13,19 +13,32 @@ import {
   StatusBar
 } from 'react-native';
 import { supabase } from '../../supabase';
+import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
   onGoHome: () => void;
   onClose: () => void;
+  initialIsUpdatingPassword?: boolean;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onClose }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onClose, initialIsUpdatingPassword = false }) => {
+  const { resetPassword, setIsRecovering } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(initialIsUpdatingPassword);
+
+  React.useEffect(() => {
+    if (initialIsUpdatingPassword) {
+      setIsUpdatingPassword(true);
+      setIsRecovering(false);
+    }
+  }, [initialIsUpdatingPassword]);
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -35,23 +48,81 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
 
     setIsLoading(true);
     try {
+      console.log(`Attempting ${isRegistering ? 'registration' : 'login'} for:`, email);
+      
       if (isRegistering) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          console.error('Registration Error:', error);
+          throw error;
+        }
+        console.log('Registration successful:', data);
         Alert.alert('Success', 'Check your email for the confirmation link!');
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          console.error('Login Error:', error);
+          throw error;
+        }
+        console.log('Login successful:', data.user?.id);
         onLoginSuccess();
       }
     } catch (error: any) {
-      Alert.alert('Authentication Error', error.message || 'An error occurred during authentication.');
+      console.error('Authentication Catch:', error);
+      const errorMessage = error.message || 'An error occurred during authentication.';
+      
+      if (errorMessage.includes('Invalid login credentials')) {
+        Alert.alert('Login Failed', 'Incorrect email or password. Please try again.');
+      } else if (errorMessage.includes('Email not confirmed')) {
+        Alert.alert('Confirmation Required', 'Please confirm your email address before signing in.');
+      } else {
+        Alert.alert('Authentication Error', errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address to reset your password.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await resetPassword(email);
+      if (error) throw error;
+      Alert.alert('Success', 'Password reset link sent to your email.');
+      setIsResetting(false);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send reset link.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!password) {
+      Alert.alert('Error', 'Please enter a new password.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      Alert.alert('Success', 'Your password has been updated successfully.');
+      setIsUpdatingPassword(false);
+      onLoginSuccess();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update password.');
     } finally {
       setIsLoading(false);
     }
@@ -67,69 +138,101 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.formContainer}>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.contentWrapper}>
+            <View style={styles.formContainer}>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
 
-            <Text style={styles.title}>{isRegistering ? 'Create Account' : 'Welcome Back'}</Text>
-            <Text style={styles.subtitle}>
-              {isRegistering 
-                ? 'Sign up to manage your orders and wishlist' 
-                : 'Sign in to access your luxury jewelry collection'}
-            </Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor="#666"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor="#666"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.authButton}
-              onPress={handleAuth}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#000" />
-              ) : (
-                <Text style={styles.authButtonText}>
-                  {isRegistering ? 'Sign Up' : 'Sign In'}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.switchButton}
-              onPress={() => setIsRegistering(!isRegistering)}
-            >
-              <Text style={styles.switchButtonText}>
-                {isRegistering 
-                  ? 'Already have an account? Sign In' 
-                  : "Don't have an account? Sign Up"}
+              <Text style={styles.title}>
+                {isUpdatingPassword ? 'Reset Your Password' : isResetting ? 'Reset Password' : isRegistering ? 'Create Account' : 'Welcome Back'}
               </Text>
-            </TouchableOpacity>
+              <Text style={styles.subtitle}>
+                {isUpdatingPassword 
+                  ? 'Enter a new password for your account'
+                  : isResetting 
+                  ? 'Enter your email to receive a reset link' 
+                  : isRegistering 
+                  ? 'Sign up to manage your orders and wishlist' 
+                  : 'Sign in to access your luxury jewelry collection'}
+              </Text>
+
+              {!isUpdatingPassword && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Email Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#666"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    editable={!isUpdatingPassword}
+                  />
+                </View>
+              )}
+
+              {!isResetting && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{isUpdatingPassword ? 'New Password' : 'Password'}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={isUpdatingPassword ? "Enter new password" : "Enter your password"}
+                    placeholderTextColor="#666"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                  />
+                </View>
+              )}
+
+              {!isRegistering && !isResetting && !isUpdatingPassword && (
+                <TouchableOpacity 
+                  style={styles.forgotButton}
+                  onPress={() => setIsResetting(true)}
+                >
+                  <Text style={styles.forgotButtonText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={styles.authButton}
+                onPress={isUpdatingPassword ? handleUpdatePassword : isResetting ? handleReset : handleAuth}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text style={styles.authButtonText}>
+                    {isUpdatingPassword ? 'Update Password' : isResetting ? 'Send Reset Link' : isRegistering ? 'Sign Up' : 'Sign In'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.switchButton}
+                onPress={() => {
+                  if (isResetting || isUpdatingPassword) {
+                    setIsResetting(false);
+                    setIsUpdatingPassword(false);
+                  } else {
+                    setIsRegistering(!isRegistering);
+                  }
+                }}
+              >
+                <Text style={styles.switchButtonText}>
+                  {isUpdatingPassword || isResetting 
+                    ? 'Back to Sign In' 
+                    : isRegistering 
+                    ? 'Already have an account? Sign In' 
+                    : "Don't have an account? Sign Up"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
+          <Footer />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -143,6 +246,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: 'center',
+  },
+  contentWrapper: {
+    flex: 1,
     justifyContent: 'center',
     padding: 20,
   },
@@ -216,6 +323,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  forgotButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+    marginTop: -10,
+  },
+  forgotButtonText: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   switchButton: {
     marginTop: 20,

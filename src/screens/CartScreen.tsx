@@ -15,6 +15,8 @@ import { useCart } from '../contexts/CartContext';
 import { useCountry } from '../contexts/CountryContext';
 import { formatPrice } from '../utils/currency';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
+import { ScrollView } from 'react-native';
 
 interface CartScreenProps {
   onGoHome: () => void;
@@ -79,43 +81,49 @@ const CartScreen: React.FC<CartScreenProps> = (props) => {
       <StatusBar barStyle="light-content" />
       <Header {...props} />
       
-      <View style={styles.content}>
-        <Text style={styles.title}>Your Shopping Bag</Text>
-        
-        {isLoading ? (
-          <View style={styles.emptyContainer}>
-            <ActivityIndicator size="large" color="#D4AF37" />
-            <Text style={[styles.emptyText, { marginTop: 15 }]}>Updating your bag...</Text>
-          </View>
-        ) : cart.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Your bag is empty.</Text>
-            <TouchableOpacity style={styles.shopBtn} onPress={onGoHome}>
-              <Text style={styles.shopBtnText}>Start Shopping</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            <FlatList
-              data={cart}
-              renderItem={renderItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-            />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.contentWrapper}>
+          <View style={styles.content}>
+            <Text style={styles.title}>Your Shopping Bag</Text>
             
-            <View style={styles.footer}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalValue}>{formatPrice(cartTotal, countryCode)}</Text>
+            {isLoading ? (
+              <View style={styles.emptyContainer}>
+                <ActivityIndicator size="large" color="#D4AF37" />
+                <Text style={[styles.emptyText, { marginTop: 15 }]}>Updating your bag...</Text>
               </View>
-              
-              <TouchableOpacity style={styles.checkoutBtn} onPress={onCheckout}>
-                <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-      </View>
+            ) : cart.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Your bag is empty.</Text>
+                <TouchableOpacity style={styles.shopBtn} onPress={onGoHome}>
+                  <Text style={styles.shopBtnText}>Start Shopping</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <View style={styles.listContent}>
+                  {cart.map(item => (
+                    <View key={item.id}>
+                      {renderItem({ item })}
+                    </View>
+                  ))}
+                </View>
+                
+                <View style={styles.footer}>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Total Amount</Text>
+                    <Text style={styles.totalValue}>{formatPrice(cartTotal, countryCode)}</Text>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.checkoutBtn} onPress={onCheckout}>
+                    <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+        <Footer />
+      </ScrollView>
     </View>
   );
 };
@@ -124,6 +132,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#291c0e',
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
   },
   content: {
     flex: 1,

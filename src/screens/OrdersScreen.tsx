@@ -11,12 +11,15 @@ import {
   Alert,
   Platform
 } from 'react-native';
+import { FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
 import { formatPrice } from '../utils/currency';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { ScrollView } from 'react-native';
 
 interface OrderItem {
   id: string;
@@ -150,6 +153,53 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
     </View>
   );
 
+  const renderStatusTracker = (status: string) => {
+    const statuses = ['paid', 'processing', 'shipped', 'delivered'];
+    const currentIndex = statuses.indexOf(status.toLowerCase());
+    
+    // If status is 'canceled', handle separately
+    if (status.toLowerCase() === 'canceled') {
+      return (
+        <View style={styles.canceledBadge}>
+          <Text style={styles.canceledText}>ORDER CANCELED</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.trackerContainer}>
+        {statuses.map((s, index) => (
+          <React.Fragment key={s}>
+            <View style={styles.stepItem}>
+              <View style={[
+                styles.stepCircle, 
+                index <= currentIndex && styles.stepCircleActive
+              ]}>
+                {index < currentIndex ? (
+                  <FontAwesome5 name="check" size={8} color="#000" />
+                ) : (
+                  <View style={[styles.innerCircle, index === currentIndex && styles.innerCircleActive]} />
+                )}
+              </View>
+              <Text style={[
+                styles.stepLabel, 
+                index <= currentIndex && styles.stepLabelActive
+              ]}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </Text>
+            </View>
+            {index < statuses.length - 1 && (
+              <View style={[
+                styles.stepLine, 
+                index < currentIndex && styles.stepLineActive
+              ]} />
+            )}
+          </React.Fragment>
+        ))}
+      </View>
+    );
+  };
+
   const renderOrderCard = ({ item }: { item: Order }) => {
     const orderDate = new Date(item.created_at).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -170,6 +220,10 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
         </View>
 
         <View style={styles.divider} />
+        
+        {renderStatusTracker(item.status)}
+
+        <View style={styles.divider} />
 
         <View style={styles.itemsSection}>
           {item.order_items.map(renderOrderItem)}
@@ -183,17 +237,19 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
             <Text style={styles.totalValue}>{formatPrice(item.total_amount, countryCode)}</Text>
           </View>
           
-          <TouchableOpacity 
-            style={[styles.deleteBtn, isDeleting === item.id && styles.deleteBtnDisabled]} 
-            onPress={() => handleDeleteOrder(item.id)}
-            disabled={isDeleting === item.id}
-          >
-            {isDeleting === item.id ? (
-              <ActivityIndicator size="small" color="#ff4444" />
-            ) : (
-              <Text style={styles.deleteBtnText}>Cancel Order</Text>
-            )}
-          </TouchableOpacity>
+          {item.status.toLowerCase() !== 'delivered' && item.status.toLowerCase() !== 'shipped' && item.status.toLowerCase() !== 'canceled' && (
+            <TouchableOpacity 
+              style={[styles.deleteBtn, isDeleting === item.id && styles.deleteBtnDisabled]} 
+              onPress={() => handleDeleteOrder(item.id)}
+              disabled={isDeleting === item.id}
+            >
+              {isDeleting === item.id ? (
+                <ActivityIndicator size="small" color="#ff4444" />
+              ) : (
+                <Text style={styles.deleteBtnText}>Cancel Order</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -218,30 +274,35 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
       <StatusBar barStyle="light-content" />
       <Header {...props} />
       
-      <View style={styles.content}>
-        <Text style={styles.title}>Your Order History</Text>
-        
-        {isLoading ? (
-          <View style={styles.centerContent}>
-            <ActivityIndicator size="large" color="#D4AF37" />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.contentWrapper}>
+          <View style={styles.content}>
+            <Text style={styles.title}>Your Order History</Text>
+            
+            {isLoading ? (
+              <View style={styles.centerContent}>
+                <ActivityIndicator size="large" color="#D4AF37" />
+              </View>
+            ) : orders.length === 0 ? (
+              <View style={styles.centerContent}>
+                <Text style={styles.messageText}>You haven't placed any orders yet.</Text>
+                <TouchableOpacity style={styles.shopBtn} onPress={onGoHome}>
+                  <Text style={styles.shopBtnText}>Start Shopping</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.listContent}>
+                {orders.map(order => (
+                  <View key={order.id}>
+                    {renderOrderCard({ item: order })}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
-        ) : orders.length === 0 ? (
-          <View style={styles.centerContent}>
-            <Text style={styles.messageText}>You haven't placed any orders yet.</Text>
-            <TouchableOpacity style={styles.shopBtn} onPress={onGoHome}>
-              <Text style={styles.shopBtnText}>Start Shopping</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <FlatList
-            data={orders}
-            renderItem={renderOrderCard}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+        </View>
+        <Footer />
+      </ScrollView>
 
       <ConfirmationModal
         visible={showCancelModal}
@@ -261,6 +322,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#291c0e',
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -406,6 +473,73 @@ const styles = StyleSheet.create({
   shopBtnText: {
     color: '#D4AF37',
     fontWeight: 'bold',
+  },
+  // Status Tracker Styles
+  trackerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginVertical: 10,
+  },
+  stepItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#4a3520',
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  stepCircleActive: {
+    backgroundColor: '#D4AF37',
+  },
+  innerCircle: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'transparent',
+  },
+  innerCircleActive: {
+    backgroundColor: '#000',
+  },
+  stepLine: {
+    height: 1,
+    backgroundColor: '#4a3520',
+    flex: 1,
+    marginBottom: 20, // Align with circles
+  },
+  stepLineActive: {
+    backgroundColor: '#D4AF37',
+  },
+  stepLabel: {
+    fontSize: 8,
+    color: '#666',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  stepLabelActive: {
+    color: '#D4AF37',
+  },
+  canceledBadge: {
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    paddingVertical: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ff4444',
+    alignItems: 'center',
+  },
+  canceledText: {
+    color: '#ff4444',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
 });
 

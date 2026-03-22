@@ -48,6 +48,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
   // Profile State
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   
   // Addresses State
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -220,6 +221,29 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
     setShowAddressForm(true);
   };
 
+  const handleResetPassword = async () => {
+    if (!newPassword) {
+      Alert.alert("Required", "Please enter a new password.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+      
+      setNewPassword("");
+      Alert.alert("Success", "Your password has been updated securely.");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to update password.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleLogout = async () => {
     await signOut();
     props.onGoHome();
@@ -249,151 +273,177 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
         style={{ flex: 1 }}
       >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.headerSection}>
-            <Text style={styles.title}>Account Details</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
-          </View>
-
-          <View style={styles.formSection}>
-            {/* Basic Info */}
-            <Text style={styles.sectionHeader}>Personal Information</Text>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="John Doe"
-                placeholderTextColor="#666"
-                value={fullName}
-                onChangeText={setFullName}
-              />
+          <View style={styles.contentWrapper}>
+            <View style={styles.headerSection}>
+              <Text style={styles.title}>Account Details</Text>
+              <Text style={styles.userEmail}>{user.email}</Text>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Phone Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="+1 (555) 000-0000"
-                placeholderTextColor="#666"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
-              onPress={handleUpdateProfile}
-              disabled={saving}
-            >
-              <Text style={styles.saveButtonText}>Update Profile</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-            
-            {/* Addresses Section */}
-            <View style={styles.rowBetween}>
-              <Text style={styles.sectionHeader}>Saved Addresses</Text>
-              {!showAddressForm && (
-                <TouchableOpacity onPress={() => openAddressForm()}>
-                  <Text style={styles.addText}>+ ADD NEW</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {showAddressForm ? (
-              <View style={styles.addressForm}>
-                <Text style={styles.formTitle}>{editingAddress ? "Edit Address" : "New Shipping Address"}</Text>
-                
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Label (e.g. Home, Office, Gift)</Text>
-                  <TextInput style={styles.input} value={addrLabel} onChangeText={setAddrLabel} />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Receiver's Full Name</Text>
-                  <TextInput style={styles.input} value={addrFullName} onChangeText={setAddrFullName} />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Shipping Country</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    value={addrCountry} 
-                    onChangeText={setAddrCountry}
-                    placeholder="Enter target country"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Address Line 1</Text>
-                  <TextInput style={styles.input} value={addrLine1} onChangeText={setAddrLine1} />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Address Line 2 (Optional)</Text>
-                  <TextInput style={styles.input} value={addrLine2} onChangeText={setAddrLine2} />
-                </View>
-
-                <View style={styles.row}>
-                  <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                    <Text style={styles.inputLabel}>City</Text>
-                    <TextInput style={styles.input} value={addrCity} onChangeText={setAddrCity} />
-                  </View>
-                  <View style={[styles.inputGroup, { width: 120 }]}>
-                    <Text style={styles.inputLabel}>ZIP Code</Text>
-                    <TextInput style={styles.input} value={addrZip} onChangeText={setAddrZip} />
-                  </View>
-                </View>
-
-                <View style={styles.formActions}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddressForm(false)}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.saveAddrBtn} onPress={handleSaveAddress}>
-                    <Text style={styles.saveAddrBtnText}>Save Address</Text>
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.formSection}>
+              {/* Basic Info */}
+              <Text style={styles.sectionHeader}>Personal Information</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="John Doe"
+                  placeholderTextColor="#666"
+                  value={fullName}
+                  onChangeText={setFullName}
+                />
               </View>
-            ) : (
-              <View style={styles.addressList}>
-                {loading ? (
-                  <ActivityIndicator color="#D4AF37" />
-                ) : addresses.length === 0 ? (
-                  <Text style={styles.noAddressText}>No addresses saved yet.</Text>
-                ) : (
-                  addresses.map((addr) => (
-                    <View key={addr.id} style={styles.addressCard}>
-                      <View style={styles.rowBetween}>
-                        <View style={styles.labelBadge}>
-                          <Text style={styles.labelText}>{addr.label.toUpperCase()}</Text>
-                        </View>
-                        {addr.is_default && (
-                          <Text style={styles.defaultTag}>DEFAULT</Text>
-                        )}
-                      </View>
-                      <Text style={styles.addrName}>{addr.full_name}</Text>
-                      <Text style={styles.addrText}>{addr.address_line1}</Text>
-                      {addr.address_line2 ? <Text style={styles.addrText}>{addr.address_line2}</Text> : null}
-                      <Text style={styles.addrText}>{addr.city}, {addr.zip_code}</Text>
-                      <Text style={[styles.addrText, { fontWeight: 'bold', color: '#D4AF37' }]}>{addr.country}</Text>
-                      
-                      <View style={styles.cardActions}>
-                        <TouchableOpacity onPress={() => openAddressForm(addr)}>
-                          <Text style={styles.actionLink}>Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDeleteAddress(addr.id)}>
-                          <Text style={[styles.actionLink, { color: '#ff4444' }]}>Delete</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ))
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="+1 (555) 000-0000"
+                  placeholderTextColor="#666"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <TouchableOpacity 
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+                onPress={handleUpdateProfile}
+                disabled={saving}
+              >
+                <Text style={styles.saveButtonText}>Update Profile</Text>
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+              
+              {/* Addresses Section */}
+              <View style={styles.rowBetween}>
+                <Text style={styles.sectionHeader}>Saved Addresses</Text>
+                {!showAddressForm && (
+                  <TouchableOpacity onPress={() => openAddressForm()}>
+                    <Text style={styles.addText}>+ ADD NEW</Text>
+                  </TouchableOpacity>
                 )}
               </View>
-            )}
 
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutButtonText}>Sign Out from Moksha Jewels</Text>
-            </TouchableOpacity>
+              {showAddressForm ? (
+                <View style={styles.addressForm}>
+                  <Text style={styles.formTitle}>{editingAddress ? "Edit Address" : "New Shipping Address"}</Text>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Label (e.g. Home, Office, Gift)</Text>
+                    <TextInput style={styles.input} value={addrLabel} onChangeText={setAddrLabel} />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Receiver's Full Name</Text>
+                    <TextInput style={styles.input} value={addrFullName} onChangeText={setAddrFullName} />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Shipping Country</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={addrCountry} 
+                      onChangeText={setAddrCountry}
+                      placeholder="Enter target country"
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Address Line 1</Text>
+                    <TextInput style={styles.input} value={addrLine1} onChangeText={setAddrLine1} />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Address Line 2 (Optional)</Text>
+                    <TextInput style={styles.input} value={addrLine2} onChangeText={setAddrLine2} />
+                  </View>
+
+                  <View style={styles.row}>
+                    <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                      <Text style={styles.inputLabel}>City</Text>
+                      <TextInput style={styles.input} value={addrCity} onChangeText={setAddrCity} />
+                    </View>
+                    <View style={[styles.inputGroup, { width: 120 }]}>
+                      <Text style={styles.inputLabel}>ZIP Code</Text>
+                      <TextInput style={styles.input} value={addrZip} onChangeText={setAddrZip} />
+                    </View>
+                  </View>
+
+                  <View style={styles.formActions}>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddressForm(false)}>
+                      <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.saveAddrBtn} onPress={handleSaveAddress}>
+                      <Text style={styles.saveAddrBtnText}>Save Address</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.addressList}>
+                  {loading ? (
+                    <ActivityIndicator color="#D4AF37" />
+                  ) : addresses.length === 0 ? (
+                    <Text style={styles.noAddressText}>No addresses saved yet.</Text>
+                  ) : (
+                    addresses.map((addr) => (
+                      <View key={addr.id} style={styles.addressCard}>
+                        <View style={styles.rowBetween}>
+                          <View style={styles.labelBadge}>
+                            <Text style={styles.labelText}>{addr.label.toUpperCase()}</Text>
+                          </View>
+                          {addr.is_default && (
+                            <Text style={styles.defaultTag}>DEFAULT</Text>
+                          )}
+                        </View>
+                        <Text style={styles.addrName}>{addr.full_name}</Text>
+                        <Text style={styles.addrText}>{addr.address_line1}</Text>
+                        {addr.address_line2 ? <Text style={styles.addrText}>{addr.address_line2}</Text> : null}
+                        <Text style={styles.addrText}>{addr.city}, {addr.zip_code}</Text>
+                        <Text style={[styles.addrText, { fontWeight: 'bold', color: '#D4AF37' }]}>{addr.country}</Text>
+                        
+                        <View style={styles.cardActions}>
+                          <TouchableOpacity onPress={() => openAddressForm(addr)}>
+                            <Text style={styles.actionLink}>Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => handleDeleteAddress(addr.id)}>
+                            <Text style={[styles.actionLink, { color: '#ff4444' }]}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              )}
+
+              <View style={styles.divider} />
+
+              {/* Security Section */}
+              <Text style={styles.sectionHeader}>Security</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>New Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter a new password"
+                  placeholderTextColor="#666"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                />
+              </View>
+
+              <TouchableOpacity 
+                style={[styles.saveButton, saving && styles.saveButtonDisabled, { borderColor: '#D4AF37' }]} 
+                onPress={handleResetPassword}
+                disabled={saving}
+              >
+                <Text style={styles.saveButtonText}>Update Password</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.logoutButtonText}>Sign Out from Moksha Jewels</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <Footer />
@@ -410,6 +460,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
   },
   headerSection: {
     padding: 30,

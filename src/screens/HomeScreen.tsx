@@ -32,7 +32,7 @@ const HomeScreen: React.FC<HomeScreenProps> = (props) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.fullWidth}>
+        <View style={styles.contentWrapper}>
           <ImageScroller />
           
           <View style={styles.mainArea}>
@@ -49,9 +49,9 @@ const HomeScreen: React.FC<HomeScreenProps> = (props) => {
               </TouchableOpacity>
             </View>
           </View>
-
-          <Footer />
         </View>
+
+        <Footer />
       </ScrollView>
     </View>
   );
@@ -64,10 +64,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "space-between",
   },
-  fullWidth: {
-    width: "100%",
+  contentWrapper: {
+    flex: 1,
   },
   mainArea: {
     flex: 1,

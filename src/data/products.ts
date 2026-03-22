@@ -22,6 +22,14 @@ export interface Product {
   rating: number;
   popularity: number;
   createdAt: string;
+  // Metadata
+  type?: string;
+  collection?: string;
+  gender?: string;
+  occasion?: string;
+  designTheme?: string;
+  gemstoneType?: string;
+  gemstoneWeight?: number;
 }
 
 /**
@@ -47,6 +55,13 @@ const mapProduct = (row: any): Product => ({
   rating: parseFloat(row.rating || 0),
   popularity: parseInt(row.popularity || 0),
   createdAt: row.created_at,
+  type: row.type,
+  collection: row.collection,
+  gender: row.gender,
+  occasion: row.occasion,
+  designTheme: row.design_theme,
+  gemstoneType: row.gemstone_type,
+  gemstoneWeight: parseFloat(row.gemstone_weight || 0),
 });
 
 

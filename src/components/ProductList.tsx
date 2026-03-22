@@ -108,7 +108,7 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
   else if (width > 600) numColumns = 3;
 
   const spacing = 15;
-  const padding = 20;
+  const padding = 15;
   const itemWidth = (width - (padding * 2) - (spacing * (numColumns - 1))) / numColumns;
 
   return (
@@ -181,7 +181,9 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    paddingHorizontal: 15,
+    paddingBottom: 20,
+    paddingTop: 0,
     backgroundColor: "#291c0e",
     minHeight: 400,
   },
@@ -201,8 +203,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
-    marginBottom: 25,
-    paddingBottom: 10,
+    marginBottom: 15,
+    paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(212, 175, 55, 0.15)",
   },
@@ -212,6 +214,8 @@ const styles = StyleSheet.create({
     color: "#fff",
     textTransform: "uppercase",
     letterSpacing: 1,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   countText: {
     color: "#888",

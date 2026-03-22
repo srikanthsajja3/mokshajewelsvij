@@ -51,31 +51,33 @@ const WishlistScreen: React.FC<WishlistScreenProps> = (props) => {
       <Header {...props} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerSection}>
-          <Text style={styles.title}>Your Wishlist</Text>
-          <Text style={styles.subtitle}>Reserved masterpieces waiting for you.</Text>
-        </View>
+        <View style={styles.contentWrapper}>
+          <View style={styles.headerSection}>
+            <Text style={styles.title}>Your Wishlist</Text>
+            <Text style={styles.subtitle}>Reserved masterpieces waiting for you.</Text>
+          </View>
 
-        {loading || wishlistLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color="#D4AF37" />
-          </View>
-        ) : products.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Your wishlist is empty.</Text>
-            <TouchableOpacity style={styles.exploreButton} onPress={props.onGoHome}>
-              <Text style={styles.exploreButtonText}>Explore Collections</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <ProductList 
-            category="Wishlist" 
-            onSelectProduct={props.onSelectProduct} 
-            sortBy="popularity"
-            searchQuery={props.searchQuery}
-            onPressLogin={props.onPressLogin}
-          />
-        )}
+          {loading || wishlistLoading ? (
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color="#D4AF37" />
+            </View>
+          ) : products.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Your wishlist is empty.</Text>
+              <TouchableOpacity style={styles.exploreButton} onPress={props.onGoHome}>
+                <Text style={styles.exploreButtonText}>Explore Collections</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <ProductList 
+              category="Wishlist" 
+              onSelectProduct={props.onSelectProduct} 
+              sortBy="popularity"
+              searchQuery={props.searchQuery}
+              onPressLogin={props.onPressLogin}
+            />
+          )}
+        </View>
 
         <Footer />
       </ScrollView>
@@ -90,6 +92,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
   },
   headerSection: {
     padding: 30,

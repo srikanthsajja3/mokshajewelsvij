@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
-import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator } from "react-native";
+import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator, TextInput, Alert } from "react-native";
+import { FontAwesome5 } from '@expo/vector-icons';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { supabase } from "../../supabase";
 import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
@@ -34,6 +36,10 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
   const [showAddedMsg, setShowAddedMsg] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [userReview, setUserReview] = useState({ rating: 5, comment: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [hasPurchased, setHasPurchased] = useState(false);
 
   const isLargeScreen = width > 768;
   
@@ -50,10 +56,77 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
       setLoadingRecs(false);
     };
 
+    const loadReviews = async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*, profiles(full_name)')
+        .eq('product_id', product.id)
+        .order('created_at', { ascending: false });
+      
+      if (!error && data) {
+        setReviews(data);
+      }
+    };
+
+    const checkPurchase = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('order_items')
+        .select('id, orders(status)')
+        .eq('product_id', product.id)
+        .eq('orders.user_id', user.id)
+        .eq('orders.status', 'delivered');
+      
+      if (!error && data && data.length > 0) {
+        setHasPurchased(true);
+      }
+    };
+
     loadRecommendations();
+    loadReviews();
+    checkPurchase();
     // Scroll to top when product changes
     scrollRef.current?.scrollTo({ y: 0, animated: true });
-  }, [product.id, product.category]);
+  }, [product.id, product.category, user]);
+
+  const handleSubmitReview = async () => {
+    if (!user) {
+      props.onPressLogin();
+      return;
+    }
+    if (!userReview.comment.trim()) {
+      Alert.alert("Review Required", "Please share your thoughts on this masterpiece.");
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const { error } = await supabase
+        .from('reviews')
+        .insert({
+          user_id: user.id,
+          product_id: product.id,
+          rating: userReview.rating,
+          comment: userReview.comment
+        });
+
+      if (error) throw error;
+      
+      Alert.alert("Thank You", "Your review has been shared with the community.");
+      setUserReview({ rating: 5, comment: "" });
+      // Refresh reviews
+      const { data: updatedReviews } = await supabase
+        .from('reviews')
+        .select('*, profiles(full_name)')
+        .eq('product_id', product.id)
+        .order('created_at', { ascending: false });
+      if (updatedReviews) setReviews(updatedReviews);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Could not post review.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const handleBuyNow = () => {
     addToCart(product);
@@ -95,116 +168,245 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
       <ScrollView 
         ref={scrollRef} 
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <View style={[styles.mainContent, contentStyle]}>
-          <View style={[styles.imageColumn, { width: isLargeScreen ? "50%" : "100%" }]}>
-            <View style={styles.imageSection}>
-              <Image source={{ uri: product.image }} style={styles.mainImage} />
-              <TouchableOpacity 
-                style={styles.wishlistIcon} 
-                onPress={handleWishlistToggle}
-              >
-                <Text style={[styles.heart, isInWishlist(product.id) && styles.heartActive]}>
-                  {isInWishlist(product.id) ? "♥" : "♡"}
+        <View style={styles.contentWrapper}>
+          <View style={[styles.mainContent, contentStyle]}>
+            <View style={[styles.imageColumn, { width: isLargeScreen ? "50%" : "100%" }]}>
+              <View style={styles.imageSection}>
+                <Image source={{ uri: product.image }} style={styles.mainImage} />
+                <TouchableOpacity 
+                  style={styles.wishlistIcon} 
+                  onPress={handleWishlistToggle}
+                >
+                  <Text style={[styles.heart, isInWishlist(product.id) && styles.heartActive]}>
+                    {isInWishlist(product.id) ? "♥" : "♡"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={[styles.infoSection, { width: isLargeScreen ? "50%" : "100%" }]}>
+              <Text style={styles.categoryBadge}>{product.category}</Text>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productCode}>Product Code: {product.productCode}</Text>
+              <Text style={styles.price}>{formatPrice(product.price, countryCode)}</Text>
+              
+              <View style={styles.divider} />
+              
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Product Specifications</Text>
+                <View style={styles.specTable}>
+                  <View style={styles.specTableRow}>
+                    <Text style={styles.specTableLabel}>Product</Text>
+                    <Text style={styles.specTableValue}>{product.category}</Text>
+                  </View>
+                  {product.type && (
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Type</Text>
+                      <Text style={styles.specTableValue}>{product.type}</Text>
+                    </View>
+                  )}
+                  {product.collection && (
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Collection</Text>
+                      <Text style={styles.specTableValue}>{product.collection}</Text>
+                    </View>
+                  )}
+                  {product.gender && (
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Gender</Text>
+                      <Text style={styles.specTableValue}>{product.gender}</Text>
+                    </View>
+                  )}
+                  {product.occasion && (
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Occasion</Text>
+                      <Text style={styles.specTableValue}>{product.occasion}</Text>
+                    </View>
+                  )}
+                  {product.designTheme && (
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Design Theme</Text>
+                      <Text style={styles.specTableValue}>{product.designTheme}</Text>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Metal Details</Text>
+                <View style={styles.specTable}>
+                  <View style={styles.specTableRow}>
+                    <Text style={styles.specTableLabel}>Gold Weight</Text>
+                    <Text style={styles.specTableValue}>{product.goldWeight.toFixed(3)} g</Text>
+                  </View>
+                  <View style={styles.specTableRow}>
+                    <Text style={styles.specTableLabel}>Purity</Text>
+                    <Text style={styles.specTableValue}>{product.purity}</Text>
+                  </View>
+                  <View style={styles.specTableRow}>
+                    <Text style={styles.specTableLabel}>Metal Color</Text>
+                    <Text style={styles.specTableValue}>{product.metalColor}</Text>
+                  </View>
+                </View>
+
+                {(product.gemstoneType || product.gemstoneWeight) && (
+                  <>
+                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Stone Details</Text>
+                    <View style={styles.specTable}>
+                      {product.gemstoneType && (
+                        <View style={styles.specTableRow}>
+                          <Text style={styles.specTableLabel}>Gemstone Type</Text>
+                          <Text style={styles.specTableValue}>{product.gemstoneType}</Text>
+                        </View>
+                      )}
+                      {product.gemstoneWeight && (
+                        <View style={styles.specTableRow}>
+                          <Text style={styles.specTableLabel}>Gemstone Weight</Text>
+                          <Text style={styles.specTableValue}>{product.gemstoneWeight.toFixed(3)}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Price Breakup</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Metal</Text>
+                  <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.metal, countryCode)}</Text>
+                </View>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>VA & Making</Text>
+                  <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.vaMaking, countryCode)}</Text>
+                </View>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Stone, Beeds, Etc</Text>
+                  <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.stoneBeads, countryCode)}</Text>
+                </View>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Tax</Text>
+                  <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.tax, countryCode)}</Text>
+                </View>
+                <View style={[styles.priceRow, styles.totalRow]}>
+                  <Text style={styles.totalLabel}>Total</Text>
+                  <Text style={styles.totalValue}>{formatPrice(product.price, countryCode)}</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
+                <Text style={styles.actionButtonText}>Buy Now</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.actionButton, styles.addToCartButton]} onPress={handleAddToCart}>
+                <Text style={styles.addToCartButtonText}>Add to Bag</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={handleWishlistToggle}>
+                <Text style={styles.secondaryButtonText}>
+                  {isInWishlist(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                 </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={onBack}>
+                <Text style={styles.secondaryButtonText}>Back to Collections</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <View style={[styles.infoSection, { width: isLargeScreen ? "50%" : "100%" }]}>
-            <Text style={styles.categoryBadge}>{product.category}</Text>
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.productCode}>Product Code: {product.productCode}</Text>
-            <Text style={styles.price}>{formatPrice(product.price, countryCode)}</Text>
+          {/* Reviews Section */}
+          <View style={styles.reviewsSection}>
+            <Text style={styles.sectionTitle}>Community Reviews</Text>
             
-            <View style={styles.divider} />
-            
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Metal Details</Text>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Gross Weight:</Text>
-                <Text style={styles.specValue}>{product.grossWeight.toFixed(3)} gram</Text>
-              </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Metal Color:</Text>
-                <Text style={styles.specValue}>{product.metalColor}</Text>
-              </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Gold Weight:</Text>
-                <Text style={styles.specValue}>{product.goldWeight.toFixed(3)} gram - {product.purity}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Price Breakup</Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Metal</Text>
-                <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.metal, countryCode)}</Text>
-              </View>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>VA & Making</Text>
-                <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.vaMaking, countryCode)}</Text>
-              </View>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Stone, Beeds, Etc</Text>
-                <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.stoneBeads, countryCode)}</Text>
-              </View>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Tax</Text>
-                <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.tax, countryCode)}</Text>
-              </View>
-              <View style={[styles.priceRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>{formatPrice(product.price, countryCode)}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
-              <Text style={styles.actionButtonText}>Buy Now</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.actionButton, styles.addToCartButton]} onPress={handleAddToCart}>
-              <Text style={styles.addToCartButtonText}>Add to Bag</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={handleWishlistToggle}>
-              <Text style={styles.secondaryButtonText}>
-                {isInWishlist(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={onBack}>
-              <Text style={styles.secondaryButtonText}>Back to Collections</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Recommendations Section */}
-        {recommendations.length > 0 && (
-          <View style={styles.recommendationsSection}>
-            <Text style={styles.recommendationTitle}>Recommended for You</Text>
-            <View style={styles.recommendationGrid}>
-              {recommendations.map((item) => (
+            {hasPurchased && (
+              <View style={styles.reviewForm}>
+                <Text style={styles.formLabel}>Share your experience</Text>
+                <View style={styles.ratingRow}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity key={star} onPress={() => setUserReview({ ...userReview, rating: star })}>
+                      <FontAwesome5 
+                        name="star" 
+                        solid={star <= userReview.rating} 
+                        size={20} 
+                        color={star <= userReview.rating ? "#D4AF37" : "#4a3520"} 
+                        style={{ marginRight: 10 }}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={styles.reviewInput}
+                  placeholder="Write your review here..."
+                  placeholderTextColor="#666"
+                  multiline
+                  value={userReview.comment}
+                  onChangeText={(text) => setUserReview({ ...userReview, comment: text })}
+                />
                 <TouchableOpacity 
-                  key={item.id} 
-                  style={styles.recommendationCard}
-                  onPress={() => onSelectProduct(item)}
-                  activeOpacity={0.8}
+                  style={[styles.submitBtn, submittingReview && { opacity: 0.7 }]} 
+                  onPress={handleSubmitReview}
+                  disabled={submittingReview}
                 >
-                  <Image source={{ uri: item.image }} style={styles.recImage} />
-                  <View style={styles.recInfo}>
-                    <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.recPrice}>{formatPrice(item.price, countryCode)}</Text>
-                  </View>
+                  {submittingReview ? <ActivityIndicator size="small" color="#000" /> : <Text style={styles.submitBtnText}>Post Review</Text>}
                 </TouchableOpacity>
-              ))}
+              </View>
+            )}
+
+            <View style={styles.reviewsList}>
+              {reviews.length === 0 ? (
+                <Text style={styles.emptyReviews}>Be the first to review this masterpiece.</Text>
+              ) : (
+                reviews.map((rev) => (
+                  <View key={rev.id} style={styles.reviewCard}>
+                    <View style={styles.reviewHeader}>
+                      <Text style={styles.reviewerName}>{rev.profiles?.full_name || "Anonymous"}</Text>
+                      <View style={styles.starsRow}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <FontAwesome5 
+                            key={s} 
+                            name="star" 
+                            solid={s <= rev.rating} 
+                            size={10} 
+                            color={s <= rev.rating ? "#D4AF37" : "#4a3520"} 
+                          />
+                        ))}
+                      </View>
+                    </View>
+                    <Text style={styles.reviewComment}>{rev.comment}</Text>
+                    <Text style={styles.reviewDate}>{new Date(rev.created_at).toLocaleDateString()}</Text>
+                  </View>
+                ))
+              )}
             </View>
           </View>
-        )}
+
+          {/* Recommendations Section */}
+          {recommendations.length > 0 && (
+            <View style={styles.recommendationsSection}>
+              <Text style={styles.recommendationTitle}>Recommended for You</Text>
+              <View style={styles.recommendationGrid}>
+                {recommendations.map((item) => (
+                  <TouchableOpacity 
+                    key={item.id} 
+                    style={styles.recommendationCard}
+                    onPress={() => onSelectProduct(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Image source={{ uri: item.image }} style={styles.recImage} />
+                    <View style={styles.recInfo}>
+                      <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
+                      <Text style={styles.recPrice}>{formatPrice(item.price, countryCode)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
 
         <Footer />
       </ScrollView>
@@ -216,6 +418,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#291c0e",
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
   },
   addedMessage: {
     backgroundColor: "#D4AF37",
@@ -329,6 +537,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  specTable: {
+    borderWidth: 1,
+    borderColor: "#4a3520",
+    borderRadius: 8,
+    overflow: "hidden",
+    marginBottom: 10,
+  },
+  specTableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#4a3520",
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+  },
+  specTableLabel: {
+    flex: 1,
+    color: "#888",
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  specTableValue: {
+    flex: 1.5,
+    color: "#fff",
+    fontSize: 13,
+  },
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -436,6 +670,90 @@ const styles = StyleSheet.create({
     color: "#D4AF37",
     fontSize: 12,
     fontWeight: "600",
+  },
+  // Review Styles
+  reviewsSection: {
+    padding: 20,
+    marginTop: 10,
+  },
+  reviewForm: {
+    backgroundColor: "rgba(212, 175, 55, 0.05)",
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
+    marginBottom: 30,
+  },
+  formLabel: {
+    color: "#D4AF37",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  ratingRow: {
+    flexDirection: "row",
+    marginBottom: 20,
+  },
+  reviewInput: {
+    backgroundColor: "#3d2b1a",
+    color: "#fff",
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#4a3520",
+    height: 100,
+    textAlignVertical: "top",
+    marginBottom: 15,
+  },
+  submitBtn: {
+    backgroundColor: "#D4AF37",
+    paddingVertical: 12,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  submitBtnText: {
+    color: "#000",
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  reviewsList: {
+    gap: 20,
+  },
+  reviewCard: {
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212, 175, 55, 0.1)",
+    paddingBottom: 20,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  reviewerName: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  starsRow: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  reviewComment: {
+    color: "#aaa",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  reviewDate: {
+    color: "#666",
+    fontSize: 10,
+  },
+  emptyReviews: {
+    color: "#666",
+    fontStyle: "italic",
+    textAlign: "center",
+    padding: 20,
   }
 });
 
