@@ -214,14 +214,14 @@ function AppContent() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {currentScreen === "home" && (
+      {currentScreen === "home" ? (
         <HomeScreen 
           onSelectCategory={navigateToCategory} 
           {...commonProps}
         />
-      )}
+      ) : null}
       
-      {currentScreen === "category" && (
+      {currentScreen === "category" ? (
         <SwipeBackView onSwipeBack={navigateToHome}>
           <CategoryScreen 
             category={selectedCategory} 
@@ -230,9 +230,9 @@ function AppContent() {
             {...commonProps}
           />
         </SwipeBackView>
-      )}
+      ) : null}
 
-      {currentScreen === "details" && selectedProduct && (
+      {currentScreen === "details" && selectedProduct ? (
         <SwipeBackView onSwipeBack={navigateBackToList}>
           <ProductDetailsScreen 
             product={selectedProduct} 
@@ -241,70 +241,70 @@ function AppContent() {
             {...commonProps}
           />
         </SwipeBackView>
-      )}
+      ) : null}
 
-      {currentScreen === "login" && (
+      {currentScreen === "login" ? (
         <LoginScreen 
           onLoginSuccess={navigateToHome} 
           onGoHome={navigateToHome} 
           onClose={navigateToHome}
           initialIsUpdatingPassword={isRecovering}
         />
-      )}
+      ) : null}
 
-      {currentScreen === "cart" && (
+      {currentScreen === "cart" ? (
         <CartScreen 
           onCheckout={handleCheckout}
           {...commonProps}
         />
-      )}
+      ) : null}
 
-      {currentScreen === "checkout" && (
+      {currentScreen === "checkout" ? (
         <CheckoutScreen 
           onSuccess={navigateToOrders}
           {...commonProps}
         />
-      )}
+      ) : null}
 
-      {currentScreen === "orders" && (
+      {currentScreen === "orders" ? (
         <OrdersScreen 
           {...commonProps}
         />
-      )}
+      ) : null}
 
-      {currentScreen === "wishlist" && (
+      {currentScreen === "wishlist" ? (
         <WishlistScreen 
           onSelectProduct={navigateToProduct}
           {...commonProps}
         />
-      )}
+      ) : null}
 
-      {currentScreen === "profile" && (
+      {currentScreen === "profile" ? (
         <ProfileScreen 
           {...commonProps}
         />
-      )}
+      ) : null}
 
-      {currentScreen === "admin" && (
+      {currentScreen === "admin" ? (
         <AdminDashboardScreen 
           {...commonProps}
         />
-      )}
+      ) : null}
 
-      {currentScreen === "vendor" && (
+      {currentScreen === "vendor" ? (
         <VendorDashboardScreen 
           onAddProduct={navigateToAddProduct}
           {...commonProps}
         />
-      )}
+      ) : null}
 
-      {currentScreen === "addProduct" && (
+      {currentScreen === "addProduct" ? (
         <AddProductScreen 
           vendorId={selectedVendorId}
           onBack={navigateToVendor}
           {...commonProps}
         />
-      )}
+      ) : null}
 
       <SideDrawer 
         isVisible={drawerVisible} 

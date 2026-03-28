@@ -53,9 +53,6 @@ const ImageScroller = () => {
         {SLIDER_IMAGES.map((img) => (
           <View key={img.id} style={[styles.imageWrapper, { width }]}>
             <Image source={img.source} style={[styles.image, { height: scrollerHeight }]} />
-            <View style={styles.overlay}>
-              
-            </View>
           </View>
         ))}
       </ScrollView>

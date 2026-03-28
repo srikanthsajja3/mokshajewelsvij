@@ -159,11 +159,11 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
     <View style={styles.container}>
       <Header {...props} />
 
-      {showAddedMsg && (
+      {showAddedMsg ? (
         <View style={styles.addedMessage}>
           <Text style={styles.addedMessageText}>✨ Added to your bag!</Text>
         </View>
-      )}
+      ) : null}
 
       <ScrollView 
         ref={scrollRef} 
@@ -201,36 +201,36 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
                     <Text style={styles.specTableLabel}>Product</Text>
                     <Text style={styles.specTableValue}>{product.category}</Text>
                   </View>
-                  {product.type && (
+                  {product.type ? (
                     <View style={styles.specTableRow}>
                       <Text style={styles.specTableLabel}>Type</Text>
                       <Text style={styles.specTableValue}>{product.type}</Text>
                     </View>
-                  )}
-                  {product.collection && (
+                  ) : null}
+                  {product.collection ? (
                     <View style={styles.specTableRow}>
                       <Text style={styles.specTableLabel}>Collection</Text>
                       <Text style={styles.specTableValue}>{product.collection}</Text>
                     </View>
-                  )}
-                  {product.gender && (
+                  ) : null}
+                  {product.gender ? (
                     <View style={styles.specTableRow}>
                       <Text style={styles.specTableLabel}>Gender</Text>
                       <Text style={styles.specTableValue}>{product.gender}</Text>
                     </View>
-                  )}
-                  {product.occasion && (
+                  ) : null}
+                  {product.occasion ? (
                     <View style={styles.specTableRow}>
                       <Text style={styles.specTableLabel}>Occasion</Text>
                       <Text style={styles.specTableValue}>{product.occasion}</Text>
                     </View>
-                  )}
-                  {product.designTheme && (
+                  ) : null}
+                  {product.designTheme ? (
                     <View style={styles.specTableRow}>
                       <Text style={styles.specTableLabel}>Design Theme</Text>
                       <Text style={styles.specTableValue}>{product.designTheme}</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
 
                 <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Metal Details</Text>
@@ -249,25 +249,25 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
                   </View>
                 </View>
 
-                {(product.gemstoneType || product.gemstoneWeight) && (
+                {(product.gemstoneType || product.gemstoneWeight) ? (
                   <>
                     <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Stone Details</Text>
                     <View style={styles.specTable}>
-                      {product.gemstoneType && (
+                      {product.gemstoneType ? (
                         <View style={styles.specTableRow}>
                           <Text style={styles.specTableLabel}>Gemstone Type</Text>
                           <Text style={styles.specTableValue}>{product.gemstoneType}</Text>
                         </View>
-                      )}
-                      {product.gemstoneWeight && (
+                      ) : null}
+                      {product.gemstoneWeight ? (
                         <View style={styles.specTableRow}>
                           <Text style={styles.specTableLabel}>Gemstone Weight</Text>
                           <Text style={styles.specTableValue}>{product.gemstoneWeight.toFixed(3)}</Text>
                         </View>
-                      )}
+                      ) : null}
                     </View>
                   </>
-                )}
+                ) : null}
               </View>
 
               <View style={styles.divider} />
@@ -322,7 +322,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
           <View style={styles.reviewsSection}>
             <Text style={styles.sectionTitle}>Community Reviews</Text>
             
-            {hasPurchased && (
+            {hasPurchased ? (
               <View style={styles.reviewForm}>
                 <Text style={styles.formLabel}>Share your experience</Text>
                 <View style={styles.ratingRow}>
@@ -354,7 +354,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
                   {submittingReview ? <ActivityIndicator size="small" color="#000" /> : <Text style={styles.submitBtnText}>Post Review</Text>}
                 </TouchableOpacity>
               </View>
-            )}
+            ) : null}
 
             <View style={styles.reviewsList}>
               {reviews.length === 0 ? (
@@ -385,7 +385,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
           </View>
 
           {/* Recommendations Section */}
-          {recommendations.length > 0 && (
+          {recommendations.length > 0 ? (
             <View style={styles.recommendationsSection}>
               <Text style={styles.recommendationTitle}>Recommended for You</Text>
               <View style={styles.recommendationGrid}>
@@ -405,7 +405,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
                 ))}
               </View>
             </View>
-          )}
+          ) : null}
         </View>
 
         <Footer />

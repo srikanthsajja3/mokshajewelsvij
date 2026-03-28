@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useAuth } from './AuthContext';
-import { Product } from '../data/products';
 
 interface WishlistContextType {
   wishlist: string[]; // List of product IDs

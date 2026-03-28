@@ -44,6 +44,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   
   // Profile State
   const [fullName, setFullName] = useState("");
@@ -112,6 +113,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
   const handleUpdateProfile = async () => {
     if (!user) return;
     setSaving(true);
+    setSuccessMessage("");
     try {
       const { error } = await supabase
         .from("profiles")
@@ -123,11 +125,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
         .eq("id", user.id);
 
       if (error) throw error;
-      Alert.alert("Success", "Your profile has been updated.");
+      setSuccessMessage("Profile updated successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to update profile.");
     } finally {
-      setSaving(true); // Small delay feel
       setTimeout(() => setSaving(false), 500);
     }
   };
@@ -140,6 +142,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
     }
 
     setSaving(true);
+    setSuccessMessage("");
     const addressData = {
       user_id: user.id,
       label: addrLabel,
@@ -170,7 +173,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
       setShowAddressForm(false);
       setEditingAddress(null);
       fetchAddresses();
-      Alert.alert("Success", "Address saved successfully.");
+      setSuccessMessage("Address saved successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to save address.");
     } finally {
@@ -228,6 +232,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
     }
 
     setSaving(true);
+    setSuccessMessage("");
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword
@@ -236,17 +241,51 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
       if (error) throw error;
       
       setNewPassword("");
-      Alert.alert("Success", "Your password has been updated securely.");
+      setSuccessMessage("Password updated successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to update password.");
     } finally {
-      setSaving(false);
+      setTimeout(() => setSaving(false), 500);
     }
   };
 
   const handleLogout = async () => {
     await signOut();
     props.onGoHome();
+  };
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      "Delete Account",
+      "CRITICAL: This will permanently delete your account, orders, and all personal data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "DELETE EVERYTHING", 
+          style: "destructive", 
+          onPress: async () => {
+            setSaving(true);
+            try {
+              // Call a supabase edge function or RPC to handle full deletion
+              // For now we simulate the flow and sign out
+              const { error } = await supabase.rpc('delete_user_data');
+              if (error) throw error;
+              
+              await signOut();
+              Alert.alert("Account Deleted", "Your data has been removed from our systems.");
+              props.onGoHome();
+            } catch (error: any) {
+              // If RPC is not setup, at least we try to sign out after warning
+              // In a real app, this MUST be a server-side deletion
+              Alert.alert("Error", "Could not complete deletion automatically. Please contact support@mokshajewels.com");
+            } finally {
+              setSaving(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (!user) {
@@ -280,6 +319,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
             </View>
 
             <View style={styles.formSection}>
+              {successMessage ? (
+                <View style={styles.successContainer}>
+                  <Text style={styles.successText}>{successMessage}</Text>
+                </View>
+              ) : null}
+
               {/* Basic Info */}
               <Text style={styles.sectionHeader}>Personal Information</Text>
               <View style={styles.inputGroup}>
@@ -310,7 +355,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
                 onPress={handleUpdateProfile}
                 disabled={saving}
               >
-                <Text style={styles.saveButtonText}>Update Profile</Text>
+                {saving ? (
+                  <ActivityIndicator color="#D4AF37" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Update Profile</Text>
+                )}
               </TouchableOpacity>
 
               <View style={styles.divider} />
@@ -318,11 +367,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
               {/* Addresses Section */}
               <View style={styles.rowBetween}>
                 <Text style={styles.sectionHeader}>Saved Addresses</Text>
-                {!showAddressForm && (
+                {!showAddressForm ? (
                   <TouchableOpacity onPress={() => openAddressForm()}>
                     <Text style={styles.addText}>+ ADD NEW</Text>
                   </TouchableOpacity>
-                )}
+                ) : null}
               </View>
 
               {showAddressForm ? (
@@ -392,9 +441,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
                           <View style={styles.labelBadge}>
                             <Text style={styles.labelText}>{addr.label.toUpperCase()}</Text>
                           </View>
-                          {addr.is_default && (
+                          {addr.is_default ? (
                             <Text style={styles.defaultTag}>DEFAULT</Text>
-                          )}
+                          ) : null}
                         </View>
                         <Text style={styles.addrName}>{addr.full_name}</Text>
                         <Text style={styles.addrText}>{addr.address_line1}</Text>
@@ -437,12 +486,25 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
                 onPress={handleResetPassword}
                 disabled={saving}
               >
-                <Text style={styles.saveButtonText}>Update Password</Text>
+                {saving ? (
+                  <ActivityIndicator color="#D4AF37" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Update Password</Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Text style={styles.logoutButtonText}>Sign Out from Moksha Jewels</Text>
               </TouchableOpacity>
+
+              <View style={styles.footerLinks}>
+                <TouchableOpacity onPress={() => Alert.alert("Privacy Policy", "Our full privacy policy is available at: https://mokshajewels.com/privacy")}>
+                  <Text style={styles.footerLinkText}>Privacy Policy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleDeleteAccount}>
+                  <Text style={styles.deleteLinkText}>Delete Account</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -686,6 +748,38 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     textAlign: "center",
     padding: 20,
+  },
+  successContainer: {
+    backgroundColor: "rgba(76, 175, 80, 0.1)",
+    borderWidth: 1,
+    borderColor: "#4CAF50",
+    borderRadius: 6,
+    padding: 15,
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  successText: {
+    color: "#4CAF50",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  footerLinks: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(212, 175, 55, 0.1)",
+  },
+  footerLinkText: {
+    color: "#888",
+    fontSize: 12,
+    textDecorationLine: "underline",
+  },
+  deleteLinkText: {
+    color: "rgba(255, 68, 68, 0.6)",
+    fontSize: 12,
+    textDecorationLine: "underline",
   }
 });
 

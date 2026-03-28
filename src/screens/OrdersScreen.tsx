@@ -188,12 +188,12 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </Text>
             </View>
-            {index < statuses.length - 1 && (
+            {index < statuses.length - 1 ? (
               <View style={[
                 styles.stepLine, 
                 index < currentIndex && styles.stepLineActive
               ]} />
-            )}
+            ) : null}
           </React.Fragment>
         ))}
       </View>
@@ -237,7 +237,7 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
             <Text style={styles.totalValue}>{formatPrice(item.total_amount, countryCode)}</Text>
           </View>
           
-          {item.status.toLowerCase() !== 'delivered' && item.status.toLowerCase() !== 'shipped' && item.status.toLowerCase() !== 'canceled' && (
+          {item.status.toLowerCase() !== 'delivered' && item.status.toLowerCase() !== 'shipped' && item.status.toLowerCase() !== 'canceled' ? (
             <TouchableOpacity 
               style={[styles.deleteBtn, isDeleting === item.id && styles.deleteBtnDisabled]} 
               onPress={() => handleDeleteOrder(item.id)}
@@ -249,7 +249,7 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
                 <Text style={styles.deleteBtnText}>Cancel Order</Text>
               )}
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
     );

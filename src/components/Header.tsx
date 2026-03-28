@@ -90,11 +90,11 @@ const Header: React.FC<HeaderProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {!isMobile && (
+        {!isMobile ? (
           <View style={styles.countryDisplay}>
             <Text style={styles.countryText}>{countryCode === 'IN' ? 'INDIA' : 'USA'}</Text>
           </View>
-        )}
+        ) : null}
       </View>
 
       <View style={styles.actionBar}>
@@ -113,7 +113,6 @@ const Header: React.FC<HeaderProps> = ({
             >
               <FontAwesome5 name="chevron-left" size={navIconSize} color="#D4AF37" />
             </TouchableOpacity>
-
             <TouchableOpacity 
               style={[styles.navArrowItem, !canGoForward && { opacity: 0.3 }]} 
               onPress={onForward}
@@ -139,11 +138,11 @@ const Header: React.FC<HeaderProps> = ({
                 <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressCart}>
                   <View>
                     <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
-                    {cartCount > 0 && (
+                    {cartCount > 0 ? (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{cartCount}</Text>
                       </View>
-                    )}
+                    ) : null}
                   </View>
                 </TouchableOpacity>
 
@@ -161,34 +160,34 @@ const Header: React.FC<HeaderProps> = ({
                   <FontAwesome5 name="heart" size={iconSize} color="#D4AF37" />
                 </TouchableOpacity>
 
-                {user && (
+                {user ? (
                   <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressOrders}>
                     <FontAwesome5 name="history" size={iconSize} color="#D4AF37" />
                   </TouchableOpacity>
-                )}
+                ) : null}
 
                 <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressCart}>
                   <View>
                     <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
-                    {cartCount > 0 && (
+                    {cartCount > 0 ? (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{cartCount}</Text>
                       </View>
-                    )}
+                    ) : null}
                   </View>
                 </TouchableOpacity>
 
-                {isAdmin && (
+                {isAdmin ? (
                   <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressAdmin}>
                     <Text style={styles.adminBadge}>ADMIN</Text>
                   </TouchableOpacity>
-                )}
+                ) : null}
 
-                {isVendor && (
+                {isVendor ? (
                   <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressVendor}>
                     <Text style={styles.vendorBadge}>PARTNER</Text>
                   </TouchableOpacity>
-                )}
+                ) : null}
 
                 <View style={styles.authGroup}>
                   {user ? (
@@ -267,10 +266,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   actionBar: {
-    backgroundColor: "rgba(212, 175, 55, 0.08)",
+    backgroundColor: "rgba(212, 175, 55, 0.05)",
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.15)",
+    borderColor: "rgba(212, 175, 55, 0.1)",
   },
   actionsContainer: {
     flexDirection: "row",

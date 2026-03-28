@@ -78,33 +78,77 @@ export const fetchProductsFromSupabase = async (category: string = "All"): Promi
 
     if (error) {
       console.error("Supabase fetch error:", error.message);
-      return [];
+      // Fallback to static PRODUCTS if Supabase fails
+      return category === "All" 
+        ? PRODUCTS 
+        : PRODUCTS.filter(p => p.category === category);
     }
 
     if (data && data.length > 0) {
       return data.map(mapProduct);
     }
-    return [];
+    
+    // Fallback if no data
+    return category === "All" 
+        ? PRODUCTS 
+        : PRODUCTS.filter(p => p.category === category);
   } catch (err) {
     console.error("Unexpected error fetching products:", err);
-    return [];
+    return PRODUCTS;
   }
 };
 
 export const fetchProductById = async (id: string): Promise<Product | null> => {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("id", id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-  if (error || !data) {
-    console.error("Error fetching product:", error);
-    return null;
+    if (error || !data) {
+      // Fallback to static PRODUCTS
+      return PRODUCTS.find(p => p.id === id) || null;
+    }
+
+    return mapProduct(data);
+  } catch (err) {
+    return PRODUCTS.find(p => p.id === id) || null;
   }
-
-  return mapProduct(data);
 };
 
-// Keep the interface but mark the static PRODUCTS as empty or deprecated
-export const PRODUCTS: Product[] = []; 
+// Static fallback products
+export const PRODUCTS: Product[] = [
+  {
+    id: 'mj-rg-001',
+    name: 'Eternal Radiance Ring',
+    category: 'Gold',
+    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=800',
+    productCode: 'MJ-RG-001',
+    grossWeight: 4.5,
+    goldWeight: 4.2,
+    purity: '22 KT',
+    metalColor: 'Yellow Gold',
+    price: 550,
+    priceBreakup: { metal: 400, vaMaking: 80, stoneBeads: 20, tax: 50 },
+    rating: 4.8,
+    popularity: 120,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'mj-nk-002',
+    name: 'Royal Heritage Necklace',
+    category: 'Gold',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800',
+    productCode: 'MJ-NK-002',
+    grossWeight: 25.5,
+    goldWeight: 22.8,
+    purity: '22 KT',
+    metalColor: 'Yellow Gold',
+    price: 2800,
+    priceBreakup: { metal: 2100, vaMaking: 450, stoneBeads: 0, tax: 250 },
+    rating: 4.9,
+    popularity: 350,
+    createdAt: new Date().toISOString()
+  }
+]; 

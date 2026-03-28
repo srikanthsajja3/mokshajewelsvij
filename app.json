@@ -10,11 +10,14 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#888888"
+      "backgroundColor": "#291c0e"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.mokshajewels"
+      "bundleIdentifier": "com.yourname.mokshajewels",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Moksha Jewels needs access to your photo library to allow you to upload product images and customize your profile."
+      }
     },
     "android": {
       "adaptiveIcon": {

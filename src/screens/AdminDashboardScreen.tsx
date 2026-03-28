@@ -159,7 +159,7 @@ const AdminDashboardScreen: React.FC<any> = (props) => {
           ) : (
             <View style={styles.dashboard}>
               
-              {activeTab === 'overview' && (
+              {activeTab === 'overview' ? (
                 <>
                   {/* Stats Grid */}
                   <View style={styles.statsGrid}>
@@ -206,9 +206,9 @@ const AdminDashboardScreen: React.FC<any> = (props) => {
                     )}
                   </View>
                 </>
-              )}
+              ) : null}
 
-              {activeTab === 'inventory' && (
+              {activeTab === 'inventory' ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Product Inventory</Text>
                   <View style={styles.inventoryList}>
@@ -227,9 +227,9 @@ const AdminDashboardScreen: React.FC<any> = (props) => {
                     ))}
                   </View>
                 </View>
-              )}
+              ) : null}
 
-              {activeTab === 'vendors' && (
+              {activeTab === 'vendors' ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Global Vendors</Text>
                   <View style={styles.vendorList}>
@@ -250,7 +250,7 @@ const AdminDashboardScreen: React.FC<any> = (props) => {
                     )}
                   </View>
                 </View>
-              )}
+              ) : null}
             </View>
           )}
         </View>

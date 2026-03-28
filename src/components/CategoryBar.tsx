@@ -74,7 +74,7 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
             </Text>
           </TouchableOpacity>
 
-          {showSortOptions && (
+          {showSortOptions ? (
             <View style={styles.dropdown}>
               {SORT_OPTIONS.map((option) => (
                 <TouchableOpacity 
@@ -91,7 +91,7 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
                 </TouchableOpacity>
               ))}
             </View>
-          )}
+          ) : null}
         </View>
       </View>
     </View>

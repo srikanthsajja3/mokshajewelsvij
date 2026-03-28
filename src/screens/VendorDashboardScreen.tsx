@@ -265,14 +265,14 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
         </View>
         <View style={styles.priceRow}>
           <Text style={styles.productPrice}>{formatPrice(item.price, countryCode)}</Text>
-          {isDeleteMode && (
+          {isDeleteMode ? (
             <TouchableOpacity 
               style={styles.deleteBtn}
               onPress={() => handleDeleteProduct(item.id)}
             >
               <Text style={styles.deleteBtnText}>REMOVE</Text>
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
     </View>
@@ -319,7 +319,7 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
               <Text style={[styles.vendorTitle, isMobile && { fontSize: 22 }]}>Partner Portal</Text>
               <Text style={styles.vendorSubtitle}>{vendorSettings?.business_name || 'Artisan Partner'} | {vendorSettings?.vendors?.name || 'Pending Link'}</Text>
               
-              {!vendorSettings?.vendor_id && !loading && (
+              {!vendorSettings?.vendor_id && !loading ? (
                 <TouchableOpacity 
                   style={styles.devLinkBtn}
                   onPress={async () => {
@@ -340,7 +340,7 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
                 >
                   <Text style={styles.devLinkBtnText}>DEV: QUICK LINK TO VENDOR</Text>
                 </TouchableOpacity>
-              )}
+              ) : null}
             </View>
 
             <View style={styles.tabBarContainer}>
@@ -361,7 +361,7 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
               <ActivityIndicator color="#D4AF37" size="large" style={{ marginTop: 50 }} />
             ) : (
               <View style={styles.content}>
-                {activeTab === 'products' && (
+                {activeTab === 'products' ? (
                   <View style={styles.section}>
                     <View style={[styles.rowBetween, isSmallMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 15 }]}>
                       <Text style={styles.sectionTitle}>My Inventory</Text>
@@ -404,9 +404,9 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
                       </View>
                     )}
                   </View>
-                )}
+                ) : null}
 
-                {activeTab === 'orders' && (
+                {activeTab === 'orders' ? (
                   <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Sales Activity</Text>
                     {mySales.length === 0 ? (
@@ -417,9 +417,9 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
                       </View>
                     )}
                   </View>
-                )}
+                ) : null}
 
-                {activeTab === 'm2m' && (
+                {activeTab === 'm2m' ? (
                   <View style={styles.section}>
                     <Text style={styles.sectionTitle}>API Integration</Text>
                     <View style={styles.m2mCard}>
@@ -430,7 +430,7 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
                       </TouchableOpacity>
                     </View>
                   </View>
-                )}
+                ) : null}
               </View>
             )}
           </View>
@@ -438,7 +438,7 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {deleteModalVisible && (
+      {deleteModalVisible ? (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Confirm Delete</Text>
@@ -462,7 +462,7 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
             </View>
           </View>
         </View>
-      )}
+      ) : null}
     </View>
   );
 };

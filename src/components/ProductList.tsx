@@ -168,11 +168,11 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
             ))}
           </View>
 
-          {filteredAndSortedProducts.length === 0 && (
+          {filteredAndSortedProducts.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No products found matching your criteria.</Text>
             </View>
-          )}
+          ) : null}
         </>
       )}
     </View>

@@ -243,7 +243,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
             <Text style={styles.title}>Secure Checkout</Text>
 
             {/* Saved Addresses Section */}
-            {savedAddresses.length > 0 && (
+            {savedAddresses.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionHeader}>SELECT SAVED ADDRESS</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.addressList}>
@@ -274,7 +274,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
                   </TouchableOpacity>
                 </ScrollView>
               </View>
-            )}
+            ) : null}
 
             {/* Shipping Section */}
             <View style={styles.section}>

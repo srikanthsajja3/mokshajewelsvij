@@ -76,11 +76,11 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
           <FontAwesome5 name={icon} size={18} color={isActive ? "#D4AF37" : "#aaa"} />
         </View>
         <Text style={[styles.navLabel, isActive && styles.activeNavLabel]}>{label}</Text>
-        {badge && (
+        {badge ? (
           <View style={[styles.badge, badge === 'ADMIN' ? styles.adminBadge : styles.vendorBadge]}>
             <Text style={styles.badgeText}>{badge}</Text>
           </View>
-        )}
+        ) : null}
       </TouchableOpacity>
     );
   };
@@ -115,34 +115,34 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
           <NavItem icon="home" label="Home" screen="home" />
           <NavItem icon="heart" label="Wishlist" screen="wishlist" />
           
-          {user && (
+          {user ? (
             <>
               <NavItem icon="history" label="My Orders" screen="orders" />
               <NavItem icon="user-circle" label="Profile" screen="profile" />
             </>
-          )}
+          ) : null}
 
           <View style={styles.separator} />
 
-          {isAdmin && (
+          {isAdmin ? (
             <NavItem icon="user-shield" label="Admin Portal" screen="admin" badge="ADMIN" />
-          )}
+          ) : null}
 
-          {isVendor && (
+          {isVendor ? (
             <NavItem icon="store" label="Partner Portal" screen="vendor" badge="PARTNER" />
-          )}
+          ) : null}
 
-          {!user && (
+          {!user ? (
             <NavItem icon="sign-in-alt" label="Login / Sign Up" screen="login" />
-          )}
+          ) : null}
         </ScrollView>
 
-        {user && (
+        {user ? (
           <TouchableOpacity style={styles.logoutButton} onPress={() => { signOut(); onClose(); }}>
             <FontAwesome5 name="sign-out-alt" size={16} color="#ff4444" />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
       </Animated.View>
     </View>
   );

@@ -32,6 +32,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
   const [isRegistering, setIsRegistering] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(initialIsUpdatingPassword);
+  const [successMessage, setSuccessMessage] = useState("");
 
   React.useEffect(() => {
     if (initialIsUpdatingPassword) {
@@ -47,6 +48,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
     }
 
     setIsLoading(true);
+    setSuccessMessage("");
     try {
       console.log(`Attempting ${isRegistering ? 'registration' : 'login'} for:`, email);
       
@@ -60,7 +62,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
           throw error;
         }
         console.log('Registration successful:', data);
-        Alert.alert('Success', 'Check your email for the confirmation link!');
+        setSuccessMessage("Success! Check your email for confirmation.");
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -71,7 +73,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
           throw error;
         }
         console.log('Login successful:', data.user?.id);
-        onLoginSuccess();
+        setSuccessMessage("Sign in successful! Redirecting...");
+        setTimeout(() => {
+          onLoginSuccess();
+        }, 1500);
       }
     } catch (error: any) {
       console.error('Authentication Catch:', error);
@@ -96,11 +101,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
     }
 
     setIsLoading(true);
+    setSuccessMessage("");
     try {
       const { error } = await resetPassword(email);
       if (error) throw error;
-      Alert.alert('Success', 'Password reset link sent to your email.');
-      setIsResetting(false);
+      setSuccessMessage("Success! Reset link sent to your email.");
+      setTimeout(() => {
+        setIsResetting(false);
+        setSuccessMessage("");
+      }, 3000);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to send reset link.');
     } finally {
@@ -115,12 +124,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
     }
 
     setIsLoading(true);
+    setSuccessMessage("");
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      Alert.alert('Success', 'Your password has been updated successfully.');
-      setIsUpdatingPassword(false);
-      onLoginSuccess();
+      setSuccessMessage("Password updated successfully! Redirecting...");
+      setTimeout(() => {
+        setIsUpdatingPassword(false);
+        onLoginSuccess();
+      }, 1500);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update password.');
     } finally {
@@ -158,7 +170,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                   : 'Sign in to access your luxury jewelry collection'}
               </Text>
 
-              {!isUpdatingPassword && (
+              {successMessage ? (
+                <View style={styles.successContainer}>
+                  <Text style={styles.successText}>{successMessage}</Text>
+                </View>
+              ) : null}
+
+              {!isUpdatingPassword ? (
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Email Address</Text>
                   <TextInput
@@ -172,9 +190,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                     editable={!isUpdatingPassword}
                   />
                 </View>
-              )}
+              ) : null}
 
-              {!isResetting && (
+              {!isResetting ? (
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>{isUpdatingPassword ? 'New Password' : 'Password'}</Text>
                   <TextInput
@@ -186,16 +204,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                     secureTextEntry
                   />
                 </View>
-              )}
+              ) : null}
 
-              {!isRegistering && !isResetting && !isUpdatingPassword && (
+              {!isRegistering && !isResetting && !isUpdatingPassword ? (
                 <TouchableOpacity 
                   style={styles.forgotButton}
                   onPress={() => setIsResetting(true)}
                 >
                   <Text style={styles.forgotButtonText}>Forgot Password?</Text>
                 </TouchableOpacity>
-              )}
+              ) : null}
 
               <TouchableOpacity 
                 style={styles.authButton}
@@ -342,6 +360,21 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 14,
     textDecorationLine: 'underline',
+  },
+  successContainer: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  successText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
