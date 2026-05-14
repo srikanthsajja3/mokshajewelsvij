@@ -53,6 +53,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: customStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    cookieOptions: {
+      name: 'sb-auth-token',
+      lifetime: 60 * 60 * 24 * 7,
+      domain: '',
+      path: '/',
+      sameSite: 'lax',
+    },
   },
 });
