@@ -2,6 +2,7 @@
   "expo": {
     "name": "MOKSHA JEWELS",
     "slug": "MOKSHA JEWELS",
+    "scheme": "mokshajewels",
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
@@ -39,7 +40,8 @@
           "merchantIdentifier": "merchant.com.mokshajewels",
           "enableGooglePay": true
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

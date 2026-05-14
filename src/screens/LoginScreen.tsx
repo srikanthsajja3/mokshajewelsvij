@@ -12,10 +12,15 @@ import {
   ScrollView,
   StatusBar
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { FontAwesome } from '@expo/vector-icons';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+
+// Allow the auth session to be completed
+WebBrowser.maybeCompleteAuthSession();
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -25,12 +30,14 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onClose, initialIsUpdatingPassword = false }) => {
-  const { resetPassword, setIsRecovering } = useAuth();
+  const { resetPassword, verifyOtp, setIsRecovering, signInWithOAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [showCodeEntry, setShowCodeEntry] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(initialIsUpdatingPassword);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -94,6 +101,27 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
     }
   };
 
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    setIsLoading(true);
+    setSuccessMessage("");
+    try {
+      const { data, error } = await signInWithOAuth(provider);
+      if (error) throw error;
+      
+      if (data?.url && Platform.OS !== 'web') {
+        const result = await WebBrowser.openAuthSessionAsync(data.url, 'mokshajewels://login-callback');
+        if (result.type === 'success' && result.url) {
+          // The redirect will be handled by the onAuthStateChange listener in AuthContext
+          // or we can manually parse it if needed. Supabase usually handles this.
+        }
+      }
+    } catch (error: any) {
+      Alert.alert('Login Error', error.message || `Failed to sign in with ${provider}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleReset = async () => {
     if (!email) {
       Alert.alert('Error', 'Please enter your email address to reset your password.');
@@ -105,13 +133,32 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
     try {
       const { error } = await resetPassword(email);
       if (error) throw error;
-      setSuccessMessage("Success! Reset link sent to your email.");
-      setTimeout(() => {
-        setIsResetting(false);
-        setSuccessMessage("");
-      }, 3000);
+      setSuccessMessage("Success! Reset link and code sent to your email.");
+      setShowCodeEntry(true);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to send reset link.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!otpCode || otpCode.length < 6) {
+      Alert.alert('Error', 'Please enter the 6-digit code from your email.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await verifyOtp(email, otpCode);
+      if (error) throw error;
+      
+      setSuccessMessage("Code verified! Please enter your new password.");
+      setIsResetting(false);
+      setShowCodeEntry(false);
+      setIsUpdatingPassword(true);
+    } catch (error: any) {
+      Alert.alert('Error', 'Invalid or expired code. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -215,19 +262,67 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                 </TouchableOpacity>
               ) : null}
 
+              {showCodeEntry && isResetting ? (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>6-Digit Verification Code</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter code from email"
+                    placeholderTextColor="#666"
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                  <Text style={styles.hintText}>If the link above expired, please enter the code manually here.</Text>
+                </View>
+              ) : null}
+
               <TouchableOpacity 
                 style={styles.authButton}
-                onPress={isUpdatingPassword ? handleUpdatePassword : isResetting ? handleReset : handleAuth}
+                onPress={isUpdatingPassword ? handleUpdatePassword : showCodeEntry ? handleVerifyCode : isResetting ? handleReset : handleAuth}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <ActivityIndicator color="#000" />
                 ) : (
                   <Text style={styles.authButtonText}>
-                    {isUpdatingPassword ? 'Update Password' : isResetting ? 'Send Reset Link' : isRegistering ? 'Sign Up' : 'Sign In'}
+                    {isUpdatingPassword ? 'Update Password' : showCodeEntry ? 'Verify Code' : isResetting ? 'Send Reset Link' : isRegistering ? 'Sign Up' : 'Sign In'}
                   </Text>
                 )}
               </TouchableOpacity>
+
+              {!isResetting && !isUpdatingPassword && (
+                <>
+                  <View style={styles.divider}>
+                    <View style={styles.line} />
+                    <Text style={styles.orText}>OR</Text>
+                    <View style={styles.line} />
+                  </View>
+
+                  <View style={styles.socialButtonsContainer}>
+                    <TouchableOpacity 
+                      style={[styles.socialButton, styles.googleButton]} 
+                      onPress={() => handleSocialLogin('google')}
+                      disabled={isLoading}
+                    >
+                      <FontAwesome name="google" size={20} color="#fff" style={styles.socialIcon} />
+                      <Text style={styles.socialButtonText}>Continue with Google</Text>
+                    </TouchableOpacity>
+
+                    {Platform.OS !== 'android' && (
+                      <TouchableOpacity 
+                        style={[styles.socialButton, styles.appleButton]} 
+                        onPress={() => handleSocialLogin('apple')}
+                        disabled={isLoading}
+                      >
+                        <FontAwesome name="apple" size={20} color="#fff" style={styles.socialIcon} />
+                        <Text style={styles.socialButtonText}>Continue with Apple</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </>
+              )}
 
               <TouchableOpacity 
                 style={styles.switchButton}
@@ -352,14 +447,64 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
   },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 25,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#555',
+  },
+  orText: {
+    color: '#aaa',
+    paddingHorizontal: 15,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  socialButtonsContainer: {
+    gap: 15,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  googleButton: {
+    backgroundColor: 'transparent',
+    borderColor: '#555',
+  },
+  appleButton: {
+    backgroundColor: '#000',
+    borderColor: '#000',
+  },
+  socialIcon: {
+    marginRight: 10,
+  },
+  socialButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   switchButton: {
-    marginTop: 20,
+    marginTop: 25,
     alignItems: 'center',
   },
   switchButtonText: {
     color: '#aaa',
     fontSize: 14,
     textDecorationLine: 'underline',
+  },
+  hintText: {
+    color: '#D4AF37',
+    fontSize: 10,
+    marginTop: 8,
+    fontStyle: 'italic',
+    opacity: 0.8,
   },
   successContainer: {
     backgroundColor: 'rgba(76, 175, 80, 0.1)',
