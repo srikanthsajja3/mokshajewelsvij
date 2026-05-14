@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, StatusBar, View, ActivityIndicator } from "react-native";
+import { StyleSheet, StatusBar, View, ActivityIndicator, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
@@ -15,6 +15,7 @@ import ProfileScreen from "./src/screens/ProfileScreen";
 import AdminDashboardScreen from "./src/screens/AdminDashboardScreen";
 import VendorDashboardScreen from "./src/screens/VendorDashboardScreen";
 import AddProductScreen from "./src/screens/AddProductScreen";
+import BrandScreen from "./src/screens/BrandScreen";
 import { Product } from "./src/data/products";
 import { CountryProvider } from "./src/contexts/CountryContext";
 import { GoldRateProvider } from "./src/contexts/GoldRateContext";
@@ -26,8 +27,8 @@ import { StripeWrapper } from "./src/components/StripeWrapper";
 import SideDrawer from "./src/components/SideDrawer";
 
 function AppContent() {
-  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct">("home");
-  const [history, setHistory] = useState<any[]>([{ screen: "home" }]);
+  const [currentScreen, setCurrentScreen] = useState<"brand" | "home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct">("brand");
+  const [history, setHistory] = useState<any[]>([{ screen: "brand" }]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -36,6 +37,18 @@ function AppContent() {
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const { user, isAdmin, isVendor, isLoading: authLoading, isRecovering } = useAuth();
+
+  // Path detection for Web
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      const path = window.location.pathname;
+      if (path === '/testing' || path.startsWith('/testing/')) {
+        setCurrentScreen("home");
+        setHistory([{ screen: "home" }]);
+        setHistoryIndex(0);
+      }
+    }
+  }, []);
 
   React.useEffect(() => {
     if (isRecovering) {
@@ -56,6 +69,11 @@ function AppContent() {
     const current = newHistory[newHistory.length - 1];
     if (current && current.screen === screen && current.category === params?.category && current.product?.id === params?.product?.id) {
       return;
+    }
+
+    // Update URL on Web when entering the shop
+    if (Platform.OS === 'web' && screen === "home" && currentScreen === "brand") {
+      window.history.pushState({}, '', '/testing');
     }
 
     newHistory.push(newState);
@@ -218,6 +236,10 @@ function AppContent() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
+      {baseScreen === "brand" ? (
+        <BrandScreen onEnterShop={() => navigateTo("home")} />
+      ) : null}
+
       {baseScreen === "home" ? (
         <HomeScreen 
           onSelectCategory={navigateToCategory} 
