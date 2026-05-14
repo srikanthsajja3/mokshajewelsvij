@@ -10,26 +10,33 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StatusBar
+  StatusBar,
+  Modal
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import { BlurView } from 'expo-blur';
 import { FontAwesome } from '@expo/vector-icons';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 
 // Allow the auth session to be completed
 WebBrowser.maybeCompleteAuthSession();
 
 interface LoginScreenProps {
+  visible: boolean;
   onLoginSuccess: () => void;
   onGoHome: () => void;
   onClose: () => void;
   initialIsUpdatingPassword?: boolean;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onClose, initialIsUpdatingPassword = false }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ 
+  visible,
+  onLoginSuccess, 
+  onGoHome, 
+  onClose, 
+  initialIsUpdatingPassword = false 
+}) => {
   const { resetPassword, verifyOtp, setIsRecovering, signInWithOAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,38 +64,26 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
     setIsLoading(true);
     setSuccessMessage("");
     try {
-      console.log(`Attempting ${isRegistering ? 'registration' : 'login'} for:`, email);
-      
       if (isRegistering) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
-        if (error) {
-          console.error('Registration Error:', error);
-          throw error;
-        }
-        console.log('Registration successful:', data);
+        if (error) throw error;
         setSuccessMessage("Success! Check your email for confirmation.");
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) {
-          console.error('Login Error:', error);
-          throw error;
-        }
-        console.log('Login successful:', data.user?.id);
+        if (error) throw error;
         setSuccessMessage("Sign in successful! Redirecting...");
         setTimeout(() => {
           onLoginSuccess();
         }, 1500);
       }
     } catch (error: any) {
-      console.error('Authentication Catch:', error);
       const errorMessage = error.message || 'An error occurred during authentication.';
-      
       if (errorMessage.includes('Invalid login credentials')) {
         Alert.alert('Login Failed', 'Incorrect email or password. Please try again.');
       } else if (errorMessage.includes('Email not confirmed')) {
@@ -111,8 +106,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
       if (data?.url && Platform.OS !== 'web') {
         const result = await WebBrowser.openAuthSessionAsync(data.url, 'mokshajewels://login-callback');
         if (result.type === 'success' && result.url) {
-          // The redirect will be handled by the onAuthStateChange listener in AuthContext
-          // or we can manually parse it if needed. Supabase usually handles this.
+          // Handled by AuthContext listener
         }
       }
     } catch (error: any) {
@@ -124,16 +118,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
 
   const handleReset = async () => {
     if (!email) {
-      Alert.alert('Error', 'Please enter your email address to reset your password.');
+      Alert.alert('Error', 'Please enter your email address.');
       return;
     }
 
     setIsLoading(true);
-    setSuccessMessage("");
     try {
       const { error } = await resetPassword(email);
       if (error) throw error;
-      setSuccessMessage("Success! Reset link and code sent to your email.");
+      setSuccessMessage("Success! Reset link sent to your email.");
       setShowCodeEntry(true);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to send reset link.');
@@ -144,7 +137,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
 
   const handleVerifyCode = async () => {
     if (!otpCode || otpCode.length < 6) {
-      Alert.alert('Error', 'Please enter the 6-digit code from your email.');
+      Alert.alert('Error', 'Please enter the 6-digit code.');
       return;
     }
 
@@ -152,13 +145,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
     try {
       const { error } = await verifyOtp(email, otpCode);
       if (error) throw error;
-      
-      setSuccessMessage("Code verified! Please enter your new password.");
+      setSuccessMessage("Code verified! Enter new password.");
       setIsResetting(false);
       setShowCodeEntry(false);
       setIsUpdatingPassword(true);
     } catch (error: any) {
-      Alert.alert('Error', 'Invalid or expired code. Please try again.');
+      Alert.alert('Error', 'Invalid or expired code.');
     } finally {
       setIsLoading(false);
     }
@@ -171,11 +163,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
     }
 
     setIsLoading(true);
-    setSuccessMessage("");
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      setSuccessMessage("Password updated successfully! Redirecting...");
+      setSuccessMessage("Password updated! Redirecting...");
       setTimeout(() => {
         setIsUpdatingPassword(false);
         onLoginSuccess();
@@ -188,42 +179,52 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <Header onPressLogo={onGoHome} />
-      
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.contentWrapper}>
-            <View style={styles.formContainer}>
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill}>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={onClose} 
+          />
+        </BlurView>
+        
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalContent}
+        >
+          <View style={styles.formContainer}>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
 
-              <Text style={styles.title}>
-                {isUpdatingPassword ? 'Reset Your Password' : isResetting ? 'Reset Password' : isRegistering ? 'Create Account' : 'Welcome Back'}
-              </Text>
-              <Text style={styles.subtitle}>
-                {isUpdatingPassword 
-                  ? 'Enter a new password for your account'
-                  : isResetting 
-                  ? 'Enter your email to receive a reset link' 
-                  : isRegistering 
-                  ? 'Sign up to manage your orders and wishlist' 
-                  : 'Sign in to access your luxury jewelry collection'}
-              </Text>
+            <Text style={styles.title}>
+              {isUpdatingPassword ? 'Reset Password' : isResetting ? 'Reset Password' : isRegistering ? 'Create Account' : 'Welcome Back'}
+            </Text>
+            
+            <Text style={styles.subtitle}>
+              {isUpdatingPassword 
+                ? 'Enter a new password for your account'
+                : isResetting 
+                ? 'Enter your email for a reset link' 
+                : isRegistering 
+                ? 'Sign up for orders and wishlist' 
+                : 'Sign in for your luxury collection'}
+            </Text>
 
+            <ScrollView showsVerticalScrollIndicator={false}>
               {successMessage ? (
                 <View style={styles.successContainer}>
                   <Text style={styles.successText}>{successMessage}</Text>
                 </View>
               ) : null}
 
-              {!isUpdatingPassword ? (
+              {!isUpdatingPassword && (
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Email Address</Text>
                   <TextInput
@@ -234,12 +235,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                     onChangeText={setEmail}
                     autoCapitalize="none"
                     keyboardType="email-address"
-                    editable={!isUpdatingPassword}
                   />
                 </View>
-              ) : null}
+              )}
 
-              {!isResetting ? (
+              {!isResetting && (
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>{isUpdatingPassword ? 'New Password' : 'Password'}</Text>
                   <TextInput
@@ -251,32 +251,31 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                     secureTextEntry
                   />
                 </View>
-              ) : null}
+              )}
 
-              {!isRegistering && !isResetting && !isUpdatingPassword ? (
+              {!isRegistering && !isResetting && !isUpdatingPassword && (
                 <TouchableOpacity 
                   style={styles.forgotButton}
                   onPress={() => setIsResetting(true)}
                 >
                   <Text style={styles.forgotButtonText}>Forgot Password?</Text>
                 </TouchableOpacity>
-              ) : null}
+              )}
 
-              {showCodeEntry && isResetting ? (
+              {showCodeEntry && isResetting && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>6-Digit Verification Code</Text>
+                  <Text style={styles.label}>Verification Code</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter code from email"
+                    placeholder="6-digit code"
                     placeholderTextColor="#666"
                     value={otpCode}
                     onChangeText={setOtpCode}
                     keyboardType="number-pad"
                     maxLength={6}
                   />
-                  <Text style={styles.hintText}>If the link above expired, please enter the code manually here.</Text>
                 </View>
-              ) : null}
+              )}
 
               <TouchableOpacity 
                 style={styles.authButton}
@@ -287,7 +286,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                   <ActivityIndicator color="#000" />
                 ) : (
                   <Text style={styles.authButtonText}>
-                    {isUpdatingPassword ? 'Update Password' : showCodeEntry ? 'Verify Code' : isResetting ? 'Send Reset Link' : isRegistering ? 'Sign Up' : 'Sign In'}
+                    {isUpdatingPassword ? 'Update Password' : showCodeEntry ? 'Verify Code' : isResetting ? 'Send Link' : isRegistering ? 'Sign Up' : 'Sign In'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -304,20 +303,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                     <TouchableOpacity 
                       style={[styles.socialButton, styles.googleButton]} 
                       onPress={() => handleSocialLogin('google')}
-                      disabled={isLoading}
                     >
-                      <FontAwesome name="google" size={20} color="#fff" style={styles.socialIcon} />
-                      <Text style={styles.socialButtonText}>Continue with Google</Text>
+                      <FontAwesome name="google" size={18} color="#fff" style={styles.socialIcon} />
+                      <Text style={styles.socialButtonText}>Google</Text>
                     </TouchableOpacity>
 
                     {Platform.OS !== 'android' && (
                       <TouchableOpacity 
                         style={[styles.socialButton, styles.appleButton]} 
                         onPress={() => handleSocialLogin('apple')}
-                        disabled={isLoading}
                       >
-                        <FontAwesome name="apple" size={20} color="#fff" style={styles.socialIcon} />
-                        <Text style={styles.socialButtonText}>Continue with Apple</Text>
+                        <FontAwesome name="apple" size={18} color="#fff" style={styles.socialIcon} />
+                        <Text style={styles.socialButtonText}>Apple</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -339,40 +336,42 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onGoHome, onC
                   {isUpdatingPassword || isResetting 
                     ? 'Back to Sign In' 
                     : isRegistering 
-                    ? 'Already have an account? Sign In' 
-                    : "Don't have an account? Sign Up"}
+                    ? 'Have an account? Sign In' 
+                    : "Need an account? Sign Up"}
                 </Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
-          <Footer />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#291c0e',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  contentWrapper: {
+  modalOverlay: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '80%',
   },
   formContainer: {
     backgroundColor: '#3d2b1a',
-    padding: 30,
-    borderRadius: 8,
+    padding: 25,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: '#D4AF37',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 20,
   },
   closeButton: {
     position: 'absolute',
@@ -391,26 +390,26 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'TrajanPro',
-    fontSize: 24,
+    fontSize: 22,
     color: '#D4AF37',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 5,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#aaa',
-    marginBottom: 30,
+    marginBottom: 20,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   label: {
     color: '#D4AF37',
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 11,
+    marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -419,38 +418,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#555',
     borderRadius: 4,
-    padding: 12,
+    padding: 10,
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
   },
   authButton: {
     backgroundColor: '#D4AF37',
-    paddingVertical: 15,
+    paddingVertical: 12,
     borderRadius: 4,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 5,
   },
   authButtonText: {
     color: '#000',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   forgotButton: {
     alignSelf: 'flex-end',
-    marginBottom: 20,
-    marginTop: -10,
+    marginBottom: 15,
+    marginTop: -5,
   },
   forgotButtonText: {
     color: '#D4AF37',
-    fontSize: 12,
+    fontSize: 11,
     fontStyle: 'italic',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 25,
+    marginVertical: 20,
   },
   line: {
     flex: 1,
@@ -459,18 +458,20 @@ const styles = StyleSheet.create({
   },
   orText: {
     color: '#aaa',
-    paddingHorizontal: 15,
-    fontSize: 12,
+    paddingHorizontal: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   socialButtonsContainer: {
-    gap: 15,
+    flexDirection: 'row',
+    gap: 10,
   },
   socialButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 4,
     borderWidth: 1,
   },
@@ -483,41 +484,34 @@ const styles = StyleSheet.create({
     borderColor: '#000',
   },
   socialIcon: {
-    marginRight: 10,
+    marginRight: 8,
   },
   socialButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   switchButton: {
-    marginTop: 25,
+    marginTop: 20,
     alignItems: 'center',
   },
   switchButtonText: {
     color: '#aaa',
-    fontSize: 14,
+    fontSize: 13,
     textDecorationLine: 'underline',
-  },
-  hintText: {
-    color: '#D4AF37',
-    fontSize: 10,
-    marginTop: 8,
-    fontStyle: 'italic',
-    opacity: 0.8,
   },
   successContainer: {
     backgroundColor: 'rgba(76, 175, 80, 0.1)',
     borderWidth: 1,
     borderColor: '#4CAF50',
     borderRadius: 6,
-    padding: 12,
-    marginBottom: 20,
+    padding: 10,
+    marginBottom: 15,
     alignItems: 'center',
   },
   successText: {
     color: '#4CAF50',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
   },

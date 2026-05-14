@@ -210,18 +210,22 @@ function AppContent() {
     onSearch: setSearchQuery,
   };
 
+  const baseScreen = currentScreen === "login" 
+    ? (historyIndex > 0 ? history[historyIndex - 1].screen : "home")
+    : currentScreen;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {currentScreen === "home" ? (
+      {baseScreen === "home" ? (
         <HomeScreen 
           onSelectCategory={navigateToCategory} 
           {...commonProps}
         />
       ) : null}
       
-      {currentScreen === "category" ? (
+      {baseScreen === "category" ? (
         <SwipeBackView onSwipeBack={navigateToHome}>
           <CategoryScreen 
             category={selectedCategory} 
@@ -232,7 +236,7 @@ function AppContent() {
         </SwipeBackView>
       ) : null}
 
-      {currentScreen === "details" && selectedProduct ? (
+      {baseScreen === "details" && selectedProduct ? (
         <SwipeBackView onSwipeBack={navigateBackToList}>
           <ProductDetailsScreen 
             product={selectedProduct} 
@@ -243,68 +247,67 @@ function AppContent() {
         </SwipeBackView>
       ) : null}
 
-      {currentScreen === "login" ? (
-        <LoginScreen 
-          onLoginSuccess={navigateToHome} 
-          onGoHome={navigateToHome} 
-          onClose={navigateToHome}
-          initialIsUpdatingPassword={isRecovering}
-        />
-      ) : null}
-
-      {currentScreen === "cart" ? (
+      {baseScreen === "cart" ? (
         <CartScreen 
           onCheckout={handleCheckout}
           {...commonProps}
         />
       ) : null}
 
-      {currentScreen === "checkout" ? (
+      {baseScreen === "checkout" ? (
         <CheckoutScreen 
           onSuccess={navigateToOrders}
           {...commonProps}
         />
       ) : null}
 
-      {currentScreen === "orders" ? (
+      {baseScreen === "orders" ? (
         <OrdersScreen 
           {...commonProps}
         />
       ) : null}
 
-      {currentScreen === "wishlist" ? (
+      {baseScreen === "wishlist" ? (
         <WishlistScreen 
           onSelectProduct={navigateToProduct}
           {...commonProps}
         />
       ) : null}
 
-      {currentScreen === "profile" ? (
+      {baseScreen === "profile" ? (
         <ProfileScreen 
           {...commonProps}
         />
       ) : null}
 
-      {currentScreen === "admin" ? (
+      {baseScreen === "admin" ? (
         <AdminDashboardScreen 
           {...commonProps}
         />
       ) : null}
 
-      {currentScreen === "vendor" ? (
+      {baseScreen === "vendor" ? (
         <VendorDashboardScreen 
           onAddProduct={navigateToAddProduct}
           {...commonProps}
         />
       ) : null}
 
-      {currentScreen === "addProduct" ? (
+      {baseScreen === "addProduct" ? (
         <AddProductScreen 
           vendorId={selectedVendorId}
           onBack={navigateToVendor}
           {...commonProps}
         />
       ) : null}
+
+      <LoginScreen 
+        visible={currentScreen === "login"}
+        onLoginSuccess={navigateToHome} 
+        onGoHome={navigateToHome} 
+        onClose={handleBack}
+        initialIsUpdatingPassword={isRecovering}
+      />
 
       <SideDrawer 
         isVisible={drawerVisible} 

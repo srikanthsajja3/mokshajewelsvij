@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Platform, Alert } from 'react-native';
+import * as Linking from 'expo-linking';
 import { supabase } from '../../supabase';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -46,9 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string) => {
-    const origin = Platform.OS === 'web' ? window.location.origin : 'mokshajewels://reset-password';
-    // Ensure the origin is clean for Supabase (some dashboards expect trailing slash, some don't)
-    // We'll use the origin as is, but log it for debugging
+    const origin = Linking.createURL('reset-password');
     console.log('Sending reset link with redirect to:', origin);
     
     return await supabase.auth.resetPasswordForEmail(email, {
@@ -66,20 +65,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithOAuth = async (provider: 'google' | 'apple') => {
-    const origin = Platform.OS === 'web' 
+    // For Vercel/Web, we want to redirect back to the exact current origin
+    // For Native, we use the custom scheme
+    const redirectUrl = Platform.OS === 'web' 
       ? window.location.origin 
-      : 'mokshajewels://login-callback';
+      : Linking.createURL('login-callback');
     
-    console.log(`AuthProvider: Initiating OAuth for ${provider} with redirect:`, origin);
+    console.log(`AuthProvider: Initiating OAuth for ${provider} with redirect:`, redirectUrl);
     
     return await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: origin,
+        redirectTo: redirectUrl,
+        // On web, we want the browser to handle the redirect normally
         skipBrowserRedirect: Platform.OS !== 'web',
       },
     });
   };
+
+  useEffect(() => {
+    const handleDeepLink = async (url: string) => {
+      console.log('AuthProvider: Handling deep link:', url);
+      const { queryParams } = Linking.parse(url);
+      
+      if (queryParams?.error) {
+        const errorDesc = (queryParams.error_description as string)?.replace(/\+/g, ' ') || (queryParams.error as string);
+        Alert.alert('Authentication Error', errorDesc);
+        return;
+      }
+
+      // Supabase's onAuthStateChange usually handles the session from the URL,
+      // but we can manually refresh the session if needed.
+      const { data, error } = await supabase.auth.getSession();
+      if (!error && data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      }
+    };
+
+    // Handle links when app is already open
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleDeepLink(url);
+    });
+
+    // Handle links that opened the app
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
