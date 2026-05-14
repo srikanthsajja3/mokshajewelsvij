@@ -3,8 +3,6 @@ import {
   StyleSheet, 
   View, 
   Text, 
-  TouchableOpacity, 
-  ImageBackground, 
   useWindowDimensions,
   Animated
 } from "react-native";
@@ -14,8 +12,8 @@ interface BrandScreenProps {
   onEnterShop: () => void;
 }
 
-const BrandScreen: React.FC<BrandScreenProps> = ({ onEnterShop }) => {
-  const { width, height } = useWindowDimensions();
+const BrandScreen: React.FC<BrandScreenProps> = () => {
+  const { width } = useWindowDimensions();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(20)).current;
 
@@ -37,43 +35,29 @@ const BrandScreen: React.FC<BrandScreenProps> = ({ onEnterShop }) => {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <ImageBackground 
-        source={require("../../assets/exh2.jpg")} 
-        style={[styles.backgroundImage, { width, height }]}
-        resizeMode="cover"
-      >
-        <View style={styles.overlay}>
-          <Animated.View style={[
-            styles.content, 
-            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-          ]}>
-            <Text style={styles.brandTitle}>MOKSHA JEWELS</Text>
-            <View style={styles.divider} />
-            <Text style={styles.tagline}>Crafting Elegance for Eternity</Text>
-            
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>UNDER CONSTRUCTION</Text>
-            </View>
-
-            <Text style={styles.description}>
-              Our digital masterpiece is currently being handcrafted. 
-              Join us soon for a new era of luxury jewelry.
-            </Text>
-
-            <TouchableOpacity 
-              style={styles.button} 
-              onPress={onEnterShop}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.buttonText}>Preview Collections</Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>© 2026 MOKSHA JEWELS. All Rights Reserved.</Text>
+      <View style={styles.contentWrapper}>
+        <Animated.View style={[
+          styles.content, 
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}>
+          <Text style={styles.brandTitle}>MOKSHA JEWELS</Text>
+          <View style={styles.divider} />
+          <Text style={styles.tagline}>Crafting Elegance for Eternity</Text>
+          
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusText}>UNDER CONSTRUCTION</Text>
           </View>
+
+          <Text style={styles.description}>
+            Our digital masterpiece is currently being handcrafted. 
+            Join us soon for a new era of luxury jewelry.
+          </Text>
+        </Animated.View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>© 2026 MOKSHA JEWELS. All Rights Reserved.</Text>
         </View>
-      </ImageBackground>
+      </View>
     </View>
   );
 };
@@ -82,16 +66,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#291c0e",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  backgroundImage: {
+  contentWrapper: {
     flex: 1,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    width: "100%",
   },
   content: {
     alignItems: "center",
@@ -141,21 +124,6 @@ const styles = StyleSheet.create({
     marginBottom: 50,
     paddingHorizontal: 20,
   },
-  button: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#D4AF37",
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 4,
-  },
-  buttonText: {
-    color: "#D4AF37",
-    fontSize: 14,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    letterSpacing: 3,
-  },
   footer: {
     position: "absolute",
     bottom: 40,
@@ -166,5 +134,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   }
 });
+
+export default BrandScreen;
+
 
 export default BrandScreen;
