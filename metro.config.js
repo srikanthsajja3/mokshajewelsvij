@@ -8,8 +8,8 @@ const { resolver } = config;
 
 config.resolver = {
   ...resolver,
-  // Add .bin to assetExts for TensorFlow.js models
-  assetExts: [...resolver.assetExts, 'bin'],
+  // Add .bin and .glb to assetExts for TensorFlow.js models and 3D assets
+  assetExts: [...resolver.assetExts, 'bin', 'glb'],
   // Prioritize 'browser' and 'react-native' to avoid Node.js standard library issues in dual-environment packages like papaparse
   resolverMainFields: ['browser', 'react-native', 'main'],
   extraNodeModules: {

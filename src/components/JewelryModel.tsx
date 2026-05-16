@@ -1,54 +1,36 @@
-import React, { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { Suspense } from 'react';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface JewelryModelProps {
   type: string;
 }
 
-const JewelryModel: React.FC<JewelryModelProps> = ({ type }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
+// Pre-load the model to prevent lag during tracking
+// On web, this will be a URL; on native, it uses the asset system
+const RING_MODEL_PATH = require('../../assets/models/ring_0.glb');
 
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += 0.01;
-      // Gentle floating animation
-      meshRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.1;
-    }
-  });
+const RealRingModel: React.FC = () => {
+  const { scene } = useGLTF(RING_MODEL_PATH);
+  
+  // Apply gold-like material properties to all meshes in the model
+  // (Optional: if your GLB doesn't already have materials)
+  React.useEffect(() => {
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (mesh.material) {
+          (mesh.material as THREE.MeshStandardMaterial).metalness = 1;
+          (mesh.material as THREE.MeshStandardMaterial).roughness = 0.1;
+        }
+      }
+    });
+  }, [scene]);
 
-  // Diamond / Stone Material - Simplified to Standard Material for troubleshooting
-  const stoneMaterial = (
-    <meshStandardMaterial
-      color="#fff"
-      metalness={0.9}
-      roughness={0}
-    />
-  );
+  return <primitive object={scene} scale={0.5} rotation={[Math.PI / 2, 0, 0]} />;
+};
 
-  // Rose Gold Material (Warm, Premium look)
-  const roseGoldMaterial = (
-    <meshStandardMaterial
-      color="#E0BFB8"
-      metalness={1}
-      roughness={0.15}
-      emissive="#2a1a1a"
-      emissiveIntensity={0.1}
-    />
-  );
-
-  // High-sparkle Diamond Material
-  const diamondMaterial = (
-    <meshStandardMaterial
-      color="#ffffff"
-      metalness={0.9}
-      roughness={0.05}
-      transparent
-      opacity={0.9}
-    />
-  );
-
-  // Gold Material (Bright, Classic)
+const PlaceholderModel: React.FC<{ type: string }> = ({ type }) => {
   const goldMaterial = (
     <meshStandardMaterial
       color="#D4AF37"
@@ -61,48 +43,40 @@ const JewelryModel: React.FC<JewelryModelProps> = ({ type }) => {
 
   if (type.toLowerCase().includes('ring')) {
     return (
-      <group scale={[1.2, 1.2, 1.2]} rotation={[Math.PI / 2.5, 0, 0]}>
-        {/* Slender Thin Band */}
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.5, 0.04, 16, 100]} />
-          {roseGoldMaterial}
-        </mesh>
-
-        {/* Floating Stone Bar */}
-        <group position={[0, 0.52, 0]}>
-          {/* Subtle horizontal bar support */}
-          <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.02, 0.02, 0.8, 8]} />
-            {roseGoldMaterial}
-          </mesh>
-
-          {/* 5 Rhythmic Diamonds */}
-          {[-0.3, -0.15, 0, 0.15, 0.3].map((xPos, i) => (
-            <mesh key={i} position={[xPos, 0.05, 0]} ref={i === 2 ? meshRef : null}>
-              <octahedronGeometry args={[0.08]} />
-              {diamondMaterial}
-            </mesh>
-          ))}
-        </group>
-      </group>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.3, 0.08, 16, 100]} />
+        {goldMaterial}
+      </mesh>
     );
   }
 
-  // Default Necklace/Pendant placeholder
+  // Pendant/Necklace placeholder
   return (
-    <group scale={[2, 2, 2]}>
-      {/* Simple Pendant Shape */}
-      <mesh ref={meshRef}>
-        <octahedronGeometry args={[0.3]} />
-        {stoneMaterial}
+    <group>
+      <mesh>
+        <cylinderGeometry args={[0.3, 0.3, 0.05, 32]} />
+        {goldMaterial}
       </mesh>
-      {/* Frame around it */}
       <mesh rotation={[0, 0, Math.PI / 4]}>
         <torusGeometry args={[0.4, 0.03, 16, 100]} />
         {goldMaterial}
       </mesh>
     </group>
   );
+};
+
+const JewelryModel: React.FC<JewelryModelProps> = ({ type }) => {
+  const isRing = type.toLowerCase().includes('ring');
+
+  if (isRing) {
+    return (
+      <Suspense fallback={<PlaceholderModel type={type} />}>
+        <RealRingModel />
+      </Suspense>
+    );
+  }
+
+  return <PlaceholderModel type={type} />;
 };
 
 export default JewelryModel;
