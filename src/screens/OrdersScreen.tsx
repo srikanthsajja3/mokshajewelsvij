@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -9,7 +9,8 @@ import {
   StatusBar,
   Image,
   Alert,
-  Platform
+  Platform,
+  Animated
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../supabase';
@@ -19,7 +20,6 @@ import { formatPrice } from '../utils/currency';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { ScrollView } from 'react-native';
 
 interface OrderItem {
   id: string;
@@ -50,8 +50,8 @@ interface OrdersScreenProps {
   onSearch: (query: string) => void;
 }
 
-const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
-  const { onGoHome, onPressLogin, onPressCart, onPressOrders } = props;
+const OrdersScreen: React.FC<OrdersScreenProps & { scrollY: Animated.Value }> = (props) => {
+  const { onGoHome, onPressLogin, onPressCart, onPressOrders, scrollY } = props;
   const { user } = useAuth();
 
   const { countryCode } = useCountry();
@@ -258,7 +258,6 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Header {...props} />
         <View style={styles.centerContent}>
           <Text style={styles.messageText}>Please log in to view your order history.</Text>
           <TouchableOpacity style={styles.loginBtn} onPress={onPressLogin}>
@@ -272,9 +271,16 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Header {...props} />
       
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView 
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.contentWrapper}>
           <View style={styles.content}>
             <Text style={styles.title}>Your Order History</Text>
@@ -302,7 +308,7 @@ const OrdersScreen: React.FC<OrdersScreenProps> = (props) => {
           </View>
         </View>
         <Footer />
-      </ScrollView>
+      </Animated.ScrollView>
 
       <ConfirmationModal
         visible={showCancelModal}

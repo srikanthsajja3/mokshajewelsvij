@@ -234,8 +234,6 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
 
   return (
     <View style={styles.container}>
-      <Header {...props} />
-      
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}

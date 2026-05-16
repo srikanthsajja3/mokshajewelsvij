@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, useWindowDimensions } from "react-native";
+import { StyleSheet, View, Animated, useWindowDimensions } from "react-native";
 import Header from "../components/Header";
 import CategoryBar, { SortOption } from "../components/CategoryBar";
 import ProductList from "../components/ProductList";
@@ -20,17 +20,20 @@ interface CategoryScreenProps {
   onSearch: (query: string) => void;
 }
 
-const CategoryScreen: React.FC<CategoryScreenProps> = (props) => {
-  const { width } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
+const CategoryScreen: React.FC<CategoryScreenProps & { scrollY: Animated.Value }> = (props) => {
+  const { width, scrollY } = props;
+  const scrollRef = useRef<Animated.ScrollView>(null);
   const [sortBy, setSortBy] = useState<SortOption>("popularity");
 
   return (
     <View style={styles.container}>
-      <Header {...props} />
-
-      <ScrollView 
+      <Animated.ScrollView 
         ref={scrollRef} 
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
         stickyHeaderIndices={[0]} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -56,7 +59,7 @@ const CategoryScreen: React.FC<CategoryScreenProps> = (props) => {
         </View>
 
         <Footer />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };

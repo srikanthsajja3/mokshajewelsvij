@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   StyleSheet, 
   View, 
@@ -9,7 +9,8 @@ import {
   ActivityIndicator, 
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Animated
 } from "react-native";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -40,11 +41,12 @@ interface Address {
   is_default: boolean;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
+const ProfileScreen: React.FC<ProfileScreenProps & { scrollY: Animated.Value }> = (props) => {
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const { scrollY } = props;
   
   // Profile State
   const [fullName, setFullName] = useState("");
@@ -291,7 +293,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Header {...props} />
         <View style={styles.center}>
           <Text style={styles.emptyText}>Please log in to view your profile.</Text>
           <TouchableOpacity style={styles.loginButton} onPress={props.onPressLogin}>
@@ -305,13 +306,19 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
 
   return (
     <View style={styles.container}>
-      <Header {...props} />
-      
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <Animated.ScrollView 
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={styles.contentWrapper}>
             <View style={styles.headerSection}>
               <Text style={styles.title}>Account Details</Text>
@@ -509,7 +516,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = (props) => {
           </View>
 
           <Footer />
-        </ScrollView>
+        </Animated.ScrollView>
       </KeyboardAvoidingView>
     </View>
   );

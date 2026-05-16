@@ -231,7 +231,6 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Header {...props} />
       
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { StyleSheet, StatusBar, View, ActivityIndicator } from "react-native";
+import React, { useState, useRef } from "react";
+import { StyleSheet, StatusBar, View, ActivityIndicator, Animated } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
@@ -15,6 +15,7 @@ import ProfileScreen from "./src/screens/ProfileScreen";
 import AdminDashboardScreen from "./src/screens/AdminDashboardScreen";
 import VendorDashboardScreen from "./src/screens/VendorDashboardScreen";
 import AddProductScreen from "./src/screens/AddProductScreen";
+import ARTryOnScreen from "./src/screens/ARTryOnScreen";
 import { Product } from "./src/data/products";
 import { CountryProvider } from "./src/contexts/CountryContext";
 import { GoldRateProvider } from "./src/contexts/GoldRateContext";
@@ -25,8 +26,10 @@ import SwipeBackView from "./src/components/SwipeBackView";
 import { StripeWrapper } from "./src/components/StripeWrapper";
 import SideDrawer from "./src/components/SideDrawer";
 
+import Header from "./src/components/Header";
+
 function AppContent() {
-  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct">("home");
+  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct" | "ar">("home");
   const [history, setHistory] = useState<any[]>([{ screen: "home" }]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -36,6 +39,8 @@ function AppContent() {
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const { user, isAdmin, isVendor, isLoading: authLoading, isRecovering } = useAuth();
+  
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     if (isRecovering) {
@@ -58,6 +63,9 @@ function AppContent() {
       return;
     }
 
+    // Reset scroll position for the new screen
+    scrollY.setValue(0);
+
     newHistory.push(newState);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
@@ -71,6 +79,7 @@ function AppContent() {
       if (prev.product) setSelectedProduct(prev.product);
       if (prev.vendorId) setSelectedVendorId(prev.vendorId);
       
+      scrollY.setValue(0);
       setHistoryIndex(historyIndex - 1);
       setCurrentScreen(prev.screen);
     }
@@ -83,6 +92,7 @@ function AppContent() {
       if (next.product) setSelectedProduct(next.product);
       if (next.vendorId) setSelectedVendorId(next.vendorId);
       
+      scrollY.setValue(0);
       setHistoryIndex(historyIndex + 1);
       setCurrentScreen(next.screen);
     }
@@ -134,6 +144,10 @@ function AppContent() {
 
   const navigateToVendor = () => {
     navigateTo("vendor");
+  };
+
+  const navigateToAR = (product: Product) => {
+    navigateTo("ar", { product });
   };
 
   const navigateToAddProduct = (vendorId: string) => {
@@ -201,6 +215,7 @@ function AppContent() {
     onPressProfile: handleProfile,
     onPressAdmin: navigateToAdmin,
     onPressVendor: handleVendor,
+    onPressAR: navigateToAR,
     onBack: handleBack,
     onForward: handleForward,
     onPressMenu: () => setDrawerVisible(true),
@@ -208,6 +223,7 @@ function AppContent() {
     canGoForward: historyIndex < history.length - 1,
     searchQuery,
     onSearch: setSearchQuery,
+    scrollY: scrollY,
   };
 
   const baseScreen = currentScreen === "login" 
@@ -218,86 +234,97 @@ function AppContent() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {baseScreen === "home" ? (
-        <HomeScreen 
-          onSelectCategory={navigateToCategory} 
-          {...commonProps}
-        />
-      ) : null}
-      
-      {baseScreen === "category" ? (
-        <SwipeBackView onSwipeBack={navigateToHome}>
-          <CategoryScreen 
-            category={selectedCategory} 
+      {baseScreen !== "ar" && <Header {...commonProps} />}
+
+      <View style={{ flex: 1 }}>
+        {baseScreen === "home" ? (
+          <HomeScreen 
             onSelectCategory={navigateToCategory} 
+            {...commonProps}
+          />
+        ) : null}
+        
+        {baseScreen === "category" ? (
+          <SwipeBackView onSwipeBack={navigateToHome}>
+            <CategoryScreen 
+              category={selectedCategory} 
+              onSelectCategory={navigateToCategory} 
+              onSelectProduct={navigateToProduct}
+              {...commonProps}
+            />
+          </SwipeBackView>
+        ) : null}
+
+        {baseScreen === "details" && selectedProduct ? (
+          <SwipeBackView onSwipeBack={navigateBackToList}>
+            <ProductDetailsScreen 
+              product={selectedProduct} 
+              onBack={navigateBackToList}
+              onSelectProduct={navigateToProduct}
+              {...commonProps}
+            />
+          </SwipeBackView>
+        ) : null}
+
+        {baseScreen === "cart" ? (
+          <CartScreen 
+            onCheckout={handleCheckout}
+            {...commonProps}
+          />
+        ) : null}
+
+        {baseScreen === "checkout" ? (
+          <CheckoutScreen 
+            onSuccess={navigateToOrders}
+            {...commonProps}
+          />
+        ) : null}
+
+        {baseScreen === "orders" ? (
+          <OrdersScreen 
+            {...commonProps}
+          />
+        ) : null}
+
+        {baseScreen === "wishlist" ? (
+          <WishlistScreen 
             onSelectProduct={navigateToProduct}
             {...commonProps}
           />
-        </SwipeBackView>
-      ) : null}
+        ) : null}
 
-      {baseScreen === "details" && selectedProduct ? (
-        <SwipeBackView onSwipeBack={navigateBackToList}>
-          <ProductDetailsScreen 
-            product={selectedProduct} 
-            onBack={navigateBackToList}
-            onSelectProduct={navigateToProduct}
+        {baseScreen === "profile" ? (
+          <ProfileScreen 
             {...commonProps}
           />
-        </SwipeBackView>
-      ) : null}
+        ) : null}
 
-      {baseScreen === "cart" ? (
-        <CartScreen 
-          onCheckout={handleCheckout}
-          {...commonProps}
-        />
-      ) : null}
+        {baseScreen === "admin" ? (
+          <AdminDashboardScreen 
+            {...commonProps}
+          />
+        ) : null}
 
-      {baseScreen === "checkout" ? (
-        <CheckoutScreen 
-          onSuccess={navigateToOrders}
-          {...commonProps}
-        />
-      ) : null}
+        {baseScreen === "vendor" ? (
+          <VendorDashboardScreen 
+            onAddProduct={navigateToAddProduct}
+            {...commonProps}
+          />
+        ) : null}
 
-      {baseScreen === "orders" ? (
-        <OrdersScreen 
-          {...commonProps}
-        />
-      ) : null}
+        {baseScreen === "addProduct" ? (
+          <AddProductScreen 
+            vendorId={selectedVendorId}
+            onBack={navigateToVendor}
+            {...commonProps}
+          />
+        ) : null}
+      </View>
 
-      {baseScreen === "wishlist" ? (
-        <WishlistScreen 
-          onSelectProduct={navigateToProduct}
-          {...commonProps}
-        />
-      ) : null}
-
-      {baseScreen === "profile" ? (
-        <ProfileScreen 
-          {...commonProps}
-        />
-      ) : null}
-
-      {baseScreen === "admin" ? (
-        <AdminDashboardScreen 
-          {...commonProps}
-        />
-      ) : null}
-
-      {baseScreen === "vendor" ? (
-        <VendorDashboardScreen 
-          onAddProduct={navigateToAddProduct}
-          {...commonProps}
-        />
-      ) : null}
-
-      {baseScreen === "addProduct" ? (
-        <AddProductScreen 
-          vendorId={selectedVendorId}
-          onBack={navigateToVendor}
-          {...commonProps}
+      {baseScreen === "ar" && selectedProduct ? (
+        <ARTryOnScreen 
+          product={selectedProduct}
+          onBack={handleBack}
         />
       ) : null}
 

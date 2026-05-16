@@ -50,6 +50,15 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     const fetchGoldRate = async () => {
+      // Short-circuit if API key is missing or placeholder
+      if (!GOLD_API_KEY || GOLD_API_KEY === 'goldapi-placeholder-key') {
+        console.log("Gold API key missing, using fallback rates.");
+        const mockBase = 72 + Math.random() * 5; 
+        setBaseRate(mockBase);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       try {
         // Attempt to fetch real gold rate from GoldAPI.io

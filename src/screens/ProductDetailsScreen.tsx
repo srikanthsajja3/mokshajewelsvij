@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator, TextInput, Alert } from "react-native";
+import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator, TextInput, Alert, Animated } from "react-native";
 import { FontAwesome5 } from '@expo/vector-icons';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -21,18 +21,19 @@ interface ProductDetailsScreenProps {
   onPressOrders: () => void;
   onPressWishlist: () => void;
   onPressProfile: () => void;
+  onPressAR: (product: Product) => void;
   searchQuery: string;
   onSearch: (query: string) => void;
 }
 
-const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
-  const { product, onBack, onSelectProduct } = props;
+const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Animated.Value }> = (props) => {
+  const { product, onBack, onSelectProduct, scrollY } = props;
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
   const { user } = useAuth();
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<any>(null);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
   const [showAddedMsg, setShowAddedMsg] = useState(false);
@@ -157,16 +158,19 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
 
   return (
     <View style={styles.container}>
-      <Header {...props} />
-
       {showAddedMsg ? (
         <View style={styles.addedMessage}>
           <Text style={styles.addedMessageText}>✨ Added to your bag!</Text>
         </View>
       ) : null}
 
-      <ScrollView 
+      <Animated.ScrollView 
         ref={scrollRef} 
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -298,6 +302,13 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
 
               <View style={styles.divider} />
 
+              <TouchableOpacity style={[styles.actionButton, styles.arButton]} onPress={() => props.onPressAR(product)}>
+                <View style={styles.arButtonContent}>
+                  <FontAwesome5 name="magic" size={16} color="#000" style={{ marginRight: 10 }} />
+                  <Text style={styles.actionButtonText}>Try On virtually</Text>
+                </View>
+              </TouchableOpacity>
+
               <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
                 <Text style={styles.actionButtonText}>Buy Now</Text>
               </TouchableOpacity>
@@ -409,7 +420,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = (props) => {
         </View>
 
         <Footer />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };
@@ -605,6 +616,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: 1,
+  },
+  arButton: {
+    backgroundColor: "#D4AF37",
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  arButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   addToCartButton: {
     backgroundColor: "transparent",

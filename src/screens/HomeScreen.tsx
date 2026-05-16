@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { StyleSheet, View, ScrollView, useWindowDimensions, Text, TouchableOpacity, ImageBackground } from "react-native";
+import { StyleSheet, View, useWindowDimensions, Text, TouchableOpacity, Animated } from "react-native";
 import Header from "../components/Header";
 import ImageScroller from "../components/ImageScroller";
 import Footer from "../components/Footer";
@@ -16,18 +16,18 @@ interface HomeScreenProps {
   onSearch: (query: string) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = (props) => {
+const HomeScreen: React.FC<HomeScreenProps & { scrollY: Animated.Value }> = (props) => {
   const { width } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
-
-  const isLargeScreen = width > 768;
+  const { scrollY } = props;
 
   return (
     <View style={styles.container}>
-      <Header {...props} />
-
-      <ScrollView 
-        ref={scrollRef} 
+      <Animated.ScrollView 
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
         stickyHeaderIndices={[1]} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -52,7 +52,7 @@ const HomeScreen: React.FC<HomeScreenProps> = (props) => {
         </View>
 
         <Footer />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };

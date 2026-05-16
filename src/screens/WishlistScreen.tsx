@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, View, ScrollView, Text, ActivityIndicator, TouchableOpacity } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { StyleSheet, View, ScrollView, Text, ActivityIndicator, TouchableOpacity, Animated } from "react-native";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ProductList from "../components/ProductList";
@@ -18,10 +18,11 @@ interface WishlistScreenProps {
   onSearch: (query: string) => void;
 }
 
-const WishlistScreen: React.FC<WishlistScreenProps> = (props) => {
+const WishlistScreen: React.FC<WishlistScreenProps & { scrollY: Animated.Value }> = (props) => {
   const { wishlist, isLoading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { scrollY } = props;
 
   useEffect(() => {
     const loadWishlistProducts = async () => {
@@ -48,9 +49,15 @@ const WishlistScreen: React.FC<WishlistScreenProps> = (props) => {
 
   return (
     <View style={styles.container}>
-      <Header {...props} />
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <Animated.ScrollView 
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.contentWrapper}>
           <View style={styles.headerSection}>
             <Text style={styles.title}>Your Wishlist</Text>
@@ -80,7 +87,7 @@ const WishlistScreen: React.FC<WishlistScreenProps> = (props) => {
         </View>
 
         <Footer />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };

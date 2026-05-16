@@ -105,7 +105,6 @@ const AdminDashboardScreen: React.FC<any> = (props) => {
   if (!isAdmin) {
     return (
       <View style={styles.container}>
-        <Header {...props} />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentWrapper}>
             <View style={styles.center}>
@@ -124,7 +123,6 @@ const AdminDashboardScreen: React.FC<any> = (props) => {
 
   return (
     <View style={styles.container}>
-      <Header {...props} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrapper}>
           <View style={styles.adminHeader}>

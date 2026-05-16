@@ -29,6 +29,8 @@ interface CategoryBarProps {
   onSortChange: (sort: SortOption) => void;
 }
 
+const MAX_CONTENT_WIDTH = 1200;
+
 const CategoryBar: React.FC<CategoryBarProps> = ({ 
   activeCategory, 
   onSelectCategory,
@@ -42,56 +44,58 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.innerContainer}>
-        {/* Categories Section */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesScroll}
-          contentContainerStyle={styles.categoriesSection}
-        >
-          {CATEGORIES.map((cat, idx) => {
-            const isActive = activeCategory === cat;
-            return (
-              <TouchableOpacity 
-                key={idx} 
-                style={[styles.categoryItem, isActive && styles.activeItem]} 
-                onPress={() => onSelectCategory(cat)}
-              >
-                <Text style={[styles.categoryText, isActive && styles.activeText]}>{cat}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Sort Section */}
-        <View style={styles.sortSection}>
-          <TouchableOpacity 
-            style={styles.sortButton} 
-            onPress={() => setShowSortOptions(!showSortOptions)}
+        <View style={styles.centerWrapper}>
+          {/* Categories Section */}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesScroll}
+            contentContainerStyle={styles.categoriesSection}
           >
-            <Text style={styles.sortButtonText}>
-              {isMobile ? "Sort ▾" : `Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label} ▾`}
-            </Text>
-          </TouchableOpacity>
-
-          {showSortOptions ? (
-            <View style={styles.dropdown}>
-              {SORT_OPTIONS.map((option) => (
+            {CATEGORIES.map((cat, idx) => {
+              const isActive = activeCategory === cat;
+              return (
                 <TouchableOpacity 
-                  key={option.value}
-                  style={[styles.dropdownOption, sortBy === option.value && styles.activeOption]}
-                  onPress={() => {
-                    onSortChange(option.value);
-                    setShowSortOptions(false);
-                  }}
+                  key={idx} 
+                  style={[styles.categoryItem, isActive && styles.activeItem]} 
+                  onPress={() => onSelectCategory(cat)}
                 >
-                  <Text style={[styles.optionText, sortBy === option.value && styles.activeOptionText]}>
-                    {option.label}
-                  </Text>
+                  <Text style={[styles.categoryText, isActive && styles.activeText]}>{cat}</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-          ) : null}
+              );
+            })}
+          </ScrollView>
+
+          {/* Sort Section */}
+          <View style={styles.sortSection}>
+            <TouchableOpacity 
+              style={styles.sortButton} 
+              onPress={() => setShowSortOptions(!showSortOptions)}
+            >
+              <Text style={styles.sortButtonText}>
+                {isMobile ? "Sort ▾" : `Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label} ▾`}
+              </Text>
+            </TouchableOpacity>
+
+            {showSortOptions ? (
+              <View style={styles.dropdown}>
+                {SORT_OPTIONS.map((option) => (
+                  <TouchableOpacity 
+                    key={option.value}
+                    style={[styles.dropdownOption, sortBy === option.value && styles.activeOption]}
+                    onPress={() => {
+                      onSortChange(option.value);
+                      setShowSortOptions(false);
+                    }}
+                  >
+                    <Text style={[styles.optionText, sortBy === option.value && styles.activeOptionText]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+          </View>
         </View>
       </View>
     </View>
@@ -110,11 +114,16 @@ const styles = StyleSheet.create({
     })
   },
   innerContainer: {
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+  },
+  centerWrapper: {
+    maxWidth: MAX_CONTENT_WIDTH,
+    width: "100%",
+    alignSelf: "center",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
   },
   categoriesScroll: {
     flex: 1,

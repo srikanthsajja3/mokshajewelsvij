@@ -9,14 +9,15 @@ import {
   StatusBar,
   useWindowDimensions,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  Animated
 } from 'react-native';
 import { useCart } from '../contexts/CartContext';
 import { useCountry } from '../contexts/CountryContext';
 import { formatPrice } from '../utils/currency';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { ScrollView } from 'react-native';
+import { useRef } from 'react';
 
 interface CartScreenProps {
   onGoHome: () => void;
@@ -29,12 +30,13 @@ interface CartScreenProps {
   onSearch: (query: string) => void;
 }
 
-const CartScreen: React.FC<CartScreenProps> = (props) => {
+const CartScreen: React.FC<CartScreenProps & { scrollY: Animated.Value }> = (props) => {
   const { 
     onGoHome, 
     onCheckout, 
     onPressLogin,
-    onPressOrders
+    onPressOrders,
+    scrollY
   } = props;
   const { cart, removeFromCart, updateQuantity, cartTotal, isLoading } = useCart();
   const { countryCode } = useCountry();
@@ -79,9 +81,16 @@ const CartScreen: React.FC<CartScreenProps> = (props) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Header {...props} />
       
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView 
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.contentWrapper}>
           <View style={styles.content}>
             <Text style={styles.title}>Your Shopping Bag</Text>
@@ -123,7 +132,7 @@ const CartScreen: React.FC<CartScreenProps> = (props) => {
           </View>
         </View>
         <Footer />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };
