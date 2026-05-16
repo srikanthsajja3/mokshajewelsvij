@@ -136,6 +136,3 @@ const styles = StyleSheet.create({
 });
 
 export default BrandScreen;
-
-
-export default BrandScreen;
