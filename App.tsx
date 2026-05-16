@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import React, { useState, useRef } from "react";
-import { StyleSheet, StatusBar, View, ActivityIndicator, Animated } from "react-native";
-=======
-import React, { useState } from "react";
-import { StyleSheet, StatusBar, View, ActivityIndicator, Platform } from "react-native";
->>>>>>> ff2b4ad7c93e0fe78534e8b0c0bb34622af480b4
+import { StyleSheet, StatusBar, View, ActivityIndicator, Animated, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
@@ -20,11 +15,8 @@ import ProfileScreen from "./src/screens/ProfileScreen";
 import AdminDashboardScreen from "./src/screens/AdminDashboardScreen";
 import VendorDashboardScreen from "./src/screens/VendorDashboardScreen";
 import AddProductScreen from "./src/screens/AddProductScreen";
-<<<<<<< HEAD
 import ARTryOnScreen from "./src/screens/ARTryOnScreen";
-=======
 import BrandScreen from "./src/screens/BrandScreen";
->>>>>>> ff2b4ad7c93e0fe78534e8b0c0bb34622af480b4
 import { Product } from "./src/data/products";
 import { CountryProvider } from "./src/contexts/CountryContext";
 import { GoldRateProvider } from "./src/contexts/GoldRateContext";
@@ -38,13 +30,8 @@ import SideDrawer from "./src/components/SideDrawer";
 import Header from "./src/components/Header";
 
 function AppContent() {
-<<<<<<< HEAD
-  const [currentScreen, setCurrentScreen] = useState<"home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct" | "ar">("home");
-  const [history, setHistory] = useState<any[]>([{ screen: "home" }]);
-=======
-  const [currentScreen, setCurrentScreen] = useState<"brand" | "home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct">("brand");
+  const [currentScreen, setCurrentScreen] = useState<"brand" | "home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct" | "ar">("brand");
   const [history, setHistory] = useState<any[]>([{ screen: "brand" }]);
->>>>>>> ff2b4ad7c93e0fe78534e8b0c0bb34622af480b4
   const [historyIndex, setHistoryIndex] = useState(0);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -89,15 +76,13 @@ function AppContent() {
       return;
     }
 
-<<<<<<< HEAD
-    // Reset scroll position for the new screen
-    scrollY.setValue(0);
-=======
     // Update URL on Web when entering the shop
     if (Platform.OS === 'web' && screen === "home" && currentScreen === "brand") {
       window.history.pushState({}, '', '/testing');
     }
->>>>>>> ff2b4ad7c93e0fe78534e8b0c0bb34622af480b4
+
+    // Reset scroll position for the new screen
+    scrollY.setValue(0);
 
     newHistory.push(newState);
     setHistory(newHistory);
@@ -267,29 +252,15 @@ function AppContent() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-<<<<<<< HEAD
-      {baseScreen !== "ar" && <Header {...commonProps} />}
+      {baseScreen !== "ar" && baseScreen !== "brand" && <Header {...commonProps} />}
 
       <View style={{ flex: 1 }}>
+        {baseScreen === "brand" ? (
+          <BrandScreen onEnterShop={() => navigateTo("home")} />
+        ) : null}
+
         {baseScreen === "home" ? (
           <HomeScreen 
-=======
-      {baseScreen === "brand" ? (
-        <BrandScreen onEnterShop={() => navigateTo("home")} />
-      ) : null}
-
-      {baseScreen === "home" ? (
-        <HomeScreen 
-          onSelectCategory={navigateToCategory} 
-          {...commonProps}
-        />
-      ) : null}
-      
-      {baseScreen === "category" ? (
-        <SwipeBackView onSwipeBack={navigateToHome}>
-          <CategoryScreen 
-            category={selectedCategory} 
->>>>>>> ff2b4ad7c93e0fe78534e8b0c0bb34622af480b4
             onSelectCategory={navigateToCategory} 
             {...commonProps}
           />
