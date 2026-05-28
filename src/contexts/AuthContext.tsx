@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform, Alert } from 'react-native';
 import * as Linking from 'expo-linking';
 import { supabase } from '../../supabase';
@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
 
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -36,146 +36,94 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      if (!error && data) {
+      if (error) {
+        if (error.code === 'PGRST116') {
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({ id: userId, role: 'customer' });
+          if (!insertError) setRole('customer');
+        } else {
+          setRole('customer');
+        }
+      } else if (data) {
         setRole(data.role);
-      } else {
-        setRole('customer');
       }
     } catch (error) {
       setRole('customer');
     }
-  };
+  }, []);
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = useCallback(async (email: string) => {
     const origin = Linking.createURL('reset-password');
-    console.log('Sending reset link with redirect to:', origin);
-    
-    return await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: origin,
-    });
-  };
+    return await supabase.auth.resetPasswordForEmail(email, { redirectTo: origin });
+  }, []);
 
-  const verifyOtp = async (email: string, token: string) => {
-    console.log('AuthProvider: Verifying OTP for:', email);
-    return await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'recovery',
-    });
-  };
+  const verifyOtp = useCallback(async (email: string, token: string) => {
+    return await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+  }, []);
 
-  const signInWithOAuth = async (provider: 'google' | 'apple') => {
-    // For Vercel/Web, we want to redirect back to the exact current origin
-    // For Native, we use the custom scheme
+  const signInWithOAuth = useCallback(async (provider: 'google' | 'apple') => {
     const redirectUrl = Platform.OS === 'web' 
       ? window.location.origin 
       : Linking.createURL('login-callback');
-    
-    console.log(`AuthProvider: Initiating OAuth for ${provider} with redirect:`, redirectUrl);
     
     return await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo: redirectUrl,
-        // On web, we want the browser to handle the redirect normally
         skipBrowserRedirect: Platform.OS !== 'web',
       },
     });
-  };
+  }, []);
+
+  const signOut = useCallback(async () => {
+    setRole(null);
+    setUser(null);
+    setSession(null);
+    await supabase.auth.signOut();
+  }, []);
 
   useEffect(() => {
     const handleDeepLink = async (url: string) => {
-      console.log('AuthProvider: Handling deep link:', url);
       const { queryParams } = Linking.parse(url);
-      
       if (queryParams?.error) {
         const errorDesc = (queryParams.error_description as string)?.replace(/\+/g, ' ') || (queryParams.error as string);
         Alert.alert('Authentication Error', errorDesc);
         return;
       }
-
-      // Supabase's onAuthStateChange usually handles the session from the URL,
-      // but we can manually refresh the session if needed.
-      const { data, error } = await supabase.auth.getSession();
-      if (!error && data.session) {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
       }
     };
 
-    // Handle links when app is already open
-    const subscription = Linking.addEventListener('url', ({ url }) => {
-      handleDeepLink(url);
-    });
-
-    // Handle links that opened the app
-    Linking.getInitialURL().then((url) => {
-      if (url) handleDeepLink(url);
-    });
-
-    return () => {
-      subscription.remove();
-    };
+    const subscription = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
+    Linking.getInitialURL().then((url) => { if (url) handleDeepLink(url); });
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
     let mounted = true;
-    console.log('AuthProvider: Initializing...');
-
-    // Handle Auth errors from URL hash (common in password reset failures)
-    if (Platform.OS === 'web' && window.location.hash) {
-      const hash = window.location.hash;
-      console.log('AuthProvider: Detected hash:', hash);
-      if (hash.includes('error=')) {
-        const params = new URLSearchParams(hash.replace('#', '?'));
-        const errorDesc = params.get('error_description');
-        if (errorDesc) {
-          const message = errorDesc.replace(/\+/g, ' ');
-          console.log('AuthProvider: Auth error detected in hash:', message);
-          
-          if (Platform.OS === 'web') {
-            window.alert('Authentication Error: ' + message);
-          } else {
-            Alert.alert('Authentication Error', message);
-          }
-          
-          // Clear the hash from the URL
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      }
-    }
-
-    // Fast Initial Load: Just check if we have a session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
-      console.log('AuthProvider: Initial session:', session?.user?.email || 'none');
-      
       setSession(session);
       setUser(session?.user ?? null);
-      
       setIsLoading(false);
-
-      if (session?.user) {
-        fetchUserRole(session.user.id);
-      }
+      if (session?.user) fetchUserRole(session.user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
-      console.log('AuthProvider: Auth State Change Event:', event);
-
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         fetchUserRole(newSession?.user?.id || '');
       } else if (event === 'SIGNED_OUT') {
         setRole(null);
       } else if (event === 'PASSWORD_RECOVERY') {
-        console.log('AuthProvider: Password Recovery Mode Triggered');
         setIsRecovering(true);
       }
-      
       setIsLoading(false);
     });
 
@@ -183,30 +131,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserRole]);
 
-  const signOut = async () => {
-    setRole(null);
-    setUser(null);
-    setSession(null);
-    await supabase.auth.signOut();
-  };
+  const value = useMemo(() => ({ 
+    user, 
+    session, 
+    role, 
+    isAdmin: role === 'admin', 
+    isVendor: role === 'vendor',
+    isLoading, 
+    isRecovering,
+    setIsRecovering,
+    signOut,
+    resetPassword,
+    verifyOtp,
+    signInWithOAuth
+  }), [user, session, role, isLoading, isRecovering, signOut, resetPassword, verifyOtp, signInWithOAuth]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      role, 
-      isAdmin: role === 'admin', 
-      isVendor: role === 'vendor',
-      isLoading, 
-      isRecovering,
-      setIsRecovering,
-      signOut,
-      resetPassword,
-      verifyOtp,
-      signInWithOAuth
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

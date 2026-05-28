@@ -36,7 +36,7 @@ const GoldRateBanner: React.FC = () => {
     return () => {
       if (animation) animation.stop();
     };
-  }, [isLoading, rateItems.length]); // Only depend on rates loading state or length change
+  }, [isLoading, rateItems.length, width]); // Added width to handle orientation/resize changes
 
   if (isLoading) {
     return (

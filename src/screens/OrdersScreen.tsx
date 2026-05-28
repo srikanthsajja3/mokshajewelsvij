@@ -20,6 +20,10 @@ import { formatPrice } from '../utils/currency';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { useNavigation } from '@react-navigation/native';
+import { NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
+import { useUI } from '../contexts/UIContext';
 
 interface OrderItem {
   id: string;
@@ -40,18 +44,12 @@ interface Order {
 }
 
 interface OrdersScreenProps {
-  onGoHome: () => void;
-  onPressLogin: () => void;
-  onPressCart: () => void;
-  onPressOrders: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
 }
 
-const OrdersScreen: React.FC<OrdersScreenProps & { scrollY: Animated.Value }> = (props) => {
-  const { onGoHome, onPressLogin, onPressCart, onPressOrders, scrollY } = props;
+const OrdersScreen: React.FC<OrdersScreenProps> = ({ scrollY }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { setLoginVisible } = useUI();
   const { user } = useAuth();
 
   const { countryCode } = useCountry();
@@ -143,25 +141,39 @@ const OrdersScreen: React.FC<OrdersScreenProps & { scrollY: Animated.Value }> = 
     }
   };
 
-  const renderOrderItem = (item: OrderItem) => (
-    <View key={item.id} style={styles.orderItemRow}>
-      <Image source={{ uri: item.product.image_url }} style={styles.itemThumb} />
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemName} numberOfLines={1}>{item.product.name}</Text>
-        <Text style={styles.itemMeta}>Qty: {item.quantity} • {formatPrice(item.price_at_purchase, countryCode)} each</Text>
+  const renderOrderItem = (item: OrderItem) => {
+    const productName = item.product?.name || "Premium Masterpiece (Details unavailable)";
+    const productImage = item.product?.image_url || "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=200";
+
+    return (
+      <View key={item.id} style={styles.orderItemRow}>
+        <Image source={{ uri: productImage }} style={styles.itemThumb} />
+        <View style={styles.itemDetails}>
+          <Text style={styles.itemName} numberOfLines={1}>{productName}</Text>
+          <Text style={styles.itemMeta}>Qty: {item.quantity} • {formatPrice(item.price_at_purchase, countryCode)} each</Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderStatusTracker = (status: string) => {
-    const statuses = ['paid', 'processing', 'shipped', 'delivered'];
-    const currentIndex = statuses.indexOf(status.toLowerCase());
+    const statuses = ['pending', 'paid', 'processing', 'shipped', 'delivered'];
+    const currentStatus = status.toLowerCase();
+    const currentIndex = statuses.indexOf(currentStatus);
     
-    // If status is 'canceled', handle separately
-    if (status.toLowerCase() === 'canceled') {
+    // Handle Terminal/Error Statuses
+    if (currentStatus === 'cancelled' || currentStatus === 'canceled') {
       return (
         <View style={styles.canceledBadge}>
-          <Text style={styles.canceledText}>ORDER CANCELED</Text>
+          <Text style={styles.canceledText}>ORDER CANCELLED</Text>
+        </View>
+      );
+    }
+
+    if (currentStatus === 'failed') {
+      return (
+        <View style={[styles.canceledBadge, { borderColor: '#ff4444', backgroundColor: 'rgba(255, 68, 68, 0.1)' }]}>
+          <Text style={[styles.canceledText, { color: '#ff4444' }]}>PAYMENT FAILED</Text>
         </View>
       );
     }
@@ -260,7 +272,7 @@ const OrdersScreen: React.FC<OrdersScreenProps & { scrollY: Animated.Value }> = 
       <View style={styles.container}>
         <View style={styles.centerContent}>
           <Text style={styles.messageText}>Please log in to view your order history.</Text>
-          <TouchableOpacity style={styles.loginBtn} onPress={onPressLogin}>
+          <TouchableOpacity style={styles.loginBtn} onPress={() => setLoginVisible(true)}>
             <Text style={styles.loginBtnText}>Log In Now</Text>
           </TouchableOpacity>
         </View>
@@ -292,7 +304,7 @@ const OrdersScreen: React.FC<OrdersScreenProps & { scrollY: Animated.Value }> = 
             ) : orders.length === 0 ? (
               <View style={styles.centerContent}>
                 <Text style={styles.messageText}>You haven't placed any orders yet.</Text>
-                <TouchableOpacity style={styles.shopBtn} onPress={onGoHome}>
+                <TouchableOpacity style={styles.shopBtn} onPress={() => navigation.navigate('Home')}>
                   <Text style={styles.shopBtnText}>Start Shopping</Text>
                 </TouchableOpacity>
               </View>

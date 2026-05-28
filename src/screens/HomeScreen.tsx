@@ -1,24 +1,27 @@
 import React, { useRef } from "react";
-import { StyleSheet, View, useWindowDimensions, Text, TouchableOpacity, Animated } from "react-native";
+import { StyleSheet, View, useWindowDimensions, Text, TouchableOpacity, Animated, Platform } from "react-native";
+import { FontAwesome5 } from '@expo/vector-icons';
 import Header from "../components/Header";
 import ImageScroller from "../components/ImageScroller";
 import Footer from "../components/Footer";
 
+import { useNavigation, NavigationProp } from "@react-navigation/native";
+import { RootStackParamList } from "../navigation/types";
+
 interface HomeScreenProps {
-  onSelectCategory: (category: string) => void;
-  onGoHome: () => void;
-  onPressLogin: () => void;
-  onPressCart: () => void;
-  onPressOrders: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
 }
 
-const HomeScreen: React.FC<HomeScreenProps & { scrollY: Animated.Value }> = (props) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ scrollY: scrollYProp }) => {
   const { width } = useWindowDimensions();
-  const { scrollY } = props;
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const localScrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = scrollYProp || localScrollY;
+
+  const navigateToCategory = (cat: string) => navigation.navigate('Category', { category: cat });
+  const navigateToProduct = (product: any) => navigation.navigate('ProductDetails', { id: product.id });
+  
+  const isMobile = width < 768;
 
   return (
     <View style={styles.container}>
@@ -37,16 +40,47 @@ const HomeScreen: React.FC<HomeScreenProps & { scrollY: Animated.Value }> = (pro
           
           <View style={styles.mainArea}>
             <View style={styles.featuredSection}>
-              <Text style={styles.sectionTitle}>Crafted for Eternity</Text>
+              <Text style={styles.sectionTitle} accessibilityRole="header">Crafted for Eternity</Text>
               <Text style={styles.sectionSubtitle}>Discover our latest masterpieces handcrafted with passion.</Text>
               
               <TouchableOpacity 
                 style={styles.exploreButton}
-                onPress={() => props.onSelectCategory("Gold")}
+                onPress={() => navigateToCategory("Gold")}
                 activeOpacity={0.8}
               >
                 <Text style={styles.exploreButtonText}>View All Products</Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Pillars Section */}
+            <View style={styles.pillarsContainer}>
+              <View style={styles.pillars}>
+                <View style={styles.pillarItem}>
+                  <FontAwesome5 name="gem" size={18} color="#D4AF37" style={styles.pillarIcon} />
+                  <Text style={styles.pillarTitle}>100% Purity</Text>
+                  <Text style={styles.pillarText} numberOfLines={2}>BIS Gold & Diamonds</Text>
+                </View>
+                <View style={styles.pillarItem}>
+                  <FontAwesome5 name="magic" size={18} color="#D4AF37" style={styles.pillarIcon} />
+                  <Text style={styles.pillarTitle}>Unique Design</Text>
+                  <Text style={styles.pillarText} numberOfLines={2}>Bridal Boutique</Text>
+                </View>
+                <View style={styles.pillarItem}>
+                  <FontAwesome5 name="medal" size={18} color="#D4AF37" style={styles.pillarIcon} />
+                  <Text style={styles.pillarTitle}>Legacy</Text>
+                  <Text style={styles.pillarText} numberOfLines={2}>Crafting Elegance</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* About Section */}
+            <View style={styles.aboutSection}>
+              <Text style={styles.aboutTitle}>Premier Jewelry Store in Vijayawada</Text>
+              <Text style={styles.aboutText}>
+                Explore our exclusive collections of 100% BIS Hallmarked 22k Gold ornaments, 
+                IGI/GIA Certified shaped Diamonds, handcrafted Kundan, and traditional Polki. 
+                From signature divine masterworks to heavy bridal chokers, we offer unique boutique designs for every occasion.
+              </Text>
             </View>
           </View>
         </View>
@@ -75,7 +109,7 @@ const styles = StyleSheet.create({
   featuredSection: {
     alignItems: "center",
     paddingHorizontal: 20,
-    marginBottom: 40,
+    marginBottom: 60,
   },
   sectionTitle: {
     fontFamily: "TrajanPro",
@@ -106,35 +140,63 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 2,
   },
-  promoContainer: {
-    width: "100%",
-    overflow: "hidden",
+  pillarsContainer: {
+    paddingVertical: 40,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.1)",
+    backgroundColor: "rgba(0,0,0,0.2)",
+    marginBottom: 60,
   },
-  promoImage: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
+  pillars: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "flex-start",
+    flexWrap: "nowrap", // Ensure they stay in one line
+    paddingHorizontal: 10,
+  },
+  pillarItem: {
+    flex: 1,
     alignItems: "center",
+    paddingHorizontal: 10,
   },
-  promoOverlay: {
-    backgroundColor: "rgba(0,0,0,0.4)",
-    padding: 30,
-    borderRadius: 8,
-    alignItems: "center",
+  pillarIcon: {
+    marginBottom: 15,
   },
-  promoText: {
+  pillarTitle: {
     fontFamily: "TrajanPro",
-    color: "#fff",
-    fontSize: 24,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  promoLink: {
+    fontSize: 12,
     color: "#D4AF37",
-    fontSize: 16,
-    fontWeight: "bold",
-    textDecorationLine: "underline",
-  }
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  pillarText: {
+    fontSize: 10,
+    color: "#aaa",
+    textAlign: "center",
+    lineHeight: 14,
+  },
+  aboutSection: {
+    paddingHorizontal: 30,
+    alignItems: "center",
+    marginBottom: 60,
+  },
+  aboutTitle: {
+    fontFamily: "TrajanPro",
+    fontSize: 20,
+    color: "#D4AF37",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  aboutText: {
+    fontSize: 14,
+    color: "#ccc",
+    textAlign: "center",
+    lineHeight: 24,
+    maxWidth: 800,
+    fontStyle: "italic",
+  },
 });
 
 export default HomeScreen;

@@ -5,24 +5,22 @@ import Footer from "../components/Footer";
 import ProductList from "../components/ProductList";
 import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useWishlist } from "../contexts/WishlistContext";
+import { useNavigation } from '@react-navigation/native';
+import { NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
+import { useUI } from '../contexts/UIContext';
 
 interface WishlistScreenProps {
-  onSelectProduct: (product: Product) => void;
-  onGoHome: () => void;
-  onPressLogin: () => void;
-  onPressCart: () => void;
-  onPressOrders: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
+  searchQuery?: string;
 }
 
-const WishlistScreen: React.FC<WishlistScreenProps & { scrollY: Animated.Value }> = (props) => {
+const WishlistScreen: React.FC<WishlistScreenProps> = ({ scrollY, searchQuery }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { setLoginVisible } = useUI();
   const { wishlist, isLoading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { scrollY } = props;
 
   useEffect(() => {
     const loadWishlistProducts = async () => {
@@ -71,17 +69,17 @@ const WishlistScreen: React.FC<WishlistScreenProps & { scrollY: Animated.Value }
           ) : products.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>Your wishlist is empty.</Text>
-              <TouchableOpacity style={styles.exploreButton} onPress={props.onGoHome}>
+              <TouchableOpacity style={styles.exploreButton} onPress={() => navigation.navigate('Home')}>
                 <Text style={styles.exploreButtonText}>Explore Collections</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <ProductList 
               category="Wishlist" 
-              onSelectProduct={props.onSelectProduct} 
+              onSelectProduct={(product) => navigation.navigate('ProductDetails', { id: product.id })} 
               sortBy="popularity"
-              searchQuery={props.searchQuery}
-              onPressLogin={props.onPressLogin}
+              searchQuery={searchQuery}
+              onPressLogin={() => setLoginVisible(true)}
             />
           )}
         </View>

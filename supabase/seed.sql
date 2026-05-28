@@ -22,7 +22,8 @@ INSERT INTO products (
     stone_beads_usd, 
     tax_usd, 
     rating, 
-    popularity
+    popularity,
+    type
 ) VALUES 
 (
     'Eternal Radiance Ring', 
@@ -39,7 +40,8 @@ INSERT INTO products (
     20.00, 
     50.00, 
     4.8, 
-    120
+    120,
+    'Ring'
 ),
 (
     'Royal Heritage Necklace', 
@@ -56,7 +58,8 @@ INSERT INTO products (
     0.00, 
     250.00, 
     4.9, 
-    350
+    350,
+    'Necklace'
 ),
 (
     'Divine Grace Earrings', 
@@ -73,7 +76,8 @@ INSERT INTO products (
     30.00, 
     50.00, 
     4.7, 
-    95
+    95,
+    'Earring'
 ),
 (
     'Diamond Solitaire Studs', 
@@ -90,7 +94,8 @@ INSERT INTO products (
     800.00, 
     100.00, 
     4.9, 
-    210
+    210,
+    'Earring'
 )
 ON CONFLICT (product_code) DO UPDATE SET
     name = EXCLUDED.name,
@@ -106,4 +111,5 @@ ON CONFLICT (product_code) DO UPDATE SET
     stone_beads_usd = EXCLUDED.stone_beads_usd,
     tax_usd = EXCLUDED.tax_usd,
     rating = EXCLUDED.rating,
-    popularity = EXCLUDED.popularity;
+    popularity = EXCLUDED.popularity,
+    type = EXCLUDED.type;

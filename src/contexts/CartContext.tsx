@@ -30,7 +30,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   // Helper to map DB response to CartItem
-  const mapDbToCartItem = (item: any): CartItem => {
+  const mapDbToCartItem = useCallback((item: any): CartItem => {
     const product = item.product;
     return {
       id: product.id,
@@ -54,14 +54,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: product.created_at,
       quantity: item.quantity,
     };
-  };
+  }, []);
 
   // Load cart (either from DB or Local Storage)
   const loadCart = useCallback(async () => {
     setIsLoading(true);
     try {
-      if (user) {
-        // Fetch from Supabase
+      if (user?.id) {
         console.log('Fetching cart from Supabase for user:', user.id);
         const { data, error } = await supabase
           .from('cart_items')
@@ -69,184 +68,134 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('user_id', user.id);
 
         if (error) throw error;
-
         if (data) {
-          const dbCart = data.map(mapDbToCartItem);
-          setCart(dbCart);
+          setCart(data.map(mapDbToCartItem));
         }
       } else {
-        // Load from local storage
         if (Platform.OS === 'web') {
           const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-          if (savedCart) {
-            setCart(JSON.parse(savedCart));
-          } else {
-            setCart([]);
-          }
+          if (savedCart) setCart(JSON.parse(savedCart));
+          else setCart([]);
         }
       }
     } catch (error) {
-      console.error('Error loading cart:', error);
+      console.warn('Error loading cart:', error);
     } finally {
       setIsLoading(false);
       setIsInitialized(true);
     }
-  }, [user]);
+  }, [user?.id, mapDbToCartItem]);
 
-  // Initial load and sync on auth state change
+  // Initial load
   useEffect(() => {
     loadCart();
   }, [loadCart]);
 
-  // Handle merging local cart to DB on login
+  // Sync local to DB
   useEffect(() => {
     const syncLocalCartToDb = async () => {
-      if (user && isInitialized && Platform.OS === 'web') {
-        const localCartJson = localStorage.getItem(CART_STORAGE_KEY);
-        if (localCartJson) {
-          const localCart: CartItem[] = JSON.parse(localCartJson);
-          if (localCart.length > 0) {
-            console.log('Merging local cart to Supabase...');
-            for (const item of localCart) {
-              await supabase.from('cart_items').upsert({
-                user_id: user.id,
-                product_id: item.id,
-                quantity: item.quantity
-              }, { onConflict: 'user_id,product_id' });
+      if (user?.id && isInitialized && Platform.OS === 'web') {
+        try {
+          const localCartJson = localStorage.getItem(CART_STORAGE_KEY);
+          if (localCartJson) {
+            const localCart: CartItem[] = JSON.parse(localCartJson);
+            if (localCart.length > 0) {
+              for (const item of localCart) {
+                await supabase.from('cart_items').upsert({
+                  user_id: user.id,
+                  product_id: item.id,
+                  quantity: item.quantity
+                }, { onConflict: 'user_id,product_id' });
+              }
+              localStorage.removeItem(CART_STORAGE_KEY);
+              loadCart();
             }
-            // Clear local storage after sync
-            localStorage.removeItem(CART_STORAGE_KEY);
-            // Reload cart from DB
-            loadCart();
           }
+        } catch (error) {
+          console.warn('Sync local cart error:', error);
         }
       }
     };
     syncLocalCartToDb();
-  }, [user, isInitialized, loadCart]);
+  }, [user?.id, isInitialized, loadCart]);
 
-  // Local persistence for non-logged in users
+  // Local persistence
   useEffect(() => {
-    if (!isInitialized || user) return;
-    
+    if (!isInitialized || user?.id) return;
     if (Platform.OS === 'web') {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+      try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+      } catch (e) {}
     }
-  }, [cart, isInitialized, user]);
+  }, [cart, isInitialized, user?.id]);
 
-  const addToCart = async (product: Product) => {
-    console.log('Adding to cart:', product.name);
-    
-    if (user) {
-      const existingItem = cart.find(item => item.id === product.id);
-      const newQuantity = existingItem ? existingItem.quantity + 1 : 1;
-      
-      const { error } = await supabase
-        .from('cart_items')
-        .upsert({
-          user_id: user.id,
-          product_id: product.id,
-          quantity: newQuantity
-        }, { onConflict: 'user_id,product_id' });
-
-      if (error) {
-        console.error('Error adding to Supabase cart:', error.message);
-        return;
+  const addToCart = useCallback(async (product: Product) => {
+    if (user?.id) {
+      try {
+        const existingItem = cart.find(item => item.id === product.id);
+        const newQuantity = existingItem ? existingItem.quantity + 1 : 1;
+        const { error } = await supabase
+          .from('cart_items')
+          .upsert({ user_id: user.id, product_id: product.id, quantity: newQuantity }, { onConflict: 'user_id,product_id' });
+        if (!error) loadCart();
+      } catch (error) {
+        console.warn('Add to cart error:', error);
       }
-      loadCart(); // Refresh from DB
     } else {
-      setCart(prevCart => {
-        const existingItem = prevCart.find(item => item.id === product.id);
-        if (existingItem) {
-          return prevCart.map(item =>
-            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-          );
-        }
-        return [...prevCart, { ...product, quantity: 1 }];
+      setCart(prev => {
+        const existing = prev.find(item => item.id === product.id);
+        if (existing) return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+        return [...prev, { ...product, quantity: 1 }];
       });
     }
-  };
+  }, [user?.id, cart, loadCart]);
 
-  const removeFromCart = async (productId: string) => {
-    if (user) {
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('product_id', productId);
-
-      if (error) {
-        console.error('Error removing from Supabase cart:', error.message);
-        return;
+  const removeFromCart = useCallback(async (productId: string) => {
+    if (user?.id) {
+      try {
+        const { error } = await supabase.from('cart_items').delete().eq('user_id', user.id).eq('product_id', productId);
+        if (!error) loadCart();
+      } catch (error) {
+        console.warn('Remove from cart error:', error);
       }
-      loadCart();
     } else {
-      setCart(prevCart => prevCart.filter(item => item.id !== productId));
+      setCart(prev => prev.filter(item => item.id !== productId));
     }
-  };
+  }, [user?.id, loadCart]);
 
-  const updateQuantity = async (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      await removeFromCart(productId);
-      return;
-    }
-
-    if (user) {
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity })
-        .eq('user_id', user.id)
-        .eq('product_id', productId);
-
-      if (error) {
-        console.error('Error updating quantity in Supabase:', error.message);
-        return;
+  const updateQuantity = useCallback(async (productId: string, quantity: number) => {
+    if (quantity <= 0) { await removeFromCart(productId); return; }
+    if (user?.id) {
+      try {
+        const { error } = await supabase.from('cart_items').update({ quantity }).eq('user_id', user.id).eq('product_id', productId);
+        if (!error) loadCart();
+      } catch (error) {
+        console.warn('Update quantity error:', error);
       }
-      loadCart();
     } else {
-      setCart(prevCart =>
-        prevCart.map(item =>
-          item.id === productId ? { ...item, quantity } : item
-        )
-      );
+      setCart(prev => prev.map(item => item.id === productId ? { ...item, quantity } : item));
     }
-  };
+  }, [user?.id, removeFromCart, loadCart]);
 
-  const clearCart = async () => {
-    if (user) {
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error clearing Supabase cart:', error.message);
-        return;
+  const clearCart = useCallback(async () => {
+    if (user?.id) {
+      try {
+        const { error } = await supabase.from('cart_items').delete().eq('user_id', user.id);
+        if (!error) setCart([]);
+      } catch (error) {
+        console.warn('Clear cart error:', error);
       }
-      setCart([]);
     } else {
       setCart([]);
     }
-  };
+  }, [user?.id]);
 
-  const cartTotal = useMemo(() => 
-    cart.reduce((total, item) => total + (item.price * item.quantity), 0),
-  [cart]);
-
-  const cartCount = useMemo(() => 
-    cart.reduce((count, item) => count + item.quantity, 0),
-  [cart]);
+  const cartTotal = useMemo(() => cart.reduce((total, item) => total + (item.price * item.quantity), 0), [cart]);
+  const cartCount = useMemo(() => cart.reduce((count, item) => count + item.quantity, 0), [cart]);
 
   const value = useMemo(() => ({
-    cart, 
-    addToCart, 
-    removeFromCart, 
-    updateQuantity, 
-    clearCart, 
-    cartTotal, 
-    cartCount,
-    isLoading
-  }), [cart, cartTotal, cartCount, isLoading]);
+    cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount, isLoading
+  }), [cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount, isLoading]);
 
   return (
     <CartContext.Provider value={value}>
@@ -257,8 +206,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
+  if (context === undefined) throw new Error('useCart must be used within a CartProvider');
   return context;
 };

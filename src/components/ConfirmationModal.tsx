@@ -19,6 +19,7 @@ interface ConfirmationModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   isDestructive?: boolean;
+  children?: React.ReactNode;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -29,7 +30,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   cancelLabel = "Cancel",
   onConfirm,
   onCancel,
-  isDestructive = false
+  isDestructive = false,
+  children
 }) => {
   if (!visible && Platform.OS !== 'web') return null;
 
@@ -43,7 +45,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+          {message ? <Text style={styles.message}>{message}</Text> : null}
+          
+          {children}
           
           <View style={styles.buttonContainer}>
             <TouchableOpacity 

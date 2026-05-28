@@ -1,6 +1,7 @@
-import React, { useRef, useState, useEffect } from "react";
-import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator, TextInput, Alert, Animated } from "react-native";
+import React, { useRef, useState, useEffect, useMemo, useCallback } from "react";
+import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator, TextInput, Alert, Animated, Modal, SafeAreaView } from "react-native";
 import { FontAwesome5 } from '@expo/vector-icons';
+import ImageViewer from 'react-native-image-zoom-viewer';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { supabase } from "../../supabase";
@@ -11,23 +12,47 @@ import { useAuth } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
 import { useWishlist } from "../contexts/WishlistContext";
 
+import { useNavigation, useRoute, RouteProp, NavigationProp } from "@react-navigation/native";
+import { RootStackParamList } from "../navigation/types";
+
+import { useUI } from "../contexts/UIContext";
+
+import { fetchProductById } from "../data/products";
+
 interface ProductDetailsScreenProps {
-  product: Product;
-  onGoHome: () => void;
-  onBack: () => void;
-  onSelectProduct: (product: Product) => void;
-  onPressLogin: () => void;
-  onPressCart: () => void;
-  onPressOrders: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  onPressAR: (product: Product) => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
 }
 
-const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Animated.Value }> = (props) => {
-  const { product, onBack, onSelectProduct, scrollY } = props;
+const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: scrollYProp }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'ProductDetails'>>();
+  const [product, setProduct] = useState<Product | null>(route.params?.product || null);
+  const [fetchingProduct, setFetchingProduct] = useState(!route.params?.product && !!route.params?.id);
+  const { setLoginVisible } = useUI();
+
+  const localScrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = scrollYProp || localScrollY;
+
+  useEffect(() => {
+    const loadProduct = async () => {
+      if (!product && route.params?.id) {
+        setFetchingProduct(true);
+        try {
+          const fetched = await fetchProductById(route.params.id);
+          setProduct(fetched);
+        } catch (err) {
+          console.error("Error fetching product for deep link:", err);
+        } finally {
+          setFetchingProduct(false);
+        }
+      }
+    };
+    loadProduct();
+  }, [route.params?.id]);
+
+  const onBack = () => navigation.goBack();
+  const onSelectProduct = (newProduct: Product) => navigation.navigate('ProductDetails', { id: newProduct.id });
+  
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
   const { user } = useAuth();
@@ -42,13 +67,45 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Anim
   const [submittingReview, setSubmittingReview] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
 
-  const isLargeScreen = width > 768;
+  const [activeImageIndex, setActiveIndex] = useState(0);
+
+  const allImages = useMemo(() => {
+    if (!product) return [];
+    const images = [product.image];
+    if (product.galleryUrls && Array.isArray(product.galleryUrls)) {
+      images.push(...product.galleryUrls);
+    }
+    return images.filter(img => !!img);
+  }, [product?.image, product?.galleryUrls]);
+
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  const handleScroll = (event: any) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const itemWidth = isLargeScreen ? (width * 0.5 - 40) : (width - 40);
+    const index = Math.round(scrollPosition / itemWidth);
+    if (index !== activeImageIndex) {
+      setActiveIndex(index);
+    }
+  };
+
+  const isLargeScreen = width > 700;
   
   const contentStyle: ViewStyle = isLargeScreen 
     ? { width: "100%", alignSelf: "flex-start", flexDirection: "row" as const } 
     : { width: "100%" };
 
+  // Generate Image URLs for the ImageViewer
+  const viewerImages = useMemo(() => {
+    return allImages.map(url => ({ url }));
+  }, [allImages]);
+
   useEffect(() => {
+    setActiveIndex(0); // Reset index on product change
+    
+    // Safety check if product is null
+    if (!product || !product.id || !product.category) return;
+
     const loadRecommendations = async () => {
       setLoadingRecs(true);
       const data = await fetchProductsFromSupabase(product.category);
@@ -57,42 +114,64 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Anim
       setLoadingRecs(false);
     };
 
+    loadRecommendations();
+  }, [product?.id, product?.category]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    
     const loadReviews = async () => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*, profiles(full_name)')
-        .eq('product_id', product.id)
-        .order('created_at', { ascending: false });
-      
-      if (!error && data) {
-        setReviews(data);
+      try {
+        const { data, error } = await supabase
+          .from('reviews')
+          .select('*, profiles(full_name)')
+          .eq('product_id', product.id)
+          .order('created_at', { ascending: false });
+        
+        if (!error && data) {
+          setReviews(data);
+        }
+      } catch (err) {
+        console.warn("Error loading reviews:", err);
       }
     };
 
     const checkPurchase = async () => {
-      if (!user) return;
-      const { data, error } = await supabase
-        .from('order_items')
-        .select('id, orders(status)')
-        .eq('product_id', product.id)
-        .eq('orders.user_id', user.id)
-        .eq('orders.status', 'delivered');
-      
-      if (!error && data && data.length > 0) {
-        setHasPurchased(true);
+      if (!user?.id) {
+        setHasPurchased(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('order_items')
+          .select('id, orders(status)')
+          .eq('product_id', product.id)
+          .eq('orders.user_id', user.id)
+          .eq('orders.status', 'delivered');
+        
+        if (!error && data && data.length > 0) {
+          setHasPurchased(true);
+        } else {
+          setHasPurchased(false);
+        }
+      } catch (err) {
+        console.warn("Error checking purchase status:", err);
+        setHasPurchased(false);
       }
     };
 
-    loadRecommendations();
     loadReviews();
     checkPurchase();
+  }, [product?.id, user?.id]);
+
+  useEffect(() => {
     // Scroll to top when product changes
     scrollRef.current?.scrollTo({ y: 0, animated: true });
-  }, [product.id, product.category, user]);
+  }, [product?.id]);
 
   const handleSubmitReview = async () => {
     if (!user) {
-      props.onPressLogin();
+      setLoginVisible(true);
       return;
     }
     if (!userReview.comment.trim()) {
@@ -129,24 +208,36 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Anim
     }
   };
 
-  const handleBuyNow = () => {
-    addToCart(product);
-    if (!user) {
-      props.onPressLogin();
+  const handleWhatsAppEnquiry = () => {
+    const phoneNumber = "919922244439";
+    const message = `Namaste Moksha Jewels! I am interested in this masterpiece:
+    
+Product: ${product.name}
+ID: ${product.id}
+Code: ${product.productCode}
+Category: ${product.category}
+
+Please provide more details regarding this item.`;
+    
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    
+    if (Platform.OS === 'web') {
+      window.open(url, '_blank');
     } else {
-      props.onPressCart();
+      import('expo-linking').then(Linking => {
+        Linking.openURL(url);
+      });
     }
   };
 
   const handleAddToCart = () => {
-    addToCart(product);
-    setShowAddedMsg(true);
-    setTimeout(() => setShowAddedMsg(false), 3000);
+    // Feature disabled for launch
+    Alert.alert("Launch Phase", "For our initial launch, we are accepting enquiries directly via WhatsApp. Please use the 'Enquire on WhatsApp' button.");
   };
 
   const handleWishlistToggle = async () => {
     if (!user) {
-      props.onPressLogin();
+      setLoginVisible(true);
       return;
     }
     if (isInWishlist(product.id)) {
@@ -155,6 +246,77 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Anim
       await addToWishlist(product.id);
     }
   };
+
+  const [activeSection, setActiveSection] = useState<string | null>("specs");
+  const [zoomData, setZoomData] = useState({ visible: false, x: 0, y: 0 });
+
+  const handleMouseMove = (e: any) => {
+    if (!isLargeScreen || Platform.OS !== 'web') return;
+    
+    // Use client coordinates relative to the element's bounding box for stability
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    setZoomData({ visible: true, x, y });
+  };
+
+  const toggleSection = (section: string) => {
+    setActiveSection(activeSection === section ? null : section);
+  };
+
+  const AccordionSection = ({ 
+    id, 
+    title, 
+    children 
+  }: { 
+    id: string; 
+    title: string; 
+    children: React.ReactNode 
+  }) => {
+    const isOpen = activeSection === id;
+    return (
+      <View style={styles.accordionItem}>
+        <TouchableOpacity 
+          style={styles.accordionHeader} 
+          onPress={() => toggleSection(id)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.accordionTitle}>{title}</Text>
+          <FontAwesome5 
+            name={isOpen ? "chevron-up" : "chevron-down"} 
+            size={12} 
+            color="#D4AF37" 
+          />
+        </TouchableOpacity>
+        {isOpen && (
+          <View style={styles.accordionContent}>
+            {children}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  if (fetchingProduct) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#D4AF37" />
+        <Text style={styles.loadingText}>Unveiling Masterpiece...</Text>
+      </View>
+    );
+  }
+
+  if (!product) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>Masterpiece not found.</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+          <Text style={styles.backBtnText}>GO BACK</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -178,7 +340,46 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Anim
           <View style={[styles.mainContent, contentStyle]}>
             <View style={[styles.imageColumn, { width: isLargeScreen ? "50%" : "100%" }]}>
               <View style={styles.imageSection}>
-                <Image source={{ uri: product.image }} style={styles.mainImage} />
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
+                >
+                  {allImages.map((img, index) => (
+                    <TouchableOpacity 
+                      key={index} 
+                      style={[styles.imageWrapper, { width: isLargeScreen ? (width * 0.5 - 40) : (width - 40) }]}
+                      activeOpacity={1}
+                      // @ts-ignore
+                      onMouseMove={handleMouseMove}
+                      // @ts-ignore
+                      onMouseLeave={() => setZoomData({ ...zoomData, visible: false })}
+                      onPress={() => {
+                        setActiveIndex(index);
+                        setIsViewerVisible(true);
+                      }}
+                    >
+                      <Image source={{ uri: img }} style={styles.mainImage} />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {allImages.length > 1 && (
+                  <View style={styles.pagination}>
+                    {allImages.map((_, i) => (
+                      <View 
+                        key={i} 
+                        style={[
+                          styles.dot, 
+                          activeImageIndex === i && styles.activeDot
+                        ]} 
+                      />
+                    ))}
+                  </View>
+                )}
+
                 <TouchableOpacity 
                   style={styles.wishlistIcon} 
                   onPress={handleWishlistToggle}
@@ -187,6 +388,48 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Anim
                     {isInWishlist(product.id) ? "♥" : "♡"}
                   </Text>
                 </TouchableOpacity>
+              </View>
+
+              {/* Full Screen Image Viewer Modal */}
+              <Modal visible={isViewerVisible} transparent={true} onRequestClose={() => setIsViewerVisible(false)}>
+                <ImageViewer 
+                  imageUrls={viewerImages}
+                  index={activeImageIndex}
+                  onSwipeDown={() => setIsViewerVisible(false)}
+                  enableSwipeDown={true}
+                  renderHeader={() => (
+                    <SafeAreaView>
+                      <TouchableOpacity 
+                        style={{ position: 'absolute', top: 20, right: 20, zIndex: 9999, padding: 10 }} 
+                        onPress={() => setIsViewerVisible(false)}
+                      >
+                        <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>✕</Text>
+                      </TouchableOpacity>
+                    </SafeAreaView>
+                  )}
+                />
+              </Modal>
+
+              {/* Zoom Overlay for Web (Moved outside imageSection to avoid clipping) */}
+              {Platform.OS === 'web' && zoomData.visible && isLargeScreen && (
+                <View style={[styles.zoomOverlay, { 
+                  left: "105%", // Position it to the right of the image column
+                  top: 0,
+                }]}>
+                  <View style={[styles.zoomedImage, {
+                    backgroundImage: `url(${allImages[activeImageIndex]})`,
+                    backgroundPosition: `${zoomData.x}% ${zoomData.y}%`,
+                  }]} />
+                </View>
+              )}
+
+              {/* Action Buttons under Image */}
+              <View style={styles.imageActions}>
+                <TouchableOpacity style={styles.actionButton} onPress={handleWhatsAppEnquiry}>
+                  <Text style={styles.actionButtonText}>Enquire on WhatsApp</Text>
+                </TouchableOpacity>
+
+                {/* Add to Bag removed for launch */}
               </View>
             </View>
 
@@ -199,63 +442,64 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Anim
               <View style={styles.divider} />
               
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Product Specifications</Text>
-                <View style={styles.specTable}>
-                  <View style={styles.specTableRow}>
-                    <Text style={styles.specTableLabel}>Product</Text>
-                    <Text style={styles.specTableValue}>{product.category}</Text>
+                <AccordionSection id="specs" title="Product Specifications">
+                  <View style={styles.specTable}>
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Product</Text>
+                      <Text style={styles.specTableValue}>{product.category}</Text>
+                    </View>
+                    {product.type ? (
+                      <View style={styles.specTableRow}>
+                        <Text style={styles.specTableLabel}>Type</Text>
+                        <Text style={styles.specTableValue}>{product.type}</Text>
+                      </View>
+                    ) : null}
+                    {product.collection ? (
+                      <View style={styles.specTableRow}>
+                        <Text style={styles.specTableLabel}>Collection</Text>
+                        <Text style={styles.specTableValue}>{product.collection}</Text>
+                      </View>
+                    ) : null}
+                    {product.gender ? (
+                      <View style={styles.specTableRow}>
+                        <Text style={styles.specTableLabel}>Gender</Text>
+                        <Text style={styles.specTableValue}>{product.gender}</Text>
+                      </View>
+                    ) : null}
+                    {product.occasion ? (
+                      <View style={styles.specTableRow}>
+                        <Text style={styles.specTableLabel}>Occasion</Text>
+                        <Text style={styles.specTableValue}>{product.occasion}</Text>
+                      </View>
+                    ) : null}
+                    {product.designTheme ? (
+                      <View style={styles.specTableRow}>
+                        <Text style={styles.specTableLabel}>Design Theme</Text>
+                        <Text style={styles.specTableValue}>{product.designTheme}</Text>
+                      </View>
+                    ) : null}
                   </View>
-                  {product.type ? (
-                    <View style={styles.specTableRow}>
-                      <Text style={styles.specTableLabel}>Type</Text>
-                      <Text style={styles.specTableValue}>{product.type}</Text>
-                    </View>
-                  ) : null}
-                  {product.collection ? (
-                    <View style={styles.specTableRow}>
-                      <Text style={styles.specTableLabel}>Collection</Text>
-                      <Text style={styles.specTableValue}>{product.collection}</Text>
-                    </View>
-                  ) : null}
-                  {product.gender ? (
-                    <View style={styles.specTableRow}>
-                      <Text style={styles.specTableLabel}>Gender</Text>
-                      <Text style={styles.specTableValue}>{product.gender}</Text>
-                    </View>
-                  ) : null}
-                  {product.occasion ? (
-                    <View style={styles.specTableRow}>
-                      <Text style={styles.specTableLabel}>Occasion</Text>
-                      <Text style={styles.specTableValue}>{product.occasion}</Text>
-                    </View>
-                  ) : null}
-                  {product.designTheme ? (
-                    <View style={styles.specTableRow}>
-                      <Text style={styles.specTableLabel}>Design Theme</Text>
-                      <Text style={styles.specTableValue}>{product.designTheme}</Text>
-                    </View>
-                  ) : null}
-                </View>
+                </AccordionSection>
 
-                <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Metal Details</Text>
-                <View style={styles.specTable}>
-                  <View style={styles.specTableRow}>
-                    <Text style={styles.specTableLabel}>Gold Weight</Text>
-                    <Text style={styles.specTableValue}>{product.goldWeight.toFixed(3)} g</Text>
+                <AccordionSection id="metal" title="Metal Details">
+                  <View style={styles.specTable}>
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Gold Weight</Text>
+                      <Text style={styles.specTableValue}>{(product.goldWeight || 0).toFixed(3)} g</Text>
+                    </View>
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Purity</Text>
+                      <Text style={styles.specTableValue}>{product.purity}</Text>
+                    </View>
+                    <View style={styles.specTableRow}>
+                      <Text style={styles.specTableLabel}>Metal Color</Text>
+                      <Text style={styles.specTableValue}>{product.metalColor}</Text>
+                    </View>
                   </View>
-                  <View style={styles.specTableRow}>
-                    <Text style={styles.specTableLabel}>Purity</Text>
-                    <Text style={styles.specTableValue}>{product.purity}</Text>
-                  </View>
-                  <View style={styles.specTableRow}>
-                    <Text style={styles.specTableLabel}>Metal Color</Text>
-                    <Text style={styles.specTableValue}>{product.metalColor}</Text>
-                  </View>
-                </View>
+                </AccordionSection>
 
                 {(product.gemstoneType || product.gemstoneWeight) ? (
-                  <>
-                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Stone Details</Text>
+                  <AccordionSection id="stone" title="Stone Details">
                     <View style={styles.specTable}>
                       {product.gemstoneType ? (
                         <View style={styles.specTableRow}>
@@ -266,65 +510,43 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps & { scrollY: Anim
                       {product.gemstoneWeight ? (
                         <View style={styles.specTableRow}>
                           <Text style={styles.specTableLabel}>Gemstone Weight</Text>
-                          <Text style={styles.specTableValue}>{product.gemstoneWeight.toFixed(3)}</Text>
+                          <Text style={styles.specTableValue}>{(product.gemstoneWeight || 0).toFixed(3)}</Text>
                         </View>
                       ) : null}
                     </View>
-                  </>
+                  </AccordionSection>
                 ) : null}
+
+                <AccordionSection id="price" title="Price Breakup">
+                  <View style={styles.priceRow}>
+                    <Text style={styles.priceLabel}>Metal</Text>
+                    <Text style={styles.priceValue}>{formatPrice(product.priceBreakup?.metal || 0, countryCode)}</Text>
+                  </View>
+                  <View style={styles.priceRow}>
+                    <Text style={styles.priceLabel}>VA & Making</Text>
+                    <Text style={styles.priceValue}>{formatPrice(product.priceBreakup?.vaMaking || 0, countryCode)}</Text>
+                  </View>
+                  <View style={styles.priceRow}>
+                    <Text style={styles.priceLabel}>Stone, Beeds, Etc</Text>
+                    <Text style={styles.priceValue}>{formatPrice(product.priceBreakup?.stoneBeads || 0, countryCode)}</Text>
+                  </View>
+                  <View style={styles.priceRow}>
+                    <Text style={styles.priceLabel}>Tax</Text>
+                    <Text style={styles.priceValue}>{formatPrice(product.priceBreakup?.tax || 0, countryCode)}</Text>
+                  </View>
+                  <View style={[styles.priceRow, styles.totalRow]}>
+                    <Text style={styles.totalLabel}>Total</Text>
+                    <Text style={styles.totalValue}>{formatPrice(product.price || 0, countryCode)}</Text>
+                  </View>
+                </AccordionSection>
               </View>
 
               <View style={styles.divider} />
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Price Breakup</Text>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Metal</Text>
-                  <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.metal, countryCode)}</Text>
-                </View>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>VA & Making</Text>
-                  <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.vaMaking, countryCode)}</Text>
-                </View>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Stone, Beeds, Etc</Text>
-                  <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.stoneBeads, countryCode)}</Text>
-                </View>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Tax</Text>
-                  <Text style={styles.priceValue}>{formatPrice(product.priceBreakup.tax, countryCode)}</Text>
-                </View>
-                <View style={[styles.priceRow, styles.totalRow]}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>{formatPrice(product.price, countryCode)}</Text>
-                </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              <TouchableOpacity style={[styles.actionButton, styles.arButton]} onPress={() => props.onPressAR(product)}>
-                <View style={styles.arButtonContent}>
-                  <FontAwesome5 name="magic" size={16} color="#000" style={{ marginRight: 10 }} />
-                  <Text style={styles.actionButtonText}>Try On virtually</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
-                <Text style={styles.actionButtonText}>Buy Now</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.actionButton, styles.addToCartButton]} onPress={handleAddToCart}>
-                <Text style={styles.addToCartButtonText}>Add to Bag</Text>
-              </TouchableOpacity>
-              
               <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={handleWishlistToggle}>
                 <Text style={styles.secondaryButtonText}>
                   {isInWishlist(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={onBack}>
-                <Text style={styles.secondaryButtonText}>Back to Collections</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -430,8 +652,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#291c0e",
   },
-  scrollContent: {
-    flexGrow: 1,
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#291c0e",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#D4AF37",
+    fontFamily: "TrajanPro",
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+  errorText: {
+    color: "#fff",
+    fontSize: 16,
+    marginBottom: 20,
   },
   contentWrapper: {
     flex: 1,
@@ -457,15 +694,47 @@ const styles = StyleSheet.create({
   },
   imageColumn: {
     gap: 20,
+    position: "relative", // Crucial for absolute positioning of the zoom overlay
+    zIndex: 10,
   },
   imageSection: {
     borderRadius: 15,
-    height: 400,
+    height: 320,
     overflow: "hidden",
     backgroundColor: "#3d2b1a",
     borderWidth: 1,
     borderColor: "#4a3520",
     position: "relative",
+  },
+  imageWrapper: {
+    height: 320,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pagination: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  activeDot: {
+    backgroundColor: '#D4AF37',
+    width: 12, // Slightly wider for active
+  },
+  imageActions: {
+    marginTop: 20,
+    gap: 10,
   },
   mainImage: {
     width: "100%",
@@ -489,6 +758,34 @@ const styles = StyleSheet.create({
   },
   heartActive: {
     color: "#D4AF37",
+  },
+  zoomOverlay: {
+    position: "absolute",
+    top: 0,
+    width: 400,
+    height: 400,
+    backgroundColor: "#3d2b1a",
+    borderWidth: 2,
+    borderColor: "#D4AF37",
+    borderRadius: 8,
+    zIndex: 1000,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 25,
+    // @ts-ignore
+    pointerEvents: "none", // Prevent overlay from intercepting mouse events
+  },
+  zoomedImage: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#fff", // Fallback color
+    // @ts-ignore
+    backgroundRepeat: 'no-repeat',
+    // @ts-ignore
+    backgroundSize: '400%', // Increased zoom level for better detail
   },
   infoSection: {
     paddingVertical: 10,
@@ -693,6 +990,28 @@ const styles = StyleSheet.create({
     color: "#D4AF37",
     fontSize: 12,
     fontWeight: "600",
+  },
+  // Accordion Styles
+  accordionItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212, 175, 55, 0.15)",
+    marginBottom: 5,
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+  },
+  accordionTitle: {
+    fontFamily: "TrajanPro",
+    color: "#fff",
+    fontSize: 14,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  accordionContent: {
+    paddingBottom: 15,
   },
   // Review Styles
   reviewsSection: {

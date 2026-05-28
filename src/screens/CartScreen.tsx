@@ -12,6 +12,10 @@ import {
   ActivityIndicator,
   Animated
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
+import { useUI } from '../contexts/UIContext';
 import { useCart } from '../contexts/CartContext';
 import { useCountry } from '../contexts/CountryContext';
 import { formatPrice } from '../utils/currency';
@@ -20,29 +24,40 @@ import Footer from '../components/Footer';
 import { useRef } from 'react';
 
 interface CartScreenProps {
-  onGoHome: () => void;
-  onCheckout: () => void;
-  onPressLogin: () => void;
-  onPressOrders: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
 }
 
-const CartScreen: React.FC<CartScreenProps & { scrollY: Animated.Value }> = (props) => {
-  const { 
-    onGoHome, 
-    onCheckout, 
-    onPressLogin,
-    onPressOrders,
-    scrollY
-  } = props;
+const CartScreen: React.FC<CartScreenProps> = ({ scrollY }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { setLoginVisible } = useUI();
   const { cart, removeFromCart, updateQuantity, cartTotal, isLoading } = useCart();
   const { countryCode } = useCountry();
   const { width } = useWindowDimensions();
 
   const isWeb = Platform.OS === 'web';
+
+  const handleWhatsAppEnquiry = () => {
+    const phoneNumber = "919922244439";
+    let itemList = cart.map(item => `- ${item.name} (Qty: ${item.quantity}, ID: ${item.id})`).join('\n');
+    
+    const message = `Namaste Moksha Jewels! I am interested in these pieces from my bag:
+    
+${itemList}
+
+Total Amount: ${formatPrice(cartTotal, countryCode)}
+
+Please provide more details on how to proceed with these items.`;
+    
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    
+    if (Platform.OS === 'web') {
+      window.open(url, '_blank');
+    } else {
+      import('expo-linking').then(Linking => {
+        Linking.openURL(url);
+      });
+    }
+  };
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.cartItem}>
@@ -103,7 +118,7 @@ const CartScreen: React.FC<CartScreenProps & { scrollY: Animated.Value }> = (pro
             ) : cart.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>Your bag is empty.</Text>
-                <TouchableOpacity style={styles.shopBtn} onPress={onGoHome}>
+                <TouchableOpacity style={styles.shopBtn} onPress={() => navigation.navigate('Home')}>
                   <Text style={styles.shopBtnText}>Start Shopping</Text>
                 </TouchableOpacity>
               </View>
@@ -123,8 +138,8 @@ const CartScreen: React.FC<CartScreenProps & { scrollY: Animated.Value }> = (pro
                     <Text style={styles.totalValue}>{formatPrice(cartTotal, countryCode)}</Text>
                   </View>
                   
-                  <TouchableOpacity style={styles.checkoutBtn} onPress={onCheckout}>
-                    <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
+                  <TouchableOpacity style={styles.checkoutBtn} onPress={handleWhatsAppEnquiry}>
+                    <Text style={styles.checkoutBtnText}>Enquire for Bag on WhatsApp</Text>
                   </TouchableOpacity>
                 </View>
               </>

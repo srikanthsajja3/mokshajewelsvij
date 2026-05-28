@@ -48,12 +48,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(initialIsUpdatingPassword);
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Reset state when modal becomes visible or initialIsUpdatingPassword changes
   React.useEffect(() => {
-    if (initialIsUpdatingPassword) {
-      setIsUpdatingPassword(true);
-      setIsRecovering(false);
+    if (visible) {
+      if (initialIsUpdatingPassword) {
+        setIsUpdatingPassword(true);
+        setIsRegistering(false);
+        setIsResetting(false);
+        setShowCodeEntry(false);
+      } else {
+        // Reset to default login view
+        setIsUpdatingPassword(false);
+        setIsRegistering(false);
+        setIsResetting(false);
+        setShowCodeEntry(false);
+      }
+      setSuccessMessage("");
+      setIsLoading(false);
     }
-  }, [initialIsUpdatingPassword]);
+  }, [visible, initialIsUpdatingPassword]);
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -167,6 +180,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setSuccessMessage("Password updated! Redirecting...");
+      
+      // Clear recovery state to stop the loop in App.tsx
+      setIsRecovering(false);
+      
       setTimeout(() => {
         setIsUpdatingPassword(false);
         onLoginSuccess();
@@ -178,28 +195,40 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     }
   };
 
+  const handleClose = () => {
+    if (isUpdatingPassword || isRecovering) {
+      setIsRecovering(false);
+    }
+    onClose();
+  };
+
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill}>
+        <View style={StyleSheet.absoluteFill}>
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
           <TouchableOpacity 
             style={StyleSheet.absoluteFill} 
             activeOpacity={1} 
-            onPress={onClose} 
+            onPress={handleClose} 
           />
-        </BlurView>
+        </View>
         
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalContent}
         >
           <View style={styles.formContainer}>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={handleClose}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            >
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
 

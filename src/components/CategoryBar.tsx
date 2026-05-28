@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView } from "react-native";
 
-const CATEGORIES = ["Gold", "Diamonds"];
+import { FontAwesome5 } from '@expo/vector-icons';
+
+const CATEGORIES = ["All", "Gold", "Diamonds", "Polki", "Kundan"];
 
 export type SortOption = 
   | "popularity" 
@@ -27,18 +29,24 @@ interface CategoryBarProps {
   onSelectCategory: (category: string) => void;
   sortBy: SortOption;
   onSortChange: (sort: SortOption) => void;
+  onPressFilter: () => void;
+  activeFilterCount: number;
 }
 
-const MAX_CONTENT_WIDTH = 1200;
+const MAX_CONTENT_WIDTH = Platform.OS === 'web' ? '95%' : 1200;
+const MAX_PX_WIDTH = 2500;
 
 const CategoryBar: React.FC<CategoryBarProps> = ({ 
   activeCategory, 
   onSelectCategory,
   sortBy,
-  onSortChange
+  onSortChange,
+  onPressFilter,
+  activeFilterCount
 }) => {
   const { width } = useWindowDimensions();
   const [showSortOptions, setShowSortOptions] = useState(false);
+  const [showCategoryOptions, setShowCategoryOptions] = useState(false);
   const isMobile = width < 600;
 
   return (
@@ -46,55 +54,83 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
       <View style={styles.innerContainer}>
         <View style={styles.centerWrapper}>
           {/* Categories Section */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoriesScroll}
-            contentContainerStyle={styles.categoriesSection}
-          >
-            {CATEGORIES.map((cat, idx) => {
-              const isActive = activeCategory === cat;
-              return (
-                <TouchableOpacity 
-                  key={idx} 
-                  style={[styles.categoryItem, isActive && styles.activeItem]} 
-                  onPress={() => onSelectCategory(cat)}
-                >
-                  <Text style={[styles.categoryText, isActive && styles.activeText]}>{cat}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {/* Sort Section */}
-          <View style={styles.sortSection}>
+          <View style={styles.dropdownSection}>
             <TouchableOpacity 
-              style={styles.sortButton} 
-              onPress={() => setShowSortOptions(!showSortOptions)}
+              style={styles.dropdownButton} 
+              onPress={() => {
+                setShowCategoryOptions(!showCategoryOptions);
+                setShowSortOptions(false);
+              }}
             >
-              <Text style={styles.sortButtonText}>
-                {isMobile ? "Sort ▾" : `Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label} ▾`}
+              <Text style={styles.dropdownButtonText}>
+                {isMobile ? `${activeCategory} ▾` : `Category: ${activeCategory} ▾`}
               </Text>
             </TouchableOpacity>
 
-            {showSortOptions ? (
-              <View style={styles.dropdown}>
-                {SORT_OPTIONS.map((option) => (
+            {showCategoryOptions ? (
+              <View style={[styles.dropdown, { left: 0, right: 'auto' }]}>
+                {CATEGORIES.map((cat) => (
                   <TouchableOpacity 
-                    key={option.value}
-                    style={[styles.dropdownOption, sortBy === option.value && styles.activeOption]}
+                    key={cat}
+                    style={[styles.dropdownOption, activeCategory === cat && styles.activeOption]}
                     onPress={() => {
-                      onSortChange(option.value);
-                      setShowSortOptions(false);
+                      onSelectCategory(cat);
+                      setShowCategoryOptions(false);
                     }}
                   >
-                    <Text style={[styles.optionText, sortBy === option.value && styles.activeOptionText]}>
-                      {option.label}
+                    <Text style={[styles.optionText, activeCategory === cat && styles.activeOptionText]}>
+                      {cat}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             ) : null}
+          </View>
+
+          {/* Actions Section (Filter + Sort) */}
+          <View style={styles.actionsSection}>
+            <TouchableOpacity 
+              style={[styles.actionButton, activeFilterCount > 0 && styles.activeActionButton]} 
+              onPress={onPressFilter}
+            >
+              <FontAwesome5 name="filter" size={12} color={activeFilterCount > 0 ? "#000" : "#D4AF37"} style={{ marginRight: 8 }} />
+              <Text style={[styles.actionButtonText, activeFilterCount > 0 && styles.activeActionButtonText]}>
+                {isMobile ? "Filter" : `Filter${activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}`}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.dropdownSection}>
+              <TouchableOpacity 
+                style={styles.dropdownButton} 
+                onPress={() => {
+                  setShowSortOptions(!showSortOptions);
+                  setShowCategoryOptions(false);
+                }}
+              >
+                <Text style={styles.dropdownButtonText}>
+                  {isMobile ? "Sort ▾" : `Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label} ▾`}
+                </Text>
+              </TouchableOpacity>
+
+              {showSortOptions ? (
+                <View style={styles.dropdown}>
+                  {SORT_OPTIONS.map((option) => (
+                    <TouchableOpacity 
+                      key={option.value}
+                      style={[styles.dropdownOption, sortBy === option.value && styles.activeOption]}
+                      onPress={() => {
+                        onSortChange(option.value);
+                        setShowSortOptions(false);
+                      }}
+                    >
+                      <Text style={[styles.optionText, sortBy === option.value && styles.activeOptionText]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+            </View>
           </View>
         </View>
       </View>
@@ -107,7 +143,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#291c0e",
     borderBottomWidth: 1,
     borderBottomColor: "#4a3520",
-    zIndex: 1000, // Ensure dropdown is on top
+    zIndex: 1000,
     ...Platform.select({
       ios: { zIndex: 1000 },
       android: { elevation: 10 }
@@ -115,7 +151,7 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   centerWrapper: {
     maxWidth: MAX_CONTENT_WIDTH,
@@ -134,8 +170,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categoryItem: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     marginRight: 10,
     borderRadius: 4,
     backgroundColor: "transparent",
@@ -147,7 +183,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(212, 175, 55, 0.1)",
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "bold",
     color: "#888",
     letterSpacing: 1,
@@ -156,20 +192,47 @@ const styles = StyleSheet.create({
   activeText: {
     color: "#D4AF37",
   },
-  sortSection: {
-    position: "relative",
+  actionsSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-  sortButton: {
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.4)",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 4,
     backgroundColor: "#3d2b1a",
   },
-  sortButtonText: {
+  activeActionButton: {
+    backgroundColor: "#D4AF37",
+    borderColor: "#D4AF37",
+  },
+  actionButtonText: {
     color: "#D4AF37",
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  activeActionButtonText: {
+    color: "#000",
+  },
+  dropdownSection: {
+    position: "relative",
+  },
+  dropdownButton: {
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.4)",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 4,
+    backgroundColor: "#3d2b1a",
+  },
+  dropdownButtonText: {
+    color: "#D4AF37",
+    fontSize: 11,
     fontWeight: "600",
   },
   dropdown: {

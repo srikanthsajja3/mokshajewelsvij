@@ -3,27 +3,39 @@ import { StyleSheet, View, Animated, useWindowDimensions } from "react-native";
 import Header from "../components/Header";
 import CategoryBar, { SortOption } from "../components/CategoryBar";
 import ProductList from "../components/ProductList";
+import FilterModal from "../components/FilterModal";
 import Footer from "../components/Footer";
-import { Product } from "../data/products";
+import { Product, ProductFilters } from "../data/products";
+
+import { useNavigation, useRoute, RouteProp, NavigationProp } from "@react-navigation/native";
+import { RootStackParamList } from "../navigation/types";
 
 interface CategoryScreenProps {
-  category: string;
-  onSelectCategory: (cat: string) => void;
-  onSelectProduct: (product: Product) => void;
-  onGoHome: () => void;
-  onPressLogin: () => void;
-  onPressCart: () => void;
-  onPressOrders: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
 }
 
-const CategoryScreen: React.FC<CategoryScreenProps & { scrollY: Animated.Value }> = (props) => {
-  const { width, scrollY } = props;
+const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Category'>>();
+  const category = route.params?.category || "All";
+  
+  const localScrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = scrollYProp || localScrollY;
+  
   const scrollRef = useRef<Animated.ScrollView>(null);
   const [sortBy, setSortBy] = useState<SortOption>("popularity");
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [filters, setFilters] = useState<ProductFilters>({});
+
+  const onSelectCategory = (cat: string) => navigation.navigate('Category', { category: cat });
+  const onSelectProduct = (product: Product) => navigation.navigate('ProductDetails', { id: product.id });
+
+  const activeFilterCount = (
+    (filters.minPrice !== undefined ? 1 : 0) +
+    (filters.maxPrice !== undefined ? 1 : 0) +
+    (filters.purity?.length || 0) +
+    (filters.metalColor?.length || 0)
+  );
 
   return (
     <View style={styles.container}>
@@ -39,27 +51,43 @@ const CategoryScreen: React.FC<CategoryScreenProps & { scrollY: Animated.Value }
         contentContainerStyle={styles.scrollContent}
       >
         <CategoryBar 
-          activeCategory={props.category} 
+          activeCategory={category} 
           onSelectCategory={(cat) => {
-            props.onSelectCategory(cat);
+            onSelectCategory(cat);
             scrollRef.current?.scrollTo({ y: 0, animated: true });
           }} 
           sortBy={sortBy}
           onSortChange={setSortBy}
+          onPressFilter={() => setIsFilterVisible(true)}
+          activeFilterCount={activeFilterCount}
         />
         
         <View style={styles.mainArea}>
           <ProductList 
-            category={props.category} 
-            onSelectProduct={props.onSelectProduct} 
+            category={category} 
+            onSelectProduct={onSelectProduct} 
             sortBy={sortBy}
-            searchQuery={props.searchQuery}
-            onPressLogin={props.onPressLogin}
+            searchQuery={""} 
+            filters={filters}
           />
         </View>
 
         <Footer />
       </Animated.ScrollView>
+
+      <FilterModal
+        visible={isFilterVisible}
+        onClose={() => setIsFilterVisible(false)}
+        filters={filters}
+        onApply={(f) => {
+          setFilters(f);
+          setIsFilterVisible(false);
+        }}
+        onClear={() => {
+          setFilters({});
+          setIsFilterVisible(false);
+        }}
+      />
     </View>
   );
 };

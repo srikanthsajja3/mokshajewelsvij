@@ -50,7 +50,7 @@ export const usePaymentGateway = (countryCode: string) => {
         description: 'Moksha Jewels Purchase',
         image: 'https://i.imgur.com/3giU0H1.png',
         currency: params.currency || 'INR',
-        key: 'rzp_test_placeholder', 
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_test_placeholder', 
         amount: Math.round(params.amount * 100),
         name: 'MOKSHA JEWELS',
         prefill: { email: params.email },

@@ -20,20 +20,18 @@ import Footer from '../components/Footer';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { usePaymentGateway } from '../utils/paymentHooks';
+import { useNavigation } from '@react-navigation/native';
+import { NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
+import { useUI } from '../contexts/UIContext';
+
 interface CheckoutScreenProps {
-  onGoHome: () => void;
-  onSuccess: () => void;
-  onPressLogin: () => void;
-  onPressOrders: () => void;
-  onPressCart: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
 }
 
-const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
-  const { onGoHome, onSuccess, onPressLogin, onPressOrders, onPressCart } = props;
+const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { setLoginVisible } = useUI();
   const { cart, cartTotal, clearCart } = useCart();
   const { user } = useAuth();
   const { countryCode } = useCountry();
@@ -48,6 +46,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
   const [fullName, setFullName] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   const [zip, setZip] = useState('');
   const [country, setCountry] = useState('United States');
 
@@ -142,6 +141,12 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
   }, [user, cartTotal, provider]);
 
   const handlePayment = async () => {
+    if (cart.length === 0) {
+      Alert.alert("Empty Bag", "Your shopping bag is empty. Please add some masterpieces before checking out.");
+      navigation.navigate('Home');
+      return;
+    }
+
     if (!fullName || !address || !city || !zip || !country) {
       Alert.alert("Shipping Required", "Please enter your full delivery address and destination country.");
       return;
@@ -149,7 +154,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
 
     if (!user) {
       Alert.alert("Authentication Required", "Please log in to complete your order.");
-      onPressLogin();
+      setLoginVisible(true);
       return;
     }
 
@@ -181,6 +186,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
       }
 
       // 3. Create the Order in Supabase after successful payment
+      console.log('Creating order in Supabase for user:', user.id);
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -188,17 +194,29 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
           total_amount: cartTotal,
           shipping_address: address,
           city: city,
+          state: state,
           zip_code: zip,
           shipping_country: country,
           address_id: selectedAddressId,
           status: 'paid'
         })
-        .select()
+        .select('id')
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Order Insertion Error:', orderError);
+        if (orderError.message.includes('violates foreign key constraint')) {
+          throw new Error("Your profile is being initialized. Please wait a moment and try again.");
+        }
+        throw orderError;
+      }
+
+      if (!orderData?.id) {
+        throw new Error("Failed to retrieve order reference. Please contact support.");
+      }
 
       // 4. Insert Order Items
+      console.log('Inserting items for order:', orderData.id);
       const orderItems = cart.map(item => ({
         order_id: orderData.id,
         product_id: item.id,
@@ -210,7 +228,10 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Order Items Insertion Error:', itemsError);
+        throw itemsError;
+      }
 
       // 5. Success Flow
       await clearCart();
@@ -219,7 +240,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
       Alert.alert(
         "Payment Successful", 
         `Your masterpiece will be shipped to ${country}. Thank you for shopping with Moksha Jewels!`,
-        [{ text: "View Order History", onPress: () => onSuccess() }]
+        [{ text: "View Order History", onPress: () => navigation.navigate('Orders') }]
       );
     } catch (error: any) {
       console.error('Payment Error:', error.message);
@@ -312,8 +333,18 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
                     onChangeText={setCity}
                   />
                 </View>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>ZIP / Postal</Text>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                  <Text style={styles.inputLabel}>State</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="NY"
+                    placeholderTextColor="#666"
+                    value={state}
+                    onChangeText={setState}
+                  />
+                </View>
+                <View style={[styles.inputGroup, { width: 100 }]}>
+                  <Text style={styles.inputLabel}>ZIP Code</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="10001"

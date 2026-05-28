@@ -7,6 +7,13 @@ export interface PriceBreakup {
   tax: number;
 }
 
+export interface ProductFilters {
+  minPrice?: number;
+  maxPrice?: number;
+  purity?: string[];
+  metalColor?: string[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -22,6 +29,8 @@ export interface Product {
   rating: number;
   popularity: number;
   createdAt: string;
+  galleryUrls?: string[];
+  has360View?: boolean;
   // Metadata
   type?: string;
   collection?: string;
@@ -30,12 +39,14 @@ export interface Product {
   designTheme?: string;
   gemstoneType?: string;
   gemstoneWeight?: number;
+  stockQuantity?: number;
+  sourcingCost?: number;
 }
 
 /**
  * Maps Supabase database row to the frontend Product interface.
  */
-const mapProduct = (row: any): Product => ({
+export const mapProduct = (row: any): Product => ({
   id: row.id,
   name: row.name,
   category: row.category_name || "Uncategorized",
@@ -55,6 +66,14 @@ const mapProduct = (row: any): Product => ({
   rating: parseFloat(row.rating || 0),
   popularity: parseInt(row.popularity || 0),
   createdAt: row.created_at,
+  galleryUrls: (function() {
+    if (Array.isArray(row.gallery_urls)) return row.gallery_urls;
+    if (typeof row.gallery_urls === 'string') {
+      try { return JSON.parse(row.gallery_urls); } catch (e) { return []; }
+    }
+    return [];
+  })(),
+  has360View: row.has_360_view || false,
   type: row.type,
   collection: row.collection,
   gender: row.gender,
@@ -62,6 +81,8 @@ const mapProduct = (row: any): Product => ({
   designTheme: row.design_theme,
   gemstoneType: row.gemstone_type,
   gemstoneWeight: parseFloat(row.gemstone_weight || 0),
+  stockQuantity: parseInt(row.stock_quantity || 0),
+  sourcingCost: parseFloat(row.sourcing_cost || 0),
 });
 
 

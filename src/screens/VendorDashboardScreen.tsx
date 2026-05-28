@@ -19,12 +19,26 @@ import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
 import { formatPrice } from '../utils/currency';
-import { Product } from '../data/products';
+import { Product, mapProduct } from '../data/products';
 import * as DocumentPicker from 'expo-document-picker';
 import Papa from 'papaparse';
 
-const VendorDashboardScreen: React.FC<any> = (props) => {
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
+import { useUI } from '../contexts/UIContext';
+
+interface VendorDashboardScreenProps {
+  scrollY?: Animated.Value;
+}
+
+const VendorDashboardScreen: React.FC<VendorDashboardScreenProps> = ({ scrollY: scrollYProp }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { setLoginVisible } = useUI();
   const { isVendor, user } = useAuth();
+  
+  const localScrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = scrollYProp || localScrollY;
+  
   const { countryCode } = useCountry();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -65,18 +79,21 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
           .select('*')
           .eq('vendor_id', settings.vendor_id);
         
-        setMyProducts(products?.map(p => ({
-          ...p,
-          image: p.image_url,
-          price: p.base_price_usd
-        })) || []);
+        setMyProducts(products?.map(mapProduct) || []);
 
-        const { data: sales } = await supabase
-          .from('order_items')
-          .select('*, orders(*)')
-          .eq('product_id', products?.[0]?.id); 
+        const productIds = products?.map(p => p.id) || [];
         
-        setMySales(sales || []);
+        if (productIds.length > 0) {
+          const { data: sales } = await supabase
+            .from('order_items')
+            .select('*, orders(*)')
+            .in('product_id', productIds)
+            .order('created_at', { ascending: false });
+          
+          setMySales(sales || []);
+        } else {
+          setMySales([]);
+        }
       }
 
     } catch (error) {
@@ -87,13 +104,18 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
   };
 
   const generateApiKey = async () => {
-    const newKey = 'mk_' + Math.random().toString(36).substring(2, 15);
-    Alert.alert("API Key Generated", `Save this key safely. It will not be shown again:\n\n${newKey}`);
-    
-    await supabase
-      .from('vendor_settings')
-      .update({ api_key_hash: 'simulated_hash' })
-      .eq('user_id', user?.id);
+    try {
+      const newKey = 'mk_' + Math.random().toString(36).substring(2, 15);
+      const { error } = await supabase
+        .from('vendor_settings')
+        .update({ api_key_hash: 'simulated_hash' })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      Alert.alert("API Key Generated", `Save this key safely. It will not be shown again:\n\n${newKey}`);
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to generate API key.");
+    }
   };
 
   const toggleStockStatus = async (productId: string, currentStatus: boolean) => {
@@ -108,9 +130,9 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
       setMyProducts(prev => prev.map(p => 
         p.id === productId ? { ...p, is_in_stock: !currentStatus } : p
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling stock status:', error);
-      Alert.alert("Error", "Could not update stock status.");
+      Alert.alert("Error", error.message || "Could not update stock status.");
     }
   };
 
@@ -134,9 +156,9 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
       setMyProducts(prev => prev.filter(p => p.id !== productIdToDelete));
       setDeleteModalVisible(false);
       setProductIdToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting product:', error);
-      Alert.alert("Error", "Could not delete product.");
+      Alert.alert("Error", error.message || "Could not delete product.");
     } finally {
       setLoading(false);
     }
@@ -156,9 +178,9 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
       ));
       
       Alert.alert("Success", `Order status updated to ${newStatus.toUpperCase()}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating order status:', error);
-      Alert.alert("Error", "Could not update order status.");
+      Alert.alert("Error", error.message || "Could not update order status.");
     }
   };
 
@@ -211,8 +233,9 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
             purity: row.purity || row.Purity || '22K',
             metal_color: row.metal_color || row.Color || 'Yellow',
             base_price_usd: parseFloat(row.base_price_usd || row.Price || 0),
-            metal_price_usd: parseFloat(row.metal_price_usd || row.MetalPrice || 0),
-            va_making_usd: parseFloat(row.va_making_usd || row.Making || 0),
+            stock_quantity: parseInt(row.stock_quantity || row.Stock || 0),
+            sourcing_cost: parseFloat(row.sourcing_cost || row.Cost || 0),
+            metal_price_usd: parseFloat(row.metal_price_usd || row.MetalPrice || 0),            va_making_usd: parseFloat(row.va_making_usd || row.Making || 0),
             stone_beads_usd: parseFloat(row.stone_beads_usd || row.StonePrice || 0),
             tax_usd: parseFloat(row.tax_usd || row.Tax || 0),
             popularity: 0,
@@ -265,14 +288,22 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
         </View>
         <View style={styles.priceRow}>
           <Text style={styles.productPrice}>{formatPrice(item.price, countryCode)}</Text>
-          {isDeleteMode ? (
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TouchableOpacity 
-              style={styles.deleteBtn}
-              onPress={() => handleDeleteProduct(item.id)}
+              style={styles.editBtn}
+              onPress={() => navigation.navigate('AddProduct', { product: item, vendorId: (item as any).vendor_id })}
             >
-              <Text style={styles.deleteBtnText}>REMOVE</Text>
+              <Text style={styles.editBtnText}>EDIT</Text>
             </TouchableOpacity>
-          ) : null}
+            {isDeleteMode ? (
+              <TouchableOpacity 
+                style={styles.deleteBtn}
+                onPress={() => handleDeleteProduct(item.id)}
+              >
+                <Text style={styles.deleteBtnText}>REMOVE</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
       </View>
     </View>
@@ -318,7 +349,7 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
               <Text style={[styles.vendorTitle, isMobile && { fontSize: 22 }]}>Partner Portal</Text>
               <Text style={styles.vendorSubtitle}>{vendorSettings?.business_name || 'Artisan Partner'} | {vendorSettings?.vendors?.name || 'Pending Link'}</Text>
               
-              {!vendorSettings?.vendor_id && !loading ? (
+              {__DEV__ && !vendorSettings?.vendor_id && !loading ? (
                 <TouchableOpacity 
                   style={styles.devLinkBtn}
                   onPress={async () => {
@@ -376,7 +407,7 @@ const VendorDashboardScreen: React.FC<any> = (props) => {
                         <TouchableOpacity style={[styles.addBtn, { marginRight: 8, borderColor: '#aaa' }]} onPress={handleCSVImport}>
                           <Text style={[styles.addBtnText, { color: '#aaa' }]}>IMPORT CSV</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.addBtn} onPress={() => props.onAddProduct(vendorSettings?.vendor_id)}>
+                        <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('AddProduct', { vendorId: vendorSettings?.vendor_id })}>
                           <Text style={styles.addBtnText}>+ NEW ITEM</Text>
                         </TouchableOpacity>
                       </View>
@@ -497,6 +528,8 @@ const styles = StyleSheet.create({
   productStock: { color: '#aaa', fontSize: 10, marginBottom: 4 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   productPrice: { color: '#D4AF37', fontSize: 12, fontWeight: 'bold' },
+  editBtn: { padding: 4, borderWidth: 1, borderColor: '#D4AF37', borderRadius: 4, paddingHorizontal: 6 },
+  editBtnText: { color: '#D4AF37', fontSize: 8, fontWeight: 'bold' },
   deleteBtn: { padding: 4 },
   deleteBtnText: { color: '#ff4444', fontSize: 9, fontWeight: 'bold' },
   addBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#D4AF37', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 4 },

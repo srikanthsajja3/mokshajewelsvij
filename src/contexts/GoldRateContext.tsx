@@ -50,42 +50,59 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     const fetchGoldRate = async () => {
-      // Short-circuit if API key is missing or placeholder
-      if (!GOLD_API_KEY || GOLD_API_KEY === 'goldapi-placeholder-key') {
-        console.log("Gold API key missing, using fallback rates.");
-        const mockBase = 72 + Math.random() * 5; 
-        setBaseRate(mockBase);
-        setIsLoading(false);
-        return;
-      }
-
       setIsLoading(true);
       try {
-        // Attempt to fetch real gold rate from GoldAPI.io
-        // XAU is the symbol for Gold
-        const response = await fetch('https://www.goldapi.io/api/XAU/USD', {
-          headers: {
-            'x-access-token': GOLD_API_KEY,
-            'Content-Type': 'application/json'
-          }
-        });
-
+        // Primary: freegoldapi.com (CORS-friendly, no-key required)
+        const response = await fetch('https://freegoldapi.com/data/latest.json');
         if (response.ok) {
           const data = await response.json();
-          if (data.price_gram_24k) {
-            setBaseRate(data.price_gram_24k);
+          if (Array.isArray(data) && data.length > 0) {
+            const latest = data[data.length - 1];
+            if (latest.price) {
+              setBaseRate(latest.price);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+
+        // Secondary: gold-api.com (might have CORS issues on web)
+        const responseG = await fetch('https://gold-api.com/api/XAU');
+        if (responseG.ok) {
+          const data = await responseG.json();
+          if (data.price) {
+            const pricePerGram = data.price / 31.1035;
+            setBaseRate(pricePerGram);
             setIsLoading(false);
             return;
           }
         }
+
+        // Secondary: GoldAPI.io (requires key)
+        if (GOLD_API_KEY && GOLD_API_KEY !== 'goldapi-placeholder-key') {
+          const responseIO = await fetch('https://www.goldapi.io/api/XAU/USD', {
+            headers: {
+              'x-access-token': GOLD_API_KEY,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (responseIO.ok) {
+            const data = await responseIO.json();
+            if (data.price_gram_24k) {
+              setBaseRate(data.price_gram_24k);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
         
-        // Fallback to mock data if API fails
-        console.warn("Gold API failed or key missing, using fallback rates.");
+        // Final Fallback
+        console.warn("All Gold APIs failed, using fallback rates.");
         const mockBase = 72 + Math.random() * 5; 
         setBaseRate(mockBase);
       } catch (error) {
         console.error("Error fetching gold rate:", error);
-        // Fallback
         const mockBase = 72 + Math.random() * 5; 
         setBaseRate(mockBase);
       } finally {

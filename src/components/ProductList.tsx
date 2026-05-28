@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ActivityIndicator } from "react-native";
-import { Product, fetchProductsFromSupabase } from "../data/products";
+import { Product, fetchProductsFromSupabase, ProductFilters } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
 import { SortOption } from "./CategoryBar";
@@ -13,9 +13,17 @@ interface ProductListProps {
   sortBy: SortOption;
   searchQuery?: string;
   onPressLogin?: () => void;
+  filters?: ProductFilters;
 }
 
-const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, sortBy, searchQuery = "", onPressLogin }) => {
+const ProductList: React.FC<ProductListProps> = ({ 
+  category, 
+  onSelectProduct, 
+  sortBy, 
+  searchQuery = "", 
+  onPressLogin,
+  filters = {}
+}) => {
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
   const { user } = useAuth();
@@ -62,6 +70,20 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
       );
     }
 
+    // Advanced Filtering
+    if (filters.minPrice !== undefined) {
+      result = result.filter(p => p.price >= (filters.minPrice || 0));
+    }
+    if (filters.maxPrice !== undefined) {
+      result = result.filter(p => p.price <= (filters.maxPrice || Infinity));
+    }
+    if (filters.purity && filters.purity.length > 0) {
+      result = result.filter(p => filters.purity?.includes(p.purity));
+    }
+    if (filters.metalColor && filters.metalColor.length > 0) {
+      result = result.filter(p => filters.metalColor?.includes(p.metalColor));
+    }
+
     // Sorting
     switch (sortBy) {
       case "popularity":
@@ -87,7 +109,7 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
         break;
     }
     return result;
-  }, [products, sortBy, searchQuery]);
+  }, [products, sortBy, searchQuery, filters]);
 
   const handleWishlistToggle = async (productId: string) => {
     if (!user) {
@@ -102,17 +124,20 @@ const ProductList: React.FC<ProductListProps> = ({ category, onSelectProduct, so
   };
 
   let numColumns = 2;
-  if (width > 1400) numColumns = 6;
+  if (width > 2200) numColumns = 8;
+  else if (width > 1800) numColumns = 7;
+  else if (width > 1400) numColumns = 6;
   else if (width > 1200) numColumns = 5;
   else if (width > 900) numColumns = 4;
   else if (width > 600) numColumns = 3;
 
-  const spacing = 15;
-  const padding = 15;
-  const itemWidth = (width - (padding * 2) - (spacing * (numColumns - 1))) / numColumns;
-
+  const spacing = 20;
+  const padding = width > 1200 ? width * 0.025 : 15; // 2.5% padding on large screens
+  const containerWidth = Platform.OS === 'web' ? Math.min(width, 2500) : width;
+  const availableWidth = containerWidth - (padding * 2);
+  const itemWidth = (availableWidth - (spacing * (numColumns - 1))) / numColumns;
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, Platform.OS === 'web' && { alignSelf: 'center', width: '100%', maxWidth: 2500, paddingHorizontal: padding }]}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>
           {searchQuery ? `Search: ${searchQuery}` : `${category} Collection`}

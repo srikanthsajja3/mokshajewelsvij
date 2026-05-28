@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, TextInput, ScrollView, Animated } from "react-native";
 import { useCountry } from "../contexts/CountryContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -7,50 +7,87 @@ import GoldRateBanner from "./GoldRateBanner";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome5 } from '@expo/vector-icons';
 
-const MAX_CONTENT_WIDTH = 1200;
+import { useNavigation, useRoute, NavigationProp } from "@react-navigation/native";
+import { RootStackParamList } from "../navigation/types";
+
+import { useUI } from "../contexts/UIContext";
+
+const MAX_CONTENT_WIDTH = Platform.OS === 'web' ? '98%' : 1200;
+const MAX_PX_WIDTH = 2500;
 
 interface HeaderProps {
-  onGoHome?: () => void;
-  onPressLogin?: () => void;
-  onPressCart?: () => void;
-  onPressOrders?: () => void;
-  onPressWishlist?: () => void;
-  onPressProfile?: () => void;
-  onPressAdmin?: () => void;
-  onPressVendor?: () => void;
-  onPressMenu?: () => void;
-  onBack?: () => void;
-  onForward?: () => void;
-  canGoBack?: boolean;
-  canGoForward?: boolean;
   scrollY?: Animated.Value;
+  searchQuery: string;
+  onSearch: (query: string) => void;
+  isHome?: boolean;
+  onPressMenu?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
-  onGoHome, 
-  onPressLogin, 
-  onPressCart, 
-  onPressOrders, 
-  onPressWishlist, 
-  onPressProfile,
-  onPressAdmin,
-  onPressVendor,
-  onPressMenu,
-  onBack,
-  onForward,
-  canGoBack,
-  canGoForward,
-  scrollY
+  scrollY,
+  searchQuery,
+  onSearch,
+  isHome: isHomeProp,
+  onPressMenu
 }) => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { user, isAdmin, isVendor } = useAuth();
   const { cartCount } = useCart();
   const { countryCode } = useCountry();
+  const { setLoginVisible } = useUI();
+  const [searchVisible, setSearchVisible] = useState(false);
+  const searchAnim = React.useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  
+  const isHome = !!isHomeProp;
   
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
   const isMobile = width < 768;
+
+  const navigateToHome = () => navigation.navigate('Home');
+  const navigateToLogin = () => setLoginVisible(true);
+  const navigateToCart = () => navigation.navigate('Cart');
+  
+  const navigateToOrders = () => {
+    if (user) navigation.navigate('Orders');
+    else setLoginVisible(true);
+  };
+  
+  const navigateToWishlist = () => {
+    if (user) navigation.navigate('Wishlist');
+    else setLoginVisible(true);
+  };
+  
+  const navigateToProfile = () => {
+    if (user) navigation.navigate('Profile');
+    else setLoginVisible(true);
+  };
+  
+  const navigateToAdmin = () => isAdmin ? navigation.navigate('AdminDashboard') : null;
+  const navigateToVendor = () => isVendor ? navigation.navigate('VendorDashboard') : null;
+
+  const toggleSearch = () => {
+    const toValue = searchVisible ? 0 : 1;
+    Animated.spring(searchAnim, {
+      toValue,
+      useNativeDriver: false,
+      friction: 8,
+      tension: 40
+    }).start();
+    setSearchVisible(!searchVisible);
+  };
+
+  const searchHeight = searchAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 60],
+  });
+
+  const searchOpacity = searchAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0, 1],
+  });
   
   // Base values
   const baseLogoSize = width > 768 ? 60 : (isIOS ? 45 : 38);
@@ -60,35 +97,27 @@ const Header: React.FC<HeaderProps> = ({
   const navIconSize = width > 768 ? 16 : 14;
   
   const paddingHorz = isWeb 
-    ? (width > 1400 ? 50 : 25)
+    ? (width > 1400 ? 30 : 15)
     : (width < 380 ? 8 : 12);
 
-  const iconMargin = width > 768 ? 20 : (width < 380 ? 10 : 12);
+  const iconMargin = width > 768 ? 12 : (width < 380 ? 6 : 8);
 
-  // Animations
+  // Animations & Static Sizes
   const scrollOffset = scrollY || new Animated.Value(0);
 
-  const headerHeight = scrollOffset.interpolate({
-    inputRange: [0, 100],
-    outputRange: [isMobile ? 65 : 90, isMobile ? 50 : 60],
-    extrapolate: 'clamp',
-  });
+  // Logo Scale: 1 on Home, 0.75 on other pages
+  const logoScale = isHome ? 1 : 0.75;
 
-  const logoScale = scrollOffset.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0.75],
-    extrapolate: 'clamp',
-  });
-
-  const titleScale = scrollOffset.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0.75],
-    extrapolate: 'clamp',
-  });
+  // Header Height: Increased significantly for mobile to prevent overlap
+  const baseHeaderHeight = isHome 
+    ? (isMobile ? 85 : 90) 
+    : (isMobile ? 75 : 60);
+  
+  const headerHeight = isWeb ? baseHeaderHeight : (baseHeaderHeight + insets.top);
 
   const headerPadding = scrollOffset.interpolate({
     inputRange: [0, 100],
-    outputRange: [isWeb ? 10 : 15, 5],
+    outputRange: [isWeb ? 8 : 12, 4],
     extrapolate: 'clamp',
   });
 
@@ -112,13 +141,13 @@ const Header: React.FC<HeaderProps> = ({
           paddingHorizontal: paddingHorz,
           paddingTop: isWeb ? headerPadding : Math.max(insets.top, 5),
           paddingBottom: headerPadding,
-          height: headerHeight,
+          minHeight: headerHeight,
         }
       ]}>
         <View style={styles.centerWrapper}>
           <TouchableOpacity 
             style={styles.brandContainer}
-            onPress={onGoHome}
+            onPress={navigateToHome}
             activeOpacity={0.7}
           >
             <Animated.View style={{ 
@@ -144,128 +173,107 @@ const Header: React.FC<HeaderProps> = ({
             </Animated.View>
           </TouchableOpacity>
 
-          {!isMobile ? (
-            <View style={styles.countryDisplay}>
-              <Text style={styles.countryText}>{countryCode === 'IN' ? 'INDIA' : 'USA'}</Text>
-            </View>
-          ) : null}
-        </View>
-      </Animated.View>
+          <View style={styles.actionsRightGroup}>
+            <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={toggleSearch}>
+              <FontAwesome5 name="search" size={iconSize} color={searchVisible ? "#fff" : "#D4AF37"} />
+            </TouchableOpacity>
 
-      <View style={styles.actionBar}>
-        <View style={[
-          styles.actionsContainer, 
-          { 
-            paddingHorizontal: paddingHorz,
-            paddingVertical: isWeb ? 8 : 12 
-          }
-        ]}>
-          <View style={styles.centerWrapper}>
-            <View style={styles.navArrowsGroup}>
-              <TouchableOpacity 
-                style={[styles.navArrowItem, !canGoBack && { opacity: 0.3 }]} 
-                onPress={onBack}
-                disabled={!canGoBack}
-              >
-                <FontAwesome5 name="chevron-left" size={navIconSize} color="#D4AF37" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.navArrowItem, !canGoForward && { opacity: 0.3 }]} 
-                onPress={onForward}
-                disabled={!canGoForward}
-              >
-                <FontAwesome5 name="chevron-right" size={navIconSize} color="#D4AF37" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.actionsRightGroup}>
-              <View style={[styles.actionItem, { marginLeft: iconMargin }]}>
-                <View style={styles.mobileFlagContainer}>
-                  <Text style={styles.mobileCountryCode}>{countryCode === 'IN' ? 'INDIA' : 'USA'}</Text>
-                </View>
-              </View>
-
-              {isMobile ? (
-                <>
-                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onGoHome}>
-                    <FontAwesome5 name="home" size={iconSize} color="#D4AF37" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressCart}>
-                    <View>
-                      <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
-                      {cartCount > 0 ? (
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>{cartCount}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressMenu}>
-                    <FontAwesome5 name="bars" size={iconSize} color="#D4AF37" />
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onGoHome}>
-                    <FontAwesome5 name="home" size={iconSize} color="#D4AF37" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressWishlist}>
-                    <FontAwesome5 name="heart" size={iconSize} color="#D4AF37" />
-                  </TouchableOpacity>
-
-                  {user ? (
-                    <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressOrders}>
-                      <FontAwesome5 name="history" size={iconSize} color="#D4AF37" />
-                    </TouchableOpacity>
-                  ) : null}
-
-                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressCart}>
-                    <View>
-                      <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
-                      {cartCount > 0 ? (
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>{cartCount}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </TouchableOpacity>
-
-                  {isAdmin ? (
-                    <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressAdmin}>
-                      <Text style={styles.adminBadge}>ADMIN</Text>
-                    </TouchableOpacity>
-                  ) : null}
-
-                  {isVendor ? (
-                    <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressVendor}>
-                      <Text style={styles.vendorBadge}>PARTNER</Text>
-                    </TouchableOpacity>
-                  ) : null}
-
-                  <View style={styles.authGroup}>
-                    {user ? (
-                      <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressProfile}>
-                        <FontAwesome5 name="user-circle" size={iconSize} color="#D4AF37" />
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressLogin}>
-                        <FontAwesome5 name="sign-in-alt" size={iconSize} color="#D4AF37" />
-                      </TouchableOpacity>
-                    )}
+            {isMobile ? (
+              <>
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToCart}>
+                  <View>
+                    <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
+                    {cartCount > 0 ? (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{cartCount}</Text>
+                      </View>
+                    ) : null}
                   </View>
-                </>
-              )}
-            </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressMenu}>
+                  <FontAwesome5 name="bars" size={iconSize} color="#D4AF37" />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToWishlist}>
+                  <FontAwesome5 name="heart" size={iconSize} color="#D4AF37" />
+                </TouchableOpacity>
+
+                {user ? (
+                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToOrders}>
+                    <FontAwesome5 name="history" size={iconSize} color="#D4AF37" />
+                  </TouchableOpacity>
+                ) : null}
+
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToCart}>
+                  <View>
+                    <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
+                    {cartCount > 0 ? (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{cartCount}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </TouchableOpacity>
+
+                {isAdmin ? (
+                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToAdmin}>
+                    <Text style={styles.adminBadge}>ADMIN</Text>
+                  </TouchableOpacity>
+                ) : null}
+
+                {isVendor ? (
+                  <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToVendor}>
+                    <Text style={styles.vendorBadge}>PARTNER</Text>
+                  </TouchableOpacity>
+                ) : null}
+
+                <View style={styles.authGroup}>
+                  {user ? (
+                    <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToProfile}>
+                      <FontAwesome5 name="user-circle" size={iconSize} color="#D4AF37" />
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToLogin}>
+                      <FontAwesome5 name="sign-in-alt" size={iconSize} color="#D4AF37" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
+            )}
           </View>
         </View>
-      </View>
-
-      <Animated.View style={{ opacity: bannerOpacity, height: bannerHeight, overflow: 'hidden' }}>
-        <GoldRateBanner />
       </Animated.View>
+
+      <Animated.View style={{ opacity: searchOpacity, height: searchHeight, overflow: 'hidden', backgroundColor: '#1a1008', borderBottomWidth: searchVisible ? 1 : 0, borderBottomColor: '#D4AF37' }}>
+        <View style={[styles.centerWrapper, { height: '100%', paddingHorizontal: paddingHorz }]}>
+          <View style={styles.searchBarContainer}>
+            <FontAwesome5 name="search" size={14} color="#888" style={{ marginRight: 10 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search masterpieces, collections, codes..."
+              placeholderTextColor="#666"
+              value={searchQuery}
+              onChangeText={onSearch}
+              autoFocus={searchVisible}
+              clearButtonMode="while-editing"
+            />
+            {searchQuery.length > 0 ? (
+              <TouchableOpacity onPress={() => onSearch("")}>
+                <FontAwesome5 name="times-circle" size={16} color="#888" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
+      </Animated.View>
+
+      {isHome && (
+        <Animated.View style={{ opacity: bannerOpacity, height: bannerHeight, overflow: 'hidden' }}>
+          <GoldRateBanner />
+        </Animated.View>
+      )}
     </Animated.View>
   );
 };
@@ -281,46 +289,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   centerWrapper: {
-    maxWidth: MAX_CONTENT_WIDTH,
-    width: "100%",
+    maxWidth: MAX_PX_WIDTH,
+    width: MAX_CONTENT_WIDTH,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  searchBarContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    marginVertical: 10,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+    height: '100%',
+  },
   brandContainer: {
     flexDirection: "row",
     alignItems: "center",
     flexShrink: 1,
-  },
-  countryDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.15)',
-  },
-  countryText: {
-    color: '#D4AF37',
-    fontSize: 12,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  mobileFlagContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  mobileCountryCode: {
-    color: '#D4AF37',
-    fontSize: 10,
-    fontWeight: 'bold',
   },
   logo: {
     marginRight: 12,
@@ -331,35 +329,9 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     fontWeight: "600",
   },
-  actionBar: {
-    backgroundColor: "rgba(212, 175, 55, 0.05)",
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.1)",
-  },
-  actionsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   actionsRightGroup: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  navArrowsGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  navArrowItem: {
-    padding: 8,
-    marginHorizontal: 2,
-  },
-  navSeparator: {
-    width: 1,
-    height: 18,
-    backgroundColor: 'rgba(212, 175, 55, 0.25)',
-    marginLeft: 10,
-    marginRight: 5,
   },
   actionItem: {
     paddingVertical: 4,

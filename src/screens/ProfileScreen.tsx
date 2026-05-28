@@ -16,16 +16,13 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { supabase } from "../../supabase";
 import { useAuth } from "../contexts/AuthContext";
+import { useNavigation } from '@react-navigation/native';
+import { NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
+import { useUI } from '../contexts/UIContext';
 
 interface ProfileScreenProps {
-  onGoHome: () => void;
-  onPressLogin: () => void;
-  onPressCart: () => void;
-  onPressOrders: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
 }
 
 interface Address {
@@ -41,12 +38,13 @@ interface Address {
   is_default: boolean;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps & { scrollY: Animated.Value }> = (props) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ scrollY }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { setLoginVisible } = useUI();
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const { scrollY } = props;
   
   // Profile State
   const [fullName, setFullName] = useState("");
@@ -65,6 +63,7 @@ const ProfileScreen: React.FC<ProfileScreenProps & { scrollY: Animated.Value }> 
   const [addrLine1, setAddrLine1] = useState("");
   const [addrLine2, setAddrLine2] = useState("");
   const [addrCity, setAddrCity] = useState("");
+  const [addrState, setAddrState] = useState("");
   const [addrZip, setAddrZip] = useState("");
   const [addrCountry, setAddrCountry] = useState("United States");
 
@@ -153,6 +152,7 @@ const ProfileScreen: React.FC<ProfileScreenProps & { scrollY: Animated.Value }> 
       address_line1: addrLine1,
       address_line2: addrLine2,
       city: addrCity,
+      state: addrState,
       zip_code: addrZip,
       country: addrCountry,
       is_default: addresses.length === 0 || (editingAddress?.is_default ?? false)
@@ -254,7 +254,7 @@ const ProfileScreen: React.FC<ProfileScreenProps & { scrollY: Animated.Value }> 
 
   const handleLogout = async () => {
     await signOut();
-    props.onGoHome();
+    navigation.navigate('Home');
   };
 
   const handleDeleteAccount = async () => {
@@ -276,7 +276,7 @@ const ProfileScreen: React.FC<ProfileScreenProps & { scrollY: Animated.Value }> 
               
               await signOut();
               Alert.alert("Account Deleted", "Your data has been removed from our systems.");
-              props.onGoHome();
+              navigation.navigate('Home');
             } catch (error: any) {
               // If RPC is not setup, at least we try to sign out after warning
               // In a real app, this MUST be a server-side deletion
@@ -295,7 +295,7 @@ const ProfileScreen: React.FC<ProfileScreenProps & { scrollY: Animated.Value }> 
       <View style={styles.container}>
         <View style={styles.center}>
           <Text style={styles.emptyText}>Please log in to view your profile.</Text>
-          <TouchableOpacity style={styles.loginButton} onPress={props.onPressLogin}>
+          <TouchableOpacity style={styles.loginButton} onPress={() => setLoginVisible(true)}>
             <Text style={styles.loginButtonText}>Log In</Text>
           </TouchableOpacity>
         </View>
@@ -416,11 +416,15 @@ const ProfileScreen: React.FC<ProfileScreenProps & { scrollY: Animated.Value }> 
                   </View>
 
                   <View style={styles.row}>
-                    <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                    <View style={[styles.inputGroup, { flex: 2, marginRight: 10 }]}>
                       <Text style={styles.inputLabel}>City</Text>
                       <TextInput style={styles.input} value={addrCity} onChangeText={setAddrCity} />
                     </View>
-                    <View style={[styles.inputGroup, { width: 120 }]}>
+                    <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                      <Text style={styles.inputLabel}>State</Text>
+                      <TextInput style={styles.input} value={addrState} onChangeText={setAddrState} placeholder="e.g. CA" />
+                    </View>
+                    <View style={[styles.inputGroup, { width: 100 }]}>
                       <Text style={styles.inputLabel}>ZIP Code</Text>
                       <TextInput style={styles.input} value={addrZip} onChangeText={setAddrZip} />
                     </View>

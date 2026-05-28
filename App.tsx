@@ -3,216 +3,70 @@ import { StyleSheet, StatusBar, View, ActivityIndicator, Animated, Platform } fr
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
-import HomeScreen from "./src/screens/HomeScreen";
-import CategoryScreen from "./src/screens/CategoryScreen";
-import ProductDetailsScreen from "./src/screens/ProductDetailsScreen";
+
 import LoginScreen from "./src/screens/LoginScreen";
-import CartScreen from "./src/screens/CartScreen";
-import CheckoutScreen from "./src/screens/CheckoutScreen";
-import OrdersScreen from "./src/screens/OrdersScreen";
-import WishlistScreen from "./src/screens/WishlistScreen";
-import ProfileScreen from "./src/screens/ProfileScreen";
-import AdminDashboardScreen from "./src/screens/AdminDashboardScreen";
-import VendorDashboardScreen from "./src/screens/VendorDashboardScreen";
-import AddProductScreen from "./src/screens/AddProductScreen";
-import ARTryOnScreen from "./src/screens/ARTryOnScreen";
-import BrandScreen from "./src/screens/BrandScreen";
-import { Product } from "./src/data/products";
 import { CountryProvider } from "./src/contexts/CountryContext";
 import { GoldRateProvider } from "./src/contexts/GoldRateContext";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { CartProvider } from "./src/contexts/CartContext";
 import { WishlistProvider } from "./src/contexts/WishlistContext";
-import SwipeBackView from "./src/components/SwipeBackView";
 import { StripeWrapper } from "./src/components/StripeWrapper";
 import SideDrawer from "./src/components/SideDrawer";
-
 import Header from "./src/components/Header";
 
+import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
+import { AppNavigator } from "./src/navigation/AppNavigator";
+import { RootStackParamList } from "./src/navigation/types";
+import { UIProvider, useUI } from "./src/contexts/UIContext";
+
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+const linking = {
+  prefixes: [Platform.OS === 'web' ? window.location.origin : 'mokshajewels://'],
+  config: {
+    screens: {
+      Home: 'home',
+      Category: 'category/:category',
+      ProductDetails: {
+        path: 'product/:id',
+        parse: {
+          id: (id: string) => id,
+        },
+      },
+      Cart: 'cart',
+      Checkout: 'checkout',
+      Orders: 'orders',
+      Wishlist: 'wishlist',
+      Profile: 'profile',
+      AdminDashboard: 'admin',
+      VendorDashboard: 'vendor',
+      AddProduct: 'add-product',
+      ARTryOn: 'ar',
+    },
+  },
+};
+
 function AppContent() {
-  const [currentScreen, setCurrentScreen] = useState<"brand" | "home" | "category" | "details" | "login" | "cart" | "checkout" | "orders" | "wishlist" | "profile" | "admin" | "vendor" | "addProduct" | "ar">("brand");
-  const [history, setHistory] = useState<any[]>([{ screen: "brand" }]);
-  const [historyIndex, setHistoryIndex] = useState(0);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-
-  const [selectedCategory, setSelectedCategory] = useState("Gold");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+  const { drawerVisible, setDrawerVisible, loginVisible, setLoginVisible } = useUI();
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, isAdmin, isVendor, isLoading: authLoading, isRecovering } = useAuth();
-  
+  const { user, isLoading: authLoading, isRecovering } = useAuth();
   const scrollY = useRef(new Animated.Value(0)).current;
-
-  // Path detection for Web
-  React.useEffect(() => {
-    if (Platform.OS === 'web') {
-      const path = window.location.pathname;
-      if (path === '/testing' || path.startsWith('/testing/')) {
-        setCurrentScreen("home");
-        setHistory([{ screen: "home" }]);
-        setHistoryIndex(0);
-      }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (isRecovering) {
-      setCurrentScreen("login");
-    }
-  }, [isRecovering]);
-
-  const navigateTo = (screen: any, params?: any) => {
-    // If params are provided, update state accordingly
-    if (params?.category) setSelectedCategory(params.category);
-    if (params?.product) setSelectedProduct(params.product);
-    if (params?.vendorId !== undefined) setSelectedVendorId(params.vendorId);
-
-    const newHistory = history.slice(0, historyIndex + 1);
-    const newState = { screen, category: params?.category, product: params?.product, vendorId: params?.vendorId };
-    
-    // Don't add if it's the same as current
-    const current = newHistory[newHistory.length - 1];
-    if (current && current.screen === screen && current.category === params?.category && current.product?.id === params?.product?.id) {
-      return;
-    }
-
-    // Update URL on Web when entering the shop
-    if (Platform.OS === 'web' && screen === "home" && currentScreen === "brand") {
-      window.history.pushState({}, '', '/testing');
-    }
-
-    // Reset scroll position for the new screen
-    scrollY.setValue(0);
-
-    newHistory.push(newState);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-    setCurrentScreen(screen);
-  };
-
-  const handleBack = () => {
-    if (historyIndex > 0) {
-      const prev = history[historyIndex - 1];
-      if (prev.category) setSelectedCategory(prev.category);
-      if (prev.product) setSelectedProduct(prev.product);
-      if (prev.vendorId) setSelectedVendorId(prev.vendorId);
-      
-      scrollY.setValue(0);
-      setHistoryIndex(historyIndex - 1);
-      setCurrentScreen(prev.screen);
-    }
-  };
-
-  const handleForward = () => {
-    if (historyIndex < history.length - 1) {
-      const next = history[historyIndex + 1];
-      if (next.category) setSelectedCategory(next.category);
-      if (next.product) setSelectedProduct(next.product);
-      if (next.vendorId) setSelectedVendorId(next.vendorId);
-      
-      scrollY.setValue(0);
-      setHistoryIndex(historyIndex + 1);
-      setCurrentScreen(next.screen);
-    }
-  };
+  const [currentRoute, setCurrentRoute] = useState<string>("Home");
 
   const [fontsLoaded] = useFonts({
     "TrajanPro": require("./assets/fonts/TrajanPro-Regular.ttf"),
   });
 
-  const navigateToCategory = (cat: string) => {
-    navigateTo("category", { category: cat });
-  };
-
-  const navigateToProduct = (product: Product) => {
-    navigateTo("details", { product });
-  };
-
-  const navigateToHome = () => {
-    navigateTo("home");
-  };
-
-  const navigateToLogin = () => {
-    navigateTo("login");
-  };
-
-  const navigateToCart = () => {
-    navigateTo("cart");
-  };
-
-  const navigateToCheckout = () => {
-    navigateTo("checkout");
-  };
-
-  const navigateToOrders = () => {
-    navigateTo("orders");
-  };
-
-  const navigateToWishlist = () => {
-    navigateTo("wishlist");
-  };
-
-  const navigateToProfile = () => {
-    navigateTo("profile");
-  };
-
-  const navigateToAdmin = () => {
-    navigateTo("admin");
-  };
-
-  const navigateToVendor = () => {
-    navigateTo("vendor");
-  };
-
-  const navigateToAR = (product: Product) => {
-    navigateTo("ar", { product });
-  };
-
-  const navigateToAddProduct = (vendorId: string) => {
-    navigateTo("addProduct", { vendorId });
-  };
-
-  const navigateBackToList = () => {
-    handleBack();
-  };
-
-  const handleCheckout = () => {
-    if (!user) {
-      navigateToLogin();
-    } else {
-      navigateToCheckout();
+  React.useEffect(() => {
+    if (isRecovering) {
+      setLoginVisible(true);
     }
-  };
+  }, [isRecovering]);
 
-  const handleOrders = () => {
-    if (!user) {
-      navigateToLogin();
-    } else {
-      navigateToOrders();
-    }
-  };
-
-  const handleProfile = () => {
-    if (!user) {
-      navigateToLogin();
-    } else {
-      navigateToProfile();
-    }
-  };
-
-  const handleWishlist = () => {
-    if (!user) {
-      navigateToLogin();
-    } else {
-      navigateToWishlist();
-    }
-  };
-
-  const handleVendor = () => {
-    if (!user) {
-      navigateToLogin();
-    } else {
-      navigateToVendor();
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim().length > 0 && currentRoute !== "Category") {
+      navigationRef.navigate("Category", { category: "All" });
     }
   };
 
@@ -224,146 +78,61 @@ function AppContent() {
     );
   }
 
-  const commonProps = {
-    onGoHome: navigateToHome,
-    onPressLogin: navigateToLogin,
-    onPressCart: navigateToCart,
-    onPressOrders: handleOrders,
-    onPressWishlist: handleWishlist,
-    onPressProfile: handleProfile,
-    onPressAdmin: navigateToAdmin,
-    onPressVendor: handleVendor,
-    onPressAR: navigateToAR,
-    onBack: handleBack,
-    onForward: handleForward,
-    onPressMenu: () => setDrawerVisible(true),
-    canGoBack: historyIndex > 0,
-    canGoForward: historyIndex < history.length - 1,
-    searchQuery,
-    onSearch: setSearchQuery,
-    scrollY: scrollY,
+  const handleNavigateFromDrawer = (screen: keyof RootStackParamList) => {
+    setDrawerVisible(false);
+    
+    // Type-safe navigation mapping
+    if (screen === 'Category') {
+      navigationRef.navigate('Category', { category: 'All' });
+    } else if (screen === 'Home' || screen === 'Cart' || screen === 'Wishlist' || 
+               screen === 'Profile' || screen === 'Orders' || screen === 'AdminDashboard' || 
+               screen === 'VendorDashboard') {
+      // @ts-ignore - navigationRef.navigate signature is complex for dynamic keys
+      navigationRef.navigate(screen);
+    }
   };
-
-  const baseScreen = currentScreen === "login" 
-    ? (historyIndex > 0 ? history[historyIndex - 1].screen : "home")
-    : currentScreen;
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {baseScreen !== "ar" && baseScreen !== "brand" && <Header {...commonProps} />}
-
-      <View style={{ flex: 1 }}>
-        {baseScreen === "brand" ? (
-          <BrandScreen onEnterShop={() => navigateTo("home")} />
-        ) : null}
-
-        {baseScreen === "home" ? (
-          <HomeScreen 
-            onSelectCategory={navigateToCategory} 
-            {...commonProps}
+      <NavigationContainer 
+        ref={navigationRef}
+        linking={linking}
+        onStateChange={() => {
+          const routeName = navigationRef.getCurrentRoute()?.name;
+          if (routeName) setCurrentRoute(routeName);
+        }}
+      >
+        {currentRoute !== "ARTryOn" && (
+          <Header 
+            scrollY={scrollY}
+            searchQuery={searchQuery}
+            onSearch={handleSearch}
+            onPressMenu={() => setDrawerVisible(true)}
+            isHome={currentRoute === "Home"}
           />
-        ) : null}
-        
-        {baseScreen === "category" ? (
-          <SwipeBackView onSwipeBack={navigateToHome}>
-            <CategoryScreen 
-              category={selectedCategory} 
-              onSelectCategory={navigateToCategory} 
-              onSelectProduct={navigateToProduct}
-              {...commonProps}
-            />
-          </SwipeBackView>
-        ) : null}
+        )}
+        <AppNavigator />
 
-        {baseScreen === "details" && selectedProduct ? (
-          <SwipeBackView onSwipeBack={navigateBackToList}>
-            <ProductDetailsScreen 
-              product={selectedProduct} 
-              onBack={navigateBackToList}
-              onSelectProduct={navigateToProduct}
-              {...commonProps}
-            />
-          </SwipeBackView>
-        ) : null}
-
-        {baseScreen === "cart" ? (
-          <CartScreen 
-            onCheckout={handleCheckout}
-            {...commonProps}
-          />
-        ) : null}
-
-        {baseScreen === "checkout" ? (
-          <CheckoutScreen 
-            onSuccess={navigateToOrders}
-            {...commonProps}
-          />
-        ) : null}
-
-        {baseScreen === "orders" ? (
-          <OrdersScreen 
-            {...commonProps}
-          />
-        ) : null}
-
-        {baseScreen === "wishlist" ? (
-          <WishlistScreen 
-            onSelectProduct={navigateToProduct}
-            {...commonProps}
-          />
-        ) : null}
-
-        {baseScreen === "profile" ? (
-          <ProfileScreen 
-            {...commonProps}
-          />
-        ) : null}
-
-        {baseScreen === "admin" ? (
-          <AdminDashboardScreen 
-            {...commonProps}
-          />
-        ) : null}
-
-        {baseScreen === "vendor" ? (
-          <VendorDashboardScreen 
-            onAddProduct={navigateToAddProduct}
-            {...commonProps}
-          />
-        ) : null}
-
-        {baseScreen === "addProduct" ? (
-          <AddProductScreen 
-            vendorId={selectedVendorId}
-            onBack={navigateToVendor}
-            {...commonProps}
-          />
-        ) : null}
-      </View>
-
-      {baseScreen === "ar" && selectedProduct ? (
-        <ARTryOnScreen 
-          product={selectedProduct}
-          onBack={handleBack}
+        <LoginScreen 
+          visible={loginVisible}
+          onLoginSuccess={() => setLoginVisible(false)} 
+          onGoHome={() => {
+            setLoginVisible(false);
+            navigationRef.navigate("Home");
+          }} 
+          onClose={() => setLoginVisible(false)}
+          initialIsUpdatingPassword={isRecovering}
         />
-      ) : null}
 
-      <LoginScreen 
-        visible={currentScreen === "login"}
-        onLoginSuccess={navigateToHome} 
-        onGoHome={navigateToHome} 
-        onClose={handleBack}
-        initialIsUpdatingPassword={isRecovering}
-      />
-
-      <SideDrawer 
-        isVisible={drawerVisible} 
-        onClose={() => setDrawerVisible(false)} 
-        onNavigate={(screen: any) => navigateTo(screen)}
-        activeScreen={currentScreen}
-      />
+        <SideDrawer 
+          isVisible={drawerVisible} 
+          onClose={() => setDrawerVisible(false)} 
+          onNavigate={handleNavigateFromDrawer}
+          activeScreen={currentRoute}
+        />
+      </NavigationContainer>
     </View>
   );
 }
@@ -373,17 +142,19 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <WishlistProvider>
-            <CartProvider>
-              <CountryProvider>
-                <GoldRateProvider>
-                  <StripeWrapper>
-                    <AppContent />
-                  </StripeWrapper>
-                </GoldRateProvider>
-              </CountryProvider>
-            </CartProvider>
-          </WishlistProvider>
+          <UIProvider>
+            <WishlistProvider>
+              <CartProvider>
+                <CountryProvider>
+                  <GoldRateProvider>
+                    <StripeWrapper>
+                      <AppContent />
+                    </StripeWrapper>
+                  </GoldRateProvider>
+                </CountryProvider>
+              </CartProvider>
+            </WishlistProvider>
+          </UIProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

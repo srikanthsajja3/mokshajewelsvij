@@ -16,37 +16,49 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { Product } from '../data/products';
 import * as ImagePicker from 'expo-image-picker';
 
+import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
+
 interface AddProductScreenProps {
-  onBack: () => void;
-  vendorId: string;
-  onGoHome: () => void;
-  onPressLogin: () => void;
-  onPressCart: () => void;
-  onPressOrders: () => void;
-  onPressWishlist: () => void;
-  onPressProfile: () => void;
-  onPressAdmin: () => void;
-  onPressVendor: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
+  scrollY?: Animated.Value;
 }
 
-const CATEGORIES = ["Gold", "Diamonds", "Platinum", "Silver"];
+const CATEGORIES = ["Gold", "Diamonds", "Polki", "Kundan", "Platinum", "Silver"];
 
-const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
+const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'AddProduct'>>();
+  const { vendorId, product } = route.params || {};
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [internalVendorId, setInternalVendorId] = useState<string>(props.vendorId || "");
-  const [verifyingProfile, setVerifyingProfile] = useState(!props.vendorId);
+  const [internalVendorId, setInternalVendorId] = useState<string>(vendorId || (product as any)?.vendor_id || "");
+  const [verifyingProfile, setVerifyingProfile] = useState(!vendorId && !(product as any)?.vendor_id);
   
   useEffect(() => {
     const initProfile = async () => {
-      if (props.vendorId) {
-        setInternalVendorId(props.vendorId);
+      // 1. Try to get vendorId from URL query params (Web fallback)
+      let queryVendorId = "";
+      if (Platform.OS === 'web') {
+        const params = new URLSearchParams(window.location.search);
+        queryVendorId = params.get('vendorId') || "";
+      }
+
+      // 2. Resolve final vendorId
+      const finalVendorId = vendorId || queryVendorId || (product as any)?.vendor_id;
+
+      if (finalVendorId) {
+        setInternalVendorId(finalVendorId);
         setVerifyingProfile(false);
+        
+        // Pre-check if vendor exists in DB
+        const { data, error } = await supabase.from('vendors').select('id').eq('id', finalVendorId);
+        if (data && data.length === 0) {
+          console.warn(`Vendor ${finalVendorId} not found in 'vendors' table. This WILL cause a crash on save.`);
+        }
         return;
       }
 
@@ -55,7 +67,7 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
         return;
       }
 
-      console.log("Missing vendorId prop, fetching from database for user:", user.id);
+      console.log("Missing vendorId, fetching from database for user:", user.id);
       try {
         const { data, error } = await supabase
           .from('vendor_settings')
@@ -76,34 +88,37 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
     };
 
     initProfile();
-  }, [props.vendorId, user]);
+  }, [vendorId, product, user]);
   
   // Form State
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("Gold");
-  const [imageUrl, setImageUrl] = useState("");
-  const [productCode, setProductCode] = useState("");
-  const [grossWeight, setGrossWeight] = useState("");
-  const [goldWeight, setGoldWeight] = useState("");
-  const [purity, setPurity] = useState("22K");
-  const [metalColor, setMetalColor] = useState("Yellow");
+  const [name, setName] = useState(product?.name || "New Masterpiece");
+  const [category, setCategory] = useState(product?.category || "Gold");
+  const [imageUrl, setImageUrl] = useState(product?.image || "https://tnvdmftovccgfrllaffq.supabase.co/storage/v1/object/public/products/logo.jpg");
+  const [galleryUrls, setGalleryUrls] = useState<string[]>(product?.galleryUrls || []);
+  const [productCode, setProductCode] = useState(product?.productCode || `MJ-${Date.now().toString().slice(-6)}`);
+  const [grossWeight, setGrossWeight] = useState(product?.grossWeight?.toString() || "1.000");
+  const [goldWeight, setGoldWeight] = useState(product?.goldWeight?.toString() || "1.000");
+  const [purity, setPurity] = useState(product?.purity || "22 KT");
+  const [metalColor, setMetalColor] = useState(product?.metalColor || "Yellow Gold");
   
   // New Metadata
-  const [type, setType] = useState("");
-  const [collection, setCollection] = useState("");
-  const [gender, setGender] = useState("Women");
-  const [occasion, setOccasion] = useState("");
-  const [designTheme, setDesignTheme] = useState("");
-  const [gemstoneType, setGemstoneType] = useState("");
-  const [gemstoneWeight, setGemstoneWeight] = useState("");
+  const [type, setType] = useState(product?.type || "Boutique");
+  const [collection, setCollection] = useState(product?.collection || "Legacy");
+  const [gender, setGender] = useState(product?.gender || "Women");
+  const [occasion, setOccasion] = useState(product?.occasion || "Bridal");
+  const [designTheme, setDesignTheme] = useState(product?.designTheme || "Traditional");
+  const [gemstoneType, setGemstoneType] = useState(product?.gemstoneType || "None");
+  const [gemstoneWeight, setGemstoneWeight] = useState(product?.gemstoneWeight?.toString() || "0.00");
+  const [stockQuantity, setStockQuantity] = useState(product?.stockQuantity?.toString() || "1");
+  const [sourcingCost, setSourcingCost] = useState(product?.sourcingCost?.toString() || "0");
   
   // Price Breakup
-  const [metalPrice, setMetalPrice] = useState("");
-  const [vaMaking, setVaMaking] = useState("");
-  const [stoneBeads, setStoneBeads] = useState("");
-  const [tax, setTax] = useState("");
+  const [metalPrice, setMetalPrice] = useState(product?.priceBreakup?.metal?.toString() || "100");
+  const [vaMaking, setVaMaking] = useState(product?.priceBreakup?.vaMaking?.toString() || "0");
+  const [stoneBeads, setStoneBeads] = useState(product?.priceBreakup?.stoneBeads?.toString() || "0");
+  const [tax, setTax] = useState(product?.priceBreakup?.tax?.toString() || "0");
 
-  const handlePickImage = async () => {
+  const handlePickImage = async (isGallery = false) => {
     // Request permission first
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -112,25 +127,32 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: !isGallery, // Allow editing for primary image
+      allowsMultipleSelection: isGallery, // Allow multiple for gallery
       aspect: [1, 1],
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      uploadImage(result.assets[0].uri);
+      if (isGallery) {
+        for (const asset of result.assets) {
+           await uploadImage(asset.uri, true);
+        }
+      } else {
+        await uploadImage(result.assets[0].uri, false);
+      }
     }
   };
 
-  const uploadImage = async (uri: string) => {
+  const uploadImage = async (uri: string, isGallery: boolean) => {
     setUploading(true);
     try {
       if (!internalVendorId) {
         throw new Error("Vendor ID is missing. Cannot upload image.");
       }
 
-      const fileName = `${internalVendorId}/${Date.now()}.jpg`;
+      const fileName = `${internalVendorId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
       
       const response = await fetch(uri);
       const body = await response.blob();
@@ -153,8 +175,14 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
         .from('products')
         .getPublicUrl(fileName);
 
-      setImageUrl(publicUrl);
-      Alert.alert("Success", "Image uploaded successfully!");
+      console.log("Generated Public URL:", publicUrl);
+
+      if (isGallery) {
+        setGalleryUrls(prev => [...prev, publicUrl]);
+      } else {
+        setImageUrl(publicUrl);
+      }
+      // Success feedback is silent for better flow
     } catch (error: any) {
       console.error("Error uploading image:", error);
       Alert.alert("Upload Failed", error.message || "Failed to upload image. Ensure the 'products' bucket exists and is public.");
@@ -164,7 +192,7 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
   };
 
   const handleAddProduct = async () => {
-    console.log("Attempting manual add with vendorId:", internalVendorId);
+    console.log("Attempting product save with vendorId:", internalVendorId);
 
     if (!name || !imageUrl || !productCode || !grossWeight || !metalPrice) {
       Alert.alert("Error", "Please fill in all required fields (Name, Image, Code, Gross Weight, Metal Price)");
@@ -179,19 +207,31 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
 
     setLoading(true);
     try {
+      // Basic weight validation
+      const gWeight = parseFloat(grossWeight);
+      const goldW = parseFloat(goldWeight || "0");
+      
+      if (isNaN(gWeight) || gWeight <= 0) {
+        throw new Error("Please enter a valid gross weight.");
+      }
+
       const mPrice = parseFloat(metalPrice) || 0;
       const vMaking = parseFloat(vaMaking) || 0;
       const sBeads = parseFloat(stoneBeads) || 0;
       const tTax = parseFloat(tax) || 0;
       const basePrice = mPrice + vMaking + sBeads + tTax;
 
-      const productPayload = {
+      if (basePrice <= 0) {
+        throw new Error("Product must have a total price greater than 0.");
+      }
+
+      const productPayload: any = {
         name,
         category_name: category,
         image_url: imageUrl,
         product_code: productCode,
-        gross_weight: parseFloat(grossWeight),
-        gold_weight: parseFloat(goldWeight || "0"),
+        gross_weight: gWeight,
+        gold_weight: goldW,
         purity,
         metal_color: metalColor,
         base_price_usd: basePrice,
@@ -200,33 +240,65 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
         stone_beads_usd: sBeads,
         tax_usd: tTax,
         vendor_id: internalVendorId,
-        rating: 0,
-        popularity: 0,
+        stock_quantity: parseInt(stockQuantity || "0"),
+        sourcing_cost: parseFloat(sourcingCost || "0"),
         type,
         collection,
         gender,
         occasion,
         design_theme: designTheme,
         gemstone_type: gemstoneType,
-        gemstone_weight: parseFloat(gemstoneWeight || "0")
+        gemstone_weight: parseFloat(gemstoneWeight || "0"),
+        gallery_urls: galleryUrls // Re-enabling for multiple image support
       };
 
-      console.log("Inserting Product:", JSON.stringify(productPayload, null, 2));
+      if (!product) {
+        productPayload.rating = 0;
+        productPayload.popularity = 0;
+      }
 
-      const { error } = await supabase
-        .from('products')
-        .insert([productPayload]);
+      console.log(product ? "Updating Product:" : "Inserting Product:", JSON.stringify(productPayload, null, 2));
+
+      let error;
+      if (product) {
+        const { error: updateError } = await supabase
+          .from('products')
+          .update(productPayload)
+          .eq('id', product.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('products')
+          .insert([productPayload]);
+        error = insertError;
+      }
 
       if (error) {
-        console.error("Supabase Error:", error);
+        // Handle specific Supabase error codes
+        if (error.code === '42501') {
+          throw new Error("Permission Denied: Your account role does not allow modifying products for this vendor. Please ensure your Admin RLS policies are applied.");
+        } else if (error.code === '23505') {
+          throw new Error(`The product code "${productCode}" is already in use. Please use a unique code.`);
+        } else if (error.code === '23503') {
+          throw new Error(`The category "${category}" is not valid. Please select a valid category.`);
+        }
         throw error;
       }
 
-      Alert.alert("Success", "Your masterpiece has been listed successfully!");
-      props.onBack();
+      Alert.alert("Success", product ? "Masterpiece updated successfully!" : "Your masterpiece has been listed successfully!");
+      navigation.goBack();
     } catch (error: any) {
       console.error("Final Error in handleAddProduct:", error);
-      Alert.alert("Error", error.message || "Failed to add product. Check console for details.");
+      
+      let errorTitle = "Action Failed";
+      let errorMsg = error.message || "An unexpected error occurred.";
+
+      if (errorMsg.includes("network") || errorMsg.includes("fetch")) {
+        errorTitle = "Network Error";
+        errorMsg = "Please check your internet connection and try again.";
+      }
+
+      Alert.alert(errorTitle, errorMsg);
     } finally {
       setLoading(false);
     }
@@ -249,17 +321,17 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
               <View style={[styles.formSection, styles.centerContent]}>
                 <Text style={styles.errorTitle}>Account Not Linked</Text>
                 <Text style={styles.errorSubtitle}>Your artisan profile is not yet linked to a vendor account. Please go back to the Partner Portal and use the link tool.</Text>
-                <TouchableOpacity onPress={props.onBack} style={styles.backBtnLarge}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnLarge}>
                   <Text style={styles.backBtnTextLarge}>RETURN TO PORTAL</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.formSection}>
                 <View style={styles.headerRow}>
-                  <TouchableOpacity onPress={props.onBack} style={styles.backBtn}>
+                  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Text style={styles.backBtnText}>← BACK</Text>
                   </TouchableOpacity>
-                  <Text style={styles.title}>LIST NEW MASTERPIECE</Text>
+                  <Text style={styles.title}>{product ? 'EDIT MASTERPIECE' : 'LIST NEW MASTERPIECE'}</Text>
                 </View>
 
               <View style={styles.inputGroup}>
@@ -314,7 +386,7 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
                   ) : (
                     <TouchableOpacity 
                       style={styles.uploadBtn} 
-                      onPress={handlePickImage}
+                      onPress={() => handlePickImage(false)}
                       disabled={uploading}
                     >
                       {uploading ? (
@@ -338,6 +410,40 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
                     />
                   </View>
                 </View>
+              </View>
+
+              <View style={[styles.inputGroup, { marginTop: 10 }]}>
+                <Text style={styles.label}>GALLERY IMAGES (OPTIONAL)</Text>
+                <View style={styles.imageUploadContainer}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryPreviewScroll}>
+                    {galleryUrls.map((url, idx) => (
+                      <View key={idx} style={styles.galleryPreviewItem}>
+                        <Image source={{ uri: url }} style={styles.galleryPreviewImage} />
+                        <TouchableOpacity 
+                          style={styles.galleryRemoveBtn} 
+                          onPress={() => setGalleryUrls(prev => prev.filter((_, i) => i !== idx))}
+                        >
+                          <Text style={styles.galleryRemoveText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    
+                    <TouchableOpacity 
+                      style={styles.addGalleryBtn} 
+                      onPress={() => handlePickImage(true)}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <ActivityIndicator color="#D4AF37" />
+                      ) : (
+                        <View style={{ alignItems: 'center' }}>
+                          <Text style={styles.addGalleryText}>+ ADD</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </ScrollView>
+                </View>
+                <Text style={styles.helpText}>Provide multiple perspectives for a luxury experience.</Text>
               </View>
 
               <View style={styles.row}>
@@ -476,6 +582,31 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
                 </View>
               </View>
 
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                  <Text style={styles.label}>STOCK QUANTITY</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    value={stockQuantity} 
+                    onChangeText={setStockQuantity} 
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.label}>SOURCING COST (USD)</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    value={sourcingCost} 
+                    onChangeText={setSourcingCost} 
+                    keyboardType="numeric"
+                    placeholder="0.00"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+              </View>
+
               <Text style={[styles.sectionTitle, { marginTop: 20 }]}>PRICE BREAKUP (USD)</Text>
               
               <View style={styles.row}>
@@ -536,7 +667,7 @@ const AddProductScreen: React.FC<AddProductScreenProps> = (props) => {
                 {loading ? (
                   <ActivityIndicator color="#000" />
                 ) : (
-                  <Text style={styles.submitBtnText}>CONFIRM & LIST PRODUCT</Text>
+                  <Text style={styles.submitBtnText}>{product ? 'CONFIRM & UPDATE PRODUCT' : 'CONFIRM & LIST PRODUCT'}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -754,7 +885,67 @@ const styles = StyleSheet.create({
     color: '#ff4444',
     fontSize: 10,
     fontWeight: 'bold',
-  }
+  },
+  helpText: {
+    color: '#666',
+    fontSize: 11,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  galleryPreviewScroll: {
+    gap: 15,
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+  galleryPreviewItem: {
+    position: 'relative',
+    width: 100,
+    height: 100,
+  },
+  galleryPreviewImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    resizeMode: 'cover',
+  },
+  galleryRemoveBtn: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#ff4444',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#3d2b1a',
+    zIndex: 10,
+  },
+  galleryRemoveText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  addGalleryBtn: {
+    width: 100,
+    height: 100,
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+    borderStyle: 'dashed',
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    marginLeft: 5,
+  },
+  addGalleryText: {
+    color: '#D4AF37',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
 });
 
 export default AddProductScreen;

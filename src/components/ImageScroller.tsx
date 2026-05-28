@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { View, Image, ScrollView, StyleSheet, useWindowDimensions, Text, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 
 const SLIDER_IMAGES = [
-  { id: "1", source: require("../../assets/a.jpg")  },
-  { id: "2", source: require("../../assets/b.jpg")  },
-  { id: "3", source: require("../../assets/c.jpg") },
-  { id: "4", source: require("../../assets/d.jpg") },
+  { id: "1", source: require("../../assets/a.jpg"), alt: "Moksha Jewels Bridal Collection - Gold and Diamonds" },
+  { id: "2", source: require("../../assets/b.jpg"), alt: "Exquisite Handcrafted Jewellery - Premium Boutique" },
+  { id: "3", source: require("../../assets/c.jpg"), alt: "BIS Hallmarked Gold Ornaments - Traditional Designs" },
+  { id: "4", source: require("../../assets/d.jpg"), alt: "Certified Diamond Jewellery - Shaped Diamonds" },
 ];
 
 const ImageScroller = () => {
@@ -13,7 +13,7 @@ const ImageScroller = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   
-  const scrollerHeight = width > 768 ? 450 : 250;
+  const scrollerHeight = width > 1400 ? 600 : (width > 768 ? 450 : 250);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,7 +52,11 @@ const ImageScroller = () => {
       >
         {SLIDER_IMAGES.map((img) => (
           <View key={img.id} style={[styles.imageWrapper, { width }]}>
-            <Image source={img.source} style={[styles.image, { height: scrollerHeight }]} />
+            <Image 
+              source={img.source} 
+              style={[styles.image, { height: scrollerHeight }]} 
+              accessibilityLabel={img.alt}
+            />
           </View>
         ))}
       </ScrollView>

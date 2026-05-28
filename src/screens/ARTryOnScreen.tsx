@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Platform, ActivityIndicator, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Platform, ActivityIndicator, Dimensions, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Canvas } from '@react-three/fiber';
@@ -10,26 +10,58 @@ import JewelryModel from '../components/JewelryModel';
 import * as tf from '@tensorflow/tfjs';
 import { cameraWithTensors } from '@tensorflow/tfjs-react-native';
 import * as handPoseDetection from '@tensorflow-models/hand-pose-detection';
+import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 
 // Wrap CameraView with TFJS Tensor capabilities
 const TensorCamera = cameraWithTensors(CameraView);
 
-interface ARTryOnScreenProps {
-  product: Product;
-  onBack: () => void;
-}
+import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
 
-const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
+const ARTryOnScreen: React.FC = () => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'ARTryOn'>>();
+  const { product } = route.params;
+  
+  const jewelryType = (product.type || product.name || '').toLowerCase();
+  const isHandJewelry = jewelryType.includes('ring') || jewelryType.includes('bracelet');
+  const isFaceJewelry = jewelryType.includes('earring') || jewelryType.includes('necklace') || jewelryType.includes('pendant');
+
+  const onBack = () => navigation.goBack();
   const [permission, requestPermission] = useCameraPermissions();
   const [isDetectorReady, setIsDetectorReady] = useState(false);
-  const detectorRef = useRef<handPoseDetection.HandDetector | null>(null);
+  const handDetectorRef = useRef<handPoseDetection.HandDetector | null>(null);
+  const faceDetectorRef = useRef<faceLandmarksDetection.FaceLandmarksDetector | null>(null);
   
   // Interactive State
   const [position, setPosition] = useState<[number, number, number]>([0, 0, 0]);
+  const [rightEarPos, setRightEarPos] = useState<[number, number, number] | null>(null);
+  const [leftEarPos, setLeftEarPos] = useState<[number, number, number] | null>(null);
   const [scale, setScale] = useState(1);
   const [isTracking, setIsTracking] = useState(true);
   const [modelVisible, setModelVisible] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('Initializing AI...');
+
+  // Style State
+  const [selectedStyle, setSelectedStyle] = useState<string>(product.name);
+
+  const NECKLACE_OPTIONS = [
+    { id: product.name, label: 'Original', type: 'necklace' },
+    { id: 'necklace_traditional', label: 'Traditional', type: 'necklace' },
+    { id: 'necklace_choker', label: 'Choker', type: 'necklace' },
+    { id: 'necklace_pendant', label: 'Pendant', type: 'necklace' },
+  ];
+
+  const EARRING_OPTIONS = [
+    { id: product.name, label: 'Original', type: 'earring' },
+    { id: 'earring_drop', label: 'Drops', type: 'earring' },
+    { id: 'earring_stud', label: 'Studs', type: 'earring' },
+    { id: 'earring_hoop', label: 'Hoops', type: 'earring' },
+  ];
+
+  const currentOptions = isFaceJewelry ? (
+    jewelryType.includes('necklace') ? NECKLACE_OPTIONS : EARRING_OPTIONS
+  ) : [];
 
   // Initialize AI Tracking
   useEffect(() => {
@@ -38,14 +70,24 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
         console.log("ARTryOn: Initializing TFJS...");
         await tf.ready();
         
-        const model = handPoseDetection.SupportedModels.MediaPipeHands;
-        const detectorConfig: handPoseDetection.MediaPipeHandsTfjsModelConfig = {
-          runtime: 'tfjs', 
-          modelType: 'lite',
-          maxHands: 1
-        };
-        const handDetector = await handPoseDetection.createDetector(model, detectorConfig);
-        detectorRef.current = handDetector;
+        if (isHandJewelry) {
+          const model = handPoseDetection.SupportedModels.MediaPipeHands;
+          const detectorConfig: handPoseDetection.MediaPipeHandsTfjsModelConfig = {
+            runtime: 'tfjs', 
+            modelType: 'lite',
+            maxHands: 1
+          };
+          handDetectorRef.current = await handPoseDetection.createDetector(model, detectorConfig);
+        } else if (isFaceJewelry) {
+          const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+          const detectorConfig: faceLandmarksDetection.MediaPipeFaceMeshTfjsModelConfig = {
+            runtime: 'tfjs',
+            refineLandmarks: true,
+            maxFaces: 1
+          };
+          faceDetectorRef.current = await faceLandmarksDetection.createDetector(model, detectorConfig);
+        }
+
         setIsDetectorReady(true);
         setDebugInfo('Searching...');
         console.log("ARTryOn: Detector Ready");
@@ -56,7 +98,7 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
     }
 
     initTracking();
-  }, []);
+  }, [isHandJewelry, isFaceJewelry]);
 
   // Web Frame Processing Loop
   useEffect(() => {
@@ -66,7 +108,7 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
     let isProcessing = false;
     
     async function processFrame() {
-      if (detectorRef.current && isTracking && !isProcessing) {
+      if (isTracking && !isProcessing) {
         isProcessing = true;
         try {
           const videos = document.querySelectorAll('video');
@@ -74,32 +116,41 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
 
           if (video && video.readyState >= 2 && video.videoWidth > 0) {
             const imageTensor = tf.browser.fromPixels(video);
-            const hands = await detectorRef.current.estimateHands(imageTensor, { flipHorizontal: true });
-            imageTensor.dispose(); 
-
-            if (hands && hands.length > 0) {
-              const hand = hands[0];
-              const score = Number((hand as any).score || 0.85);
-              
-              if (score > 0.4) {
-                const keypoint = hand.keypoints.find(kp => kp.name === 'ring_finger_mcp') || hand.keypoints[9] || hand.keypoints[0];
-                
+            
+            if (isHandJewelry && handDetectorRef.current) {
+              const hands = await handDetectorRef.current.estimateHands(imageTensor, { flipHorizontal: true });
+              if (hands && hands.length > 0) {
+                const keypoint = hands[0].keypoints.find(kp => kp.name === 'ring_finger_mcp') || hands[0].keypoints[9];
                 if (keypoint) {
-                  const targetX = (keypoint.x / (video.videoWidth || 640)) * 10 - 5;
-                  const targetY = -(keypoint.y / (video.videoHeight || 480)) * 10 + 5;
-                  
-                  setPosition([targetX, targetY, 0]);
+                  setPosition([(keypoint.x / video.videoWidth) * 10 - 5, -(keypoint.y / video.videoHeight) * 10 + 5, 0]);
                   setModelVisible(true);
                   setDebugInfo('HAND OK');
                 }
               } else {
                 setModelVisible(false);
-                setDebugInfo('SEARCHING...');
               }
-            } else {
-              setModelVisible(false);
-              setDebugInfo('SEARCHING...');
+            } else if (isFaceJewelry && faceDetectorRef.current) {
+              const faces = await faceDetectorRef.current.estimateFaces(imageTensor, { flipHorizontal: true });
+              if (faces && faces.length > 0) {
+                const face = faces[0];
+                if (jewelryType.includes('necklace')) {
+                  const chin = face.keypoints[152];
+                  setPosition([(chin.x / video.videoWidth) * 10 - 5, -(chin.y / video.videoHeight) * 10 + 3.5, 0]);
+                  setModelVisible(true);
+                } else if (jewelryType.includes('earring')) {
+                  const rEar = face.keypoints[234];
+                  const lEar = face.keypoints[454];
+                  setRightEarPos([(rEar.x / video.videoWidth) * 10 - 5, -(rEar.y / video.videoHeight) * 10 + 5, 0]);
+                  setLeftEarPos([(lEar.x / video.videoWidth) * 10 - 5, -(lEar.y / video.videoHeight) * 10 + 5, 0]);
+                  setModelVisible(true);
+                }
+                setDebugInfo('FACE OK');
+              } else {
+                setModelVisible(false);
+              }
             }
+            
+            imageTensor.dispose(); 
           }
         } catch (err) {
           console.error("Web Processing Error:", err);
@@ -111,13 +162,12 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
 
     processFrame();
     return () => cancelAnimationFrame(frameId);
-  }, [isDetectorReady, isTracking]);
+  }, [isDetectorReady, isTracking, isHandJewelry, isFaceJewelry]);
 
   // Native Stream Handler
   const handleCameraStream = (images: IterableIterator<tf.Tensor3D>, spec: any) => {
-    console.log("ARTryOn: Native Stream Active");
     const loop = async () => {
-      if (!isTracking || !detectorRef.current) {
+      if (!isTracking) {
         requestAnimationFrame(loop);
         return;
       }
@@ -129,37 +179,35 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
       }
 
       try {
-        const hands = await detectorRef.current.estimateHands(imageTensor, { flipHorizontal: false });
-
-        if (hands && hands.length > 0) {
-          const hand = hands[0];
-          const score = Number((hand as any).score || 0.85);
-          
-          if (score > 0.25) {
-            const keypoint = hand.keypoints.find(kp => kp.name === 'ring_finger_mcp') || hand.keypoints[9] || hand.keypoints[0];
-            
-            if (keypoint) {
-              // Map from 200x152 tensor (standard tfjs-rn resize) to 3D space
-              const targetX = (keypoint.x / 152) * 10 - 5;
-              const targetY = -(keypoint.y / 200) * 10 + 5;
-              
-              setPosition(prev => [
-                isNaN(prev[0]) ? targetX : prev[0] + (targetX - prev[0]) * 0.4,
-                isNaN(prev[1]) ? targetY : prev[1] + (targetY - prev[1]) * 0.4,
-                0
-              ]);
-              setModelVisible(true);
-              setDebugInfo(`HAND OK (${(score * 100).toFixed(0)}%)`);
-            }
+        if (isHandJewelry && handDetectorRef.current) {
+          const hands = await handDetectorRef.current.estimateHands(imageTensor, { flipHorizontal: false });
+          if (hands && hands.length > 0) {
+            const kp = hands[0].keypoints.find(k => k.name === 'ring_finger_mcp') || hands[0].keypoints[9];
+            setPosition([(kp.x / 152) * 10 - 5, -(kp.y / 200) * 10 + 5, 0]);
+            setModelVisible(true);
+            setDebugInfo('HAND OK');
           } else {
             setModelVisible(false);
-            setDebugInfo(`LOW CONF (${(score * 100).toFixed(0)}%)`);
           }
-        } else {
-          setModelVisible(false);
-          const spinners = ['|', '/', '-', '\\'];
-          const tick = Math.floor(Date.now() / 200) % 4;
-          setDebugInfo(`SEARCHING ${spinners[tick]}`);
+        } else if (isFaceJewelry && faceDetectorRef.current) {
+          const faces = await faceDetectorRef.current.estimateFaces(imageTensor, { flipHorizontal: false });
+          if (faces && faces.length > 0) {
+            const face = faces[0];
+            if (jewelryType.includes('necklace')) {
+              const chin = face.keypoints[152];
+              setPosition([(chin.x / 152) * 10 - 5, -(chin.y / 200) * 10 + 3.5, 0]);
+              setModelVisible(true);
+            } else if (jewelryType.includes('earring')) {
+              const rEar = face.keypoints[234];
+              const lEar = face.keypoints[454];
+              setRightEarPos([(rEar.x / 152) * 10 - 5, -(rEar.y / 200) * 10 + 5, 0]);
+              setLeftEarPos([(lEar.x / 152) * 10 - 5, -(lEar.y / 200) * 10 + 5, 0]);
+              setModelVisible(true);
+            }
+            setDebugInfo('FACE OK');
+          } else {
+            setModelVisible(false);
+          }
         }
       } catch (err) {
         console.error("Native Proc Error:", err);
@@ -215,6 +263,7 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
             resizeDepth={3}
             onReady={handleCameraStream}
             autorender={true}
+            useCustomShadersToResize={false}
           />
         )
       )}
@@ -233,10 +282,32 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
         >
           <ambientLight intensity={0.7} />
           <pointLight position={[10, 10, 10]} />
-          {modelVisible && (
+          
+          {modelVisible && isHandJewelry && (
             <group position={position} scale={[scale, scale, scale]}>
-              <JewelryModel type={product.name} />
+              <JewelryModel type={selectedStyle} />
             </group>
+          )}
+
+          {modelVisible && jewelryType.includes('necklace') && (
+            <group position={position} scale={[scale * 1.5, scale * 1.5, scale * 1.5]}>
+              <JewelryModel type={selectedStyle} />
+            </group>
+          )}
+
+          {modelVisible && jewelryType.includes('earring') && (
+            <>
+              {rightEarPos && (
+                <group position={rightEarPos} scale={[scale * 0.4, scale * 0.4, scale * 0.4]}>
+                  <JewelryModel type={selectedStyle} />
+                </group>
+              )}
+              {leftEarPos && (
+                <group position={leftEarPos} scale={[scale * 0.4, scale * 0.4, scale * 0.4]}>
+                  <JewelryModel type={selectedStyle} />
+                </group>
+              )}
+            </>
           )}
         </Canvas>
       </View>
@@ -252,12 +323,35 @@ const ARTryOnScreen: React.FC<ARTryOnScreenProps> = ({ product, onBack }) => {
           <View style={styles.trackingStatus}>
             <View style={[styles.statusDot, { backgroundColor: modelVisible ? '#4CAF50' : '#FF5252' }]} />
             <Text style={styles.arHint}>
-              {modelVisible ? "AI Auto-Alignment Active" : "Searching for Hand..."}
+              {modelVisible ? "AI Auto-Alignment Active" : isHandJewelry ? "Searching for Hand..." : "Searching for Face..."}
             </Text>
           </View>
-          <Text style={styles.subHint}>Point camera at your hand</Text>
+          <Text style={styles.subHint}>{isHandJewelry ? "Point camera at your hand" : "Point camera at your face"}</Text>
           <Text style={styles.debugText}>{debugInfo}</Text>
         </View>
+
+        {currentOptions.length > 0 && (
+          <View style={styles.optionsContainer}>
+            <Text style={styles.optionsTitle}>SELECT STYLE</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.optionsScroll}
+            >
+              {currentOptions.map((opt) => (
+                <TouchableOpacity 
+                  key={opt.id} 
+                  style={[styles.optionItem, selectedStyle === opt.id && styles.activeOptionItem]}
+                  onPress={() => setSelectedStyle(opt.id)}
+                >
+                  <Text style={[styles.optionLabel, selectedStyle === opt.id && styles.activeOptionLabel]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={styles.controls}>
           <TouchableOpacity 
@@ -446,6 +540,42 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 5,
     fontFamily: 'monospace',
+  },
+  optionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  optionsTitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  optionsScroll: {
+    gap: 10,
+    paddingVertical: 5,
+  },
+  optionItem: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  activeOptionItem: {
+    backgroundColor: '#D4AF37',
+    borderColor: '#D4AF37',
+  },
+  optionLabel: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  activeOptionLabel: {
+    color: '#000',
   },
 });
 

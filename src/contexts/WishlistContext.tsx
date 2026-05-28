@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../supabase';
 import { useAuth } from './AuthContext';
 
@@ -17,21 +17,14 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      fetchWishlist();
-    } else {
-      setWishlist([]);
-    }
-  }, [user]);
-
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
+    if (!user?.id) return;
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('wishlist')
         .select('product_id')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
       setWishlist(data.map((item: any) => item.product_id));
@@ -40,10 +33,18 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const addToWishlist = async (productId: string) => {
-    if (!user) return;
+  useEffect(() => {
+    if (user?.id) {
+      fetchWishlist();
+    } else {
+      setWishlist([]);
+    }
+  }, [user?.id, fetchWishlist]);
+
+  const addToWishlist = useCallback(async (productId: string) => {
+    if (!user?.id) return;
     try {
       const { error } = await supabase
         .from('wishlist')
@@ -54,10 +55,10 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (error) {
       console.error('Error adding to wishlist:', error);
     }
-  };
+  }, [user?.id]);
 
-  const removeFromWishlist = async (productId: string) => {
-    if (!user) return;
+  const removeFromWishlist = useCallback(async (productId: string) => {
+    if (!user?.id) return;
     try {
       const { error } = await supabase
         .from('wishlist')
@@ -70,14 +71,22 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (error) {
       console.error('Error removing from wishlist:', error);
     }
-  };
+  }, [user?.id]);
 
-  const isInWishlist = (productId: string) => {
+  const isInWishlist = useCallback((productId: string) => {
     return wishlist.includes(productId);
-  };
+  }, [wishlist]);
+
+  const value = useMemo(() => ({ 
+    wishlist, 
+    addToWishlist, 
+    removeFromWishlist, 
+    isInWishlist, 
+    isLoading 
+  }), [wishlist, isLoading, isInWishlist, addToWishlist, removeFromWishlist]);
 
   return (
-    <WishlistContext.Provider value={{ wishlist, addToWishlist, removeFromWishlist, isInWishlist, isLoading }}>
+    <WishlistContext.Provider value={value}>
       {children}
     </WishlistContext.Provider>
   );
