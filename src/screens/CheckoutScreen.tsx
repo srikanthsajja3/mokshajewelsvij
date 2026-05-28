@@ -187,26 +187,35 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
 
       // 3. Create the Order in Supabase after successful payment
       console.log('Creating order in Supabase for user:', user.id);
+      
+      const orderPayload = {
+        user_id: user.id,
+        total_amount: cartTotal,
+        shipping_address: address,
+        city: city,
+        state: state,
+        zip_code: zip,
+        shipping_country: country,
+        status: 'paid' as const
+      };
+
+      // Only add address_id if it exists to avoid foreign key violations
+      if (selectedAddressId) {
+        (orderPayload as any).address_id = selectedAddressId;
+      }
+
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          user_id: user.id,
-          total_amount: cartTotal,
-          shipping_address: address,
-          city: city,
-          state: state,
-          zip_code: zip,
-          shipping_country: country,
-          address_id: selectedAddressId,
-          status: 'paid'
-        })
+        .insert(orderPayload)
         .select('id')
         .single();
 
       if (orderError) {
         console.error('Order Insertion Error:', orderError);
-        if (orderError.message.includes('violates foreign key constraint')) {
-          throw new Error("Your profile is being initialized. Please wait a moment and try again.");
+        if (orderError.message.includes('profiles_fkey')) {
+           Alert.alert("Profile Error", "Your user profile is not fully initialized in the database. Please contact support or re-login.");
+           setIsProcessing(false);
+           return;
         }
         throw orderError;
       }

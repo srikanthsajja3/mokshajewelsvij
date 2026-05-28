@@ -208,31 +208,19 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     }
   };
 
-  const handleWhatsAppEnquiry = () => {
-    const phoneNumber = "919922244439";
-    const message = `Namaste Moksha Jewels! I am interested in this masterpiece:
-    
-Product: ${product.name}
-ID: ${product.id}
-Code: ${product.productCode}
-Category: ${product.category}
-
-Please provide more details regarding this item.`;
-    
-    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    
-    if (Platform.OS === 'web') {
-      window.open(url, '_blank');
+  const handleBuyNow = () => {
+    addToCart(product);
+    if (!user) {
+      setLoginVisible(true);
     } else {
-      import('expo-linking').then(Linking => {
-        Linking.openURL(url);
-      });
+      navigation.navigate('Cart');
     }
   };
 
   const handleAddToCart = () => {
-    // Feature disabled for launch
-    Alert.alert("Launch Phase", "For our initial launch, we are accepting enquiries directly via WhatsApp. Please use the 'Enquire on WhatsApp' button.");
+    addToCart(product);
+    setShowAddedMsg(true);
+    setTimeout(() => setShowAddedMsg(false), 3000);
   };
 
   const handleWishlistToggle = async () => {
@@ -425,11 +413,13 @@ Please provide more details regarding this item.`;
 
               {/* Action Buttons under Image */}
               <View style={styles.imageActions}>
-                <TouchableOpacity style={styles.actionButton} onPress={handleWhatsAppEnquiry}>
-                  <Text style={styles.actionButtonText}>Enquire on WhatsApp</Text>
+                <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
+                  <Text style={styles.actionButtonText}>Buy Now</Text>
                 </TouchableOpacity>
 
-                {/* Add to Bag removed for launch */}
+                <TouchableOpacity style={[styles.actionButton, styles.addToCartButton]} onPress={handleAddToCart}>
+                  <Text style={styles.addToCartButtonText}>Add to Bag</Text>
+                </TouchableOpacity>
               </View>
             </View>
 

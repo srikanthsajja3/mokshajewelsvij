@@ -138,8 +138,8 @@ Please provide more details on how to proceed with these items.`;
                     <Text style={styles.totalValue}>{formatPrice(cartTotal, countryCode)}</Text>
                   </View>
                   
-                  <TouchableOpacity style={styles.checkoutBtn} onPress={handleWhatsAppEnquiry}>
-                    <Text style={styles.checkoutBtnText}>Enquire for Bag on WhatsApp</Text>
+                  <TouchableOpacity style={styles.checkoutBtn} onPress={() => navigation.navigate('Checkout')}>
+                    <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
                   </TouchableOpacity>
                 </View>
               </>
