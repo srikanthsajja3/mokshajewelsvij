@@ -33,6 +33,11 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const localScrollY = useRef(new Animated.Value(0)).current;
   const scrollY = scrollYProp || localScrollY;
 
+  const handleMainScroll = (event: any) => {
+    // Manually set the value to avoid mapping issues on web
+    scrollY.setValue(event.nativeEvent.contentOffset.y);
+  };
+
   useEffect(() => {
     const loadProduct = async () => {
       if (!product && route.params?.id) {
@@ -380,22 +385,35 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
               {/* Full Screen Image Viewer Modal */}
               <Modal visible={isViewerVisible} transparent={true} onRequestClose={() => setIsViewerVisible(false)}>
-                <ImageViewer 
-                  imageUrls={viewerImages}
-                  index={activeImageIndex}
-                  onSwipeDown={() => setIsViewerVisible(false)}
-                  enableSwipeDown={true}
-                  renderHeader={() => (
-                    <SafeAreaView>
-                      <TouchableOpacity 
-                        style={{ position: 'absolute', top: 20, right: 20, zIndex: 9999, padding: 10 }} 
-                        onPress={() => setIsViewerVisible(false)}
-                      >
-                        <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>✕</Text>
-                      </TouchableOpacity>
-                    </SafeAreaView>
-                  )}
-                />
+                <View style={{ flex: 1, backgroundColor: 'black' }}>
+                  <ImageViewer 
+                    imageUrls={viewerImages}
+                    index={activeImageIndex}
+                    onSwipeDown={() => setIsViewerVisible(false)}
+                    enableSwipeDown={true}
+                    renderHeader={() => <View />} // Clear default header
+                    renderIndicator={(currentIndex, allSize) => (
+                      <View style={{ position: 'absolute', top: 40, width: '100%', flexDirection: 'row', justifyContent: 'center', zIndex: 1 }}>
+                        <Text style={{ color: 'white', fontSize: 16 }}>{`${currentIndex} / ${allSize}`}</Text>
+                      </View>
+                    )}
+                  />
+                  {/* Absolute positioned close button OVER the ImageViewer */}
+                  <TouchableOpacity 
+                    style={{ 
+                      position: 'absolute', 
+                      top: Platform.OS === 'ios' ? 40 : 20, 
+                      right: 20, 
+                      zIndex: 10000, 
+                      padding: 15, 
+                      backgroundColor: 'rgba(0,0,0,0.6)', 
+                      borderRadius: 25 
+                    }} 
+                    onPress={() => setIsViewerVisible(false)}
+                  >
+                    <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
               </Modal>
 
               {/* Zoom Overlay for Web (Moved outside imageSection to avoid clipping) */}

@@ -191,9 +191,8 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
       const orderPayload = {
         user_id: user.id,
         total_amount: cartTotal,
-        shipping_address: address,
+        shipping_address: state ? `${address}, ${state}` : address,
         city: city,
-        state: state,
         zip_code: zip,
         shipping_country: country,
         status: 'paid' as const
