@@ -45,17 +45,28 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const addToWishlist = useCallback(async (productId: string) => {
     if (!user?.id) return;
+    
+    // 1. Prevent duplicate calls if already in local state
+    if (wishlist.includes(productId)) return;
+
     try {
+      // 2. Use insert with a check or just handle the error gracefully
       const { error } = await supabase
         .from('wishlist')
         .insert({ user_id: user.id, product_id: productId });
 
-      if (error) throw error;
-      setWishlist((prev) => [...prev, productId]);
+      // If it's a duplicate key error (23505), we can ignore it as the item is already there
+      if (error && error.code !== '23505') throw error;
+      
+      // Only update state if it wasn't already there (to be safe)
+      setWishlist((prev) => {
+        if (prev.includes(productId)) return prev;
+        return [...prev, productId];
+      });
     } catch (error) {
       console.error('Error adding to wishlist:', error);
     }
-  }, [user?.id]);
+  }, [user?.id, wishlist]);
 
   const removeFromWishlist = useCallback(async (productId: string) => {
     if (!user?.id) return;

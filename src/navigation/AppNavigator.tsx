@@ -15,6 +15,8 @@ import VendorDashboardScreen from '../screens/VendorDashboardScreen';
 import AddProductScreen from '../screens/AddProductScreen';
 import ARTryOnScreen from '../screens/ARTryOnScreen';
 
+import { Animated } from 'react-native';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {

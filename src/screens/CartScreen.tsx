@@ -27,12 +27,15 @@ interface CartScreenProps {
   scrollY?: Animated.Value;
 }
 
-const CartScreen: React.FC<CartScreenProps> = ({ scrollY }) => {
+const CartScreen: React.FC<CartScreenProps> = ({ scrollY: scrollYProp }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setLoginVisible } = useUI();
+  const { setLoginVisible, scrollY: globalScrollY } = useUI();
   const { cart, removeFromCart, updateQuantity, cartTotal, isLoading } = useCart();
   const { countryCode } = useCountry();
   const { width } = useWindowDimensions();
+
+  const localScrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = scrollYProp || globalScrollY || localScrollY;
 
   const isWeb = Platform.OS === 'web';
 

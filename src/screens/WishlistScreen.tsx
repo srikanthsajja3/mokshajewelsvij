@@ -15,12 +15,15 @@ interface WishlistScreenProps {
   searchQuery?: string;
 }
 
-const WishlistScreen: React.FC<WishlistScreenProps> = ({ scrollY, searchQuery }) => {
+const WishlistScreen: React.FC<WishlistScreenProps> = ({ scrollY: scrollYProp, searchQuery }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setLoginVisible } = useUI();
+  const { setLoginVisible, scrollY: globalScrollY } = useUI();
   const { wishlist, isLoading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const localScrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = scrollYProp || globalScrollY || localScrollY;
 
   useEffect(() => {
     const loadWishlistProducts = async () => {

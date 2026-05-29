@@ -38,13 +38,16 @@ interface Address {
   is_default: boolean;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ scrollY }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ scrollY: scrollYProp }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setLoginVisible } = useUI();
+  const { setLoginVisible, scrollY: globalScrollY } = useUI();
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  
+  const localScrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = scrollYProp || globalScrollY || localScrollY;
   
   // Profile State
   const [fullName, setFullName] = useState("");
@@ -68,11 +71,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ scrollY }) => {
   const [addrCountry, setAddrCountry] = useState("United States");
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchProfile();
       fetchAddresses();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const fetchProfile = async () => {
     try {

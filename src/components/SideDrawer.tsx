@@ -8,7 +8,8 @@ import {
   Dimensions, 
   TouchableWithoutFeedback,
   Platform,
-  ScrollView
+  ScrollView,
+  Pressable
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,12 +37,12 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
         Animated.timing(slideAnim, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(opacityAnim, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]).start();
     } else {
@@ -49,12 +50,12 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
         Animated.timing(slideAnim, {
           toValue: -DRAWER_WIDTH,
           duration: 250,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(opacityAnim, {
           toValue: 0,
           duration: 250,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]).start();
     }
@@ -88,11 +89,22 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
   if (!isVisible && slideAnim._value === -DRAWER_WIDTH) return null;
 
   return (
-    <View style={[StyleSheet.absoluteFill, { zIndex: 10000 }]} pointerEvents={isVisible ? "auto" : "none"}>
+    <View 
+      style={[
+        StyleSheet.absoluteFill, 
+        { 
+          zIndex: 10000,
+          pointerEvents: isVisible ? "auto" : "none"
+        }
+      ]}
+    >
       {/* Backdrop */}
-      <TouchableWithoutFeedback onPress={onClose}>
+      <Pressable 
+        style={StyleSheet.absoluteFill} 
+        onPress={onClose}
+      >
         <Animated.View style={[styles.backdrop, { opacity: opacityAnim, zIndex: 10000 }]} />
-      </TouchableWithoutFeedback>
+      </Pressable>
 
       {/* Drawer Content */}
       <Animated.View style={[
@@ -162,11 +174,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#291c0e',
     borderRightWidth: 1,
     borderRightColor: 'rgba(212, 175, 55, 0.2)',
-    shadowColor: "#000",
-    shadowOffset: { width: 5, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 20,
+    ...Platform.select({
+      web: {
+        boxShadow: '5px 0 10px rgba(0,0,0,0.5)',
+      },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 5, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 20,
+      }
+    }),
   },
   drawerHeader: {
     flexDirection: 'row',

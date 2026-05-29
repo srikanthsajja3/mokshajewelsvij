@@ -396,11 +396,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#D4AF37',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 20,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 10px 15px rgba(0,0,0,0.5)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 15,
+        elevation: 20,
+      }
+    }),
   },
   closeButton: {
     position: 'absolute',

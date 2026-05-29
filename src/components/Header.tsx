@@ -105,13 +105,11 @@ const Header: React.FC<HeaderProps> = ({
   // Animations & Static Sizes
   const scrollOffset = scrollY || new Animated.Value(0);
 
-  // Logo Scale: 1 on Home, 0.75 on other pages
-  const logoScale = isHome ? 1 : 0.75;
+  // Logo Scale: Consistent 0.75 scale across all pages for brand consistency
+  const logoScale = 0.75;
 
-  // Header Height: Increased significantly for mobile to prevent overlap
-  const baseHeaderHeight = isHome 
-    ? (isMobile ? 85 : 90) 
-    : (isMobile ? 75 : 60);
+  // Header Height: Unified height across all pages for a consistent navigation experience
+  const baseHeaderHeight = isMobile ? 75 : 60;
   
   const headerHeight = isWeb ? baseHeaderHeight : (baseHeaderHeight + insets.top);
 
@@ -180,14 +178,10 @@ const Header: React.FC<HeaderProps> = ({
 
             {isMobile ? (
               <>
-                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToCart}>
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToOrders}>
                   <View>
-                    <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
-                    {cartCount > 0 ? (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{cartCount}</Text>
-                      </View>
-                    ) : null}
+                    <FontAwesome5 name="bell" size={iconSize} color="#D4AF37" />
+                    <View style={styles.dotBadge} />
                   </View>
                 </TouchableOpacity>
 
@@ -356,6 +350,17 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 9,
     fontWeight: 'bold',
+  },
+  dotBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ff4444',
+    borderWidth: 1.5,
+    borderColor: '#291c0e',
   },
   adminBadge: {
     color: '#fff', 

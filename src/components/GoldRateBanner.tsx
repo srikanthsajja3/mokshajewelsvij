@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, Easing, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, Easing, useWindowDimensions, Platform } from 'react-native';
 import { useGoldRate } from '../contexts/GoldRateContext';
 
 const GoldRateBanner: React.FC = () => {
@@ -22,7 +22,7 @@ const GoldRateBanner: React.FC = () => {
           toValue: -1, 
           duration: 30000, // Slightly slower for better readability
           easing: Easing.linear,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         });
         
         animation.start(({ finished }) => {

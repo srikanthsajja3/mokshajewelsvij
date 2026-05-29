@@ -17,13 +17,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 1. Fetch full order details including user email and items
+    // 1. Fetch full order details including user details from profiles and items
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .select(`
         *,
         profiles:user_id (full_name),
-        auth_user:user_id (email),
         order_items (
           quantity,
           price_at_purchase,
@@ -37,14 +36,54 @@ serve(async (req) => {
       throw new Error(`Order not found: ${orderError?.message}`)
     }
 
-    const customerEmail = (order.auth_user as any)?.email;
-    const customerName = (order.profiles as any)?.full_name || 'Valued Customer';
+    // 2. Fetch user email from auth using the service role key
+    const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(order.user_id)
     
-    if (!customerEmail) {
-      throw new Error("Customer email missing from order record.")
+    if (userError || !userData.user) {
+      throw new Error(`User auth data not found: ${userError?.message}`)
     }
 
-    // 2. Prepare Email HTML (Branded for Moksha Jewels)
+    const customerEmail = userData.user.email;
+    const customerName = (order.profiles as any)?.full_name || 'Valued Customer';
+    const status = record.status;
+    
+    if (!customerEmail) {
+      throw new Error("Customer email missing from auth record.")
+    }
+
+    // 3. Prepare Email Content based on Status
+    let subject = "";
+    let statusTitle = "";
+    let statusMessage = "";
+
+    switch (status) {
+      case 'paid':
+        subject = `Order Confirmation - #${order.id.slice(0, 8).toUpperCase()}`;
+        statusTitle = "Order Confirmed";
+        statusMessage = "Thank you for choosing Moksha Jewels. We are pleased to confirm that your order for a luxury masterpiece has been received and is being processed with the utmost care.";
+        break;
+      case 'processing':
+        subject = `Order Update: Processing - #${order.id.slice(0, 8).toUpperCase()}`;
+        statusTitle = "Your Masterpiece is Being Crafted";
+        statusMessage = "Your order is now in the hands of our master artisans. We are meticulously preparing your selection to meet our highest standards of excellence.";
+        break;
+      case 'shipped':
+        subject = `Order Update: Shipped - #${order.id.slice(0, 8).toUpperCase()}`;
+        statusTitle = "Your Order is En Route";
+        statusMessage = "Great news! Your luxury selection has been dispatched and is currently on its way to you. It won't be long before it reaches its new home.";
+        break;
+      case 'delivered':
+        subject = `Order Delivered - #${order.id.slice(0, 8).toUpperCase()}`;
+        statusTitle = "Delivered & Enjoyed";
+        statusMessage = "Your Moksha Jewels order has been successfully delivered. We hope this piece brings you joy and elegance for years to come.";
+        break;
+      default:
+        subject = `Order Update - #${order.id.slice(0, 8).toUpperCase()}`;
+        statusTitle = "Order Status Update";
+        statusMessage = `Your order status has been updated to: ${status}.`;
+    }
+
+    // 3. Prepare Email HTML (Branded for Moksha Jewels)
     const itemsHtml = order.order_items.map((item: any) => `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.product.name}</td>
@@ -59,11 +98,13 @@ serve(async (req) => {
         <p style="text-align: center; font-style: italic; color: #888; margin-bottom: 40px;">Timeless Artistry & Eternal Elegance</p>
         
         <p>Dear ${customerName},</p>
-        <p>Thank you for choosing Moksha Jewels. We are pleased to confirm that your order for a luxury masterpiece has been received and is being processed with the utmost care.</p>
+        <h2 style="color: #d4af37;">${statusTitle}</h2>
+        <p>${statusMessage}</p>
         
         <div style="background-color: #fcfcfc; padding: 20px; border-radius: 4px; margin: 30px 0;">
           <h3 style="color: #d4af37; margin-top: 0;">Order Summary</h3>
           <p><strong>Order ID:</strong> ${order.id.slice(0, 8).toUpperCase()}</p>
+          <p><strong>Status:</strong> <span style="text-transform: capitalize;">${status}</span></p>
           <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
           
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
@@ -91,7 +132,7 @@ serve(async (req) => {
         ${order.city}, ${order.zip_code}<br/>
         ${order.shipping_country}</p>
         
-        <p style="margin-top: 40px;">We will notify you as soon as your masterpiece begins its journey to you.</p>
+        ${status !== 'delivered' ? '<p style="margin-top: 40px;">We will notify you as soon as your masterpiece progresses further in its journey.</p>' : ''}
         
         <p style="margin-top: 40px; border-top: 1px solid #d4af37; paddingTop: 20px;">
           Warm regards,<br/>
@@ -101,13 +142,13 @@ serve(async (req) => {
       </div>
     `;
 
-    // 3. Send via Resend (Requires RESEND_API_KEY to be set in Supabase Secrets)
+    // 4. Send via Resend (Requires RESEND_API_KEY to be set in Supabase Secrets)
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     
     if (!RESEND_API_KEY) {
       console.warn("RESEND_API_KEY not set. Email simulation active.");
       return new Response(
-        JSON.stringify({ message: "Email simulation successful", orderId: record.id }),
+        JSON.stringify({ message: "Email simulation successful", orderId: record.id, status }),
         { headers: { 'Content-Type': 'application/json' }, status: 200 }
       );
     }
@@ -119,9 +160,9 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'Moksha Jewels <orders@mokshajewels.com>',
+        from: 'Moksha Jewels <onboarding@resend.dev>',
         to: [customerEmail],
-        subject: `Order Confirmation - #${order.id.slice(0, 8).toUpperCase()}`,
+        subject: subject,
         html: emailHtml,
       })
     });

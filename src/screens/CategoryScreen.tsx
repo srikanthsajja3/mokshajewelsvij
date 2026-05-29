@@ -10,6 +10,8 @@ import { Product, ProductFilters } from "../data/products";
 import { useNavigation, useRoute, RouteProp, NavigationProp } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
 
+import { useUI } from "../contexts/UIContext";
+
 interface CategoryScreenProps {
   scrollY?: Animated.Value;
 }
@@ -17,18 +19,30 @@ interface CategoryScreenProps {
 const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Category'>>();
+  const { scrollY: globalScrollY } = useUI();
   const category = route.params?.category || "All";
+  const [subCategory, setSubCategory] = useState("All Items");
   
   const localScrollY = useRef(new Animated.Value(0)).current;
-  const scrollY = scrollYProp || localScrollY;
+  const scrollY = scrollYProp || globalScrollY || localScrollY;
   
   const scrollRef = useRef<Animated.ScrollView>(null);
   const [sortBy, setSortBy] = useState<SortOption>("popularity");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [filters, setFilters] = useState<ProductFilters>({});
 
-  const onSelectCategory = (cat: string) => navigation.navigate('Category', { category: cat });
+  const onSelectCategory = (cat: string) => {
+    navigation.navigate('Category', { category: cat });
+    setSubCategory("All Items"); // Reset sub-category when main category changes
+  };
+  
   const onSelectProduct = (product: Product) => navigation.navigate('ProductDetails', { id: product.id });
+
+  // Add subCategory to the filters object passed to ProductList
+  const effectiveFilters = {
+    ...filters,
+    subCategory: subCategory !== "All Items" ? subCategory : undefined
+  };
 
   const activeFilterCount = (
     (filters.minPrice !== undefined ? 1 : 0) +
@@ -56,6 +70,8 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
             onSelectCategory(cat);
             scrollRef.current?.scrollTo({ y: 0, animated: true });
           }} 
+          activeSubCategory={subCategory}
+          onSelectSubCategory={setSubCategory}
           sortBy={sortBy}
           onSortChange={setSortBy}
           onPressFilter={() => setIsFilterVisible(true)}
@@ -68,7 +84,7 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
             onSelectProduct={onSelectProduct} 
             sortBy={sortBy}
             searchQuery={""} 
-            filters={filters}
+            filters={effectiveFilters}
           />
         </View>
 

@@ -8,6 +8,8 @@ import Footer from "../components/Footer";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
 
+import { useUI } from "../contexts/UIContext";
+
 interface HomeScreenProps {
   scrollY?: Animated.Value;
 }
@@ -15,8 +17,10 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ scrollY: scrollYProp }) => {
   const { width } = useWindowDimensions();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { scrollY: globalScrollY } = useUI();
+  
   const localScrollY = useRef(new Animated.Value(0)).current;
-  const scrollY = scrollYProp || localScrollY;
+  const scrollY = scrollYProp || globalScrollY || localScrollY;
 
   const navigateToCategory = (cat: string) => navigation.navigate('Category', { category: cat });
   const navigateToProduct = (product: any) => navigation.navigate('ProductDetails', { id: product.id });

@@ -70,6 +70,17 @@ const ProductList: React.FC<ProductListProps> = ({
       );
     }
 
+    // Sub-Category Filtering (Hangings, Bajubands, etc.)
+    if (filters.subCategory) {
+      const sub = filters.subCategory.toLowerCase();
+      result = result.filter(p => {
+        // Check if sub-category matches type, category, or name
+        return (p.type?.toLowerCase() === sub) || 
+               (p.category?.toLowerCase() === sub) ||
+               (p.name?.toLowerCase().includes(sub));
+      });
+    }
+
     // Advanced Filtering
     if (filters.minPrice !== undefined) {
       result = result.filter(p => p.price >= (filters.minPrice || 0));
@@ -174,7 +185,7 @@ const ProductList: React.FC<ProductListProps> = ({
                 onPress={() => onSelectProduct(item)}
               >
                 <View style={styles.imageContainer}>
-                  <Image source={{ uri: item.image }} style={styles.productImage} />
+                  <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
                   <TouchableOpacity 
                     style={styles.wishlistIcon} 
                     onPress={() => handleWishlistToggle(item.id)}
@@ -266,7 +277,6 @@ const styles = StyleSheet.create({
   productImage: {
     width: "100%",
     height: 180,
-    resizeMode: "cover",
   },
   wishlistIcon: {
     position: "absolute",

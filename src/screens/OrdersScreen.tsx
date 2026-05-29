@@ -47,10 +47,13 @@ interface OrdersScreenProps {
   scrollY?: Animated.Value;
 }
 
-const OrdersScreen: React.FC<OrdersScreenProps> = ({ scrollY }) => {
+const OrdersScreen: React.FC<OrdersScreenProps> = ({ scrollY: scrollYProp }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setLoginVisible } = useUI();
+  const { setLoginVisible, scrollY: globalScrollY } = useUI();
   const { user } = useAuth();
+
+  const localScrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = scrollYProp || globalScrollY || localScrollY;
 
   const { countryCode } = useCountry();
   const [orders, setOrders] = useState<Order[]>([]);

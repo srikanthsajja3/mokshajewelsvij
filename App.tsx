@@ -47,10 +47,9 @@ const linking = {
 };
 
 function AppContent() {
-  const { drawerVisible, setDrawerVisible, loginVisible, setLoginVisible } = useUI();
+  const { drawerVisible, setDrawerVisible, loginVisible, setLoginVisible, scrollY } = useUI();
   const [searchQuery, setSearchQuery] = useState("");
   const { user, isLoading: authLoading, isRecovering } = useAuth();
-  const scrollY = useRef(new Animated.Value(0)).current;
   const [currentRoute, setCurrentRoute] = useState<string>("Home");
 
   const [fontsLoaded] = useFonts({
@@ -78,17 +77,31 @@ function AppContent() {
     );
   }
 
-  const handleNavigateFromDrawer = (screen: keyof RootStackParamList) => {
+  const handleNavigateFromDrawer = (screen: string) => {
     setDrawerVisible(false);
     
-    // Type-safe navigation mapping
-    if (screen === 'Category') {
-      navigationRef.navigate('Category', { category: 'All' });
-    } else if (screen === 'Home' || screen === 'Cart' || screen === 'Wishlist' || 
-               screen === 'Profile' || screen === 'Orders' || screen === 'AdminDashboard' || 
-               screen === 'VendorDashboard') {
-      // @ts-ignore - navigationRef.navigate signature is complex for dynamic keys
-      navigationRef.navigate(screen);
+    const routeMap: Record<string, keyof RootStackParamList> = {
+      'home': 'Home',
+      'wishlist': 'Wishlist',
+      'orders': 'Orders',
+      'profile': 'Profile',
+      'cart': 'Cart',
+      'admin': 'AdminDashboard',
+      'vendor': 'VendorDashboard',
+      'login': 'Login'
+    };
+
+    const targetRoute = routeMap[screen.toLowerCase()];
+    
+    if (targetRoute === 'Login') {
+      setLoginVisible(true);
+    } else if (targetRoute) {
+      if (targetRoute === 'Category') {
+        navigationRef.navigate('Category', { category: 'All' });
+      } else {
+        // @ts-ignore
+        navigationRef.navigate(targetRoute);
+      }
     }
   };
 

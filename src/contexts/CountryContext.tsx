@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import * as Localization from 'expo-localization';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
@@ -89,7 +89,7 @@ export const CountryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     detectCountry();
   }, []);
 
-  const setCountryCode = async (code: string) => {
+  const setCountryCode = useCallback(async (code: string) => {
     setCountryCodeState(code);
     try {
       if (Platform.OS === 'web') {
@@ -101,10 +101,16 @@ export const CountryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {
       console.warn("Error saving country choice:", e);
     }
-  };
+  }, []);
+
+  const value = useMemo(() => ({ 
+    countryCode, 
+    setCountryCode, 
+    isLoading 
+  }), [countryCode, setCountryCode, isLoading]);
 
   return (
-    <CountryContext.Provider value={{ countryCode, setCountryCode, isLoading }}>
+    <CountryContext.Provider value={value}>
       {children}
     </CountryContext.Provider>
   );

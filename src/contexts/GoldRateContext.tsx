@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useCountry } from './CountryContext';
 
 interface GoldRate {
@@ -122,7 +122,7 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     { purity: '18K', rate: baseRate * 0.75 },
   ], [baseRate]);
 
-  const getLocalizedRate = (usdRate: number) => {
+  const getLocalizedRate = useCallback((usdRate: number) => {
     const config = COUNTRY_CONFIGS[countryCode] || DEFAULT_CONFIG;
     const localizedValue = usdRate * config.exchangeRate * config.factor;
     
@@ -131,10 +131,16 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       currency: config.currency,
       maximumFractionDigits: config.currency === 'INR' ? 0 : 2,
     }).format(localizedValue) + ` (${config.unit})`;
-  };
+  }, [countryCode]);
+
+  const value = useMemo(() => ({ 
+    rates, 
+    getLocalizedRate, 
+    isLoading 
+  }), [rates, getLocalizedRate, isLoading]);
 
   return (
-    <GoldRateContext.Provider value={{ rates, getLocalizedRate, isLoading }}>
+    <GoldRateContext.Provider value={value}>
       {children}
     </GoldRateContext.Provider>
   );

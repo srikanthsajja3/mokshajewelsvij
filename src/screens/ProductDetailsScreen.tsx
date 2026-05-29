@@ -28,10 +28,10 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const route = useRoute<RouteProp<RootStackParamList, 'ProductDetails'>>();
   const [product, setProduct] = useState<Product | null>(route.params?.product || null);
   const [fetchingProduct, setFetchingProduct] = useState(!route.params?.product && !!route.params?.id);
-  const { setLoginVisible } = useUI();
+  const { setLoginVisible, scrollY: globalScrollY } = useUI();
 
   const localScrollY = useRef(new Animated.Value(0)).current;
-  const scrollY = scrollYProp || localScrollY;
+  const scrollY = scrollYProp || globalScrollY || localScrollY;
 
   const handleMainScroll = (event: any) => {
     // Manually set the value to avoid mapping issues on web
@@ -254,9 +254,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     setZoomData({ visible: true, x, y });
   };
 
-  const toggleSection = (section: string) => {
-    setActiveSection(activeSection === section ? null : section);
-  };
+  const navigateToCategory = (cat: string) => navigation.navigate('Category', { category: cat });
 
   const AccordionSection = ({ 
     id, 
@@ -628,23 +626,48 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
           {/* Recommendations Section */}
           {recommendations.length > 0 ? (
             <View style={styles.recommendationsSection}>
-              <Text style={styles.recommendationTitle}>Recommended for You</Text>
-              <View style={styles.recommendationGrid}>
-                {recommendations.map((item) => (
+              <View style={styles.recHeader}>
+                <Text style={styles.recommendationTitle}>Recommended for You</Text>
+                <TouchableOpacity onPress={() => navigateToCategory(product.category)}>
+                  <Text style={styles.viewMoreHeader}>View All ❯</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.recScrollContent}
+              >
+                {recommendations.slice(0, 6).map((item) => (
                   <TouchableOpacity 
                     key={item.id} 
                     style={styles.recommendationCard}
                     onPress={() => onSelectProduct(item)}
                     activeOpacity={0.8}
                   >
-                    <Image source={{ uri: item.image }} style={styles.recImage} />
+                    <Image source={{ uri: item.image }} style={styles.recImage} resizeMode="cover" />
                     <View style={styles.recInfo}>
                       <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
                       <Text style={styles.recPrice}>{formatPrice(item.price, countryCode)}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
-              </View>
+
+                {/* View More Card at the end of scroll */}
+                <TouchableOpacity 
+                  style={[styles.recommendationCard, styles.viewMoreCard]}
+                  onPress={() => navigateToCategory(product.category)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.viewMoreContent}>
+                    <View style={styles.viewMoreIcon}>
+                      <FontAwesome5 name="arrow-right" size={16} color="#D4AF37" />
+                    </View>
+                    <Text style={styles.viewMoreText}>View More</Text>
+                    <Text style={styles.viewMoreSub}>In {product.category}</Text>
+                  </View>
+                </TouchableOpacity>
+              </ScrollView>
             </View>
           ) : null}
         </View>
@@ -969,24 +992,24 @@ const styles = StyleSheet.create({
   recommendationGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 15,
+    justifyContent: "flex-start",
+    gap: 10,
   },
   recommendationCard: {
-    width: Platform.OS === 'web' ? '22%' : '47%',
+    // 3 columns: (100% - gaps) / 3. Approx 31%
+    width: Platform.OS === 'web' ? '23.8%' : '31.3%',
     backgroundColor: "#3d2b1a",
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#4a3520",
     marginBottom: 10,
   },
   recImage: {
     width: "100%",
-    height: 150,
-    resizeMode: "cover",
+    aspectRatio: 1, // Force perfect 1:1 square
   },
   recInfo: {
-    padding: 10,
+    padding: 12,
+    backgroundColor: "rgba(0,0,0,0.2)",
   },
   recName: {
     color: "#fff",
@@ -998,6 +1021,59 @@ const styles = StyleSheet.create({
     color: "#D4AF37",
     fontSize: 12,
     fontWeight: "600",
+  },
+  // Recommendation Carousel Styles
+  recHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  viewMoreHeader: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  recScrollContent: {
+    paddingRight: 20,
+    gap: 15,
+  },
+  viewMoreCard: {
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 'auto',
+    aspectRatio: 1,
+  },
+  viewMoreContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  viewMoreIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  viewMoreText: {
+    color: '#D4AF37',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  viewMoreSub: {
+    color: '#888',
+    fontSize: 10,
+    marginTop: 4,
   },
   // Accordion Styles
   accordionItem: {
