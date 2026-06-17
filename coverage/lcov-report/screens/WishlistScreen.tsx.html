@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>0/27</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>0/11</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/24</span>
+                <span class='fraction'>0/26</span>
             </div>
         
             
@@ -215,7 +215,10 @@
 <a name='L150'></a><a href='#L150'>150</a>
 <a name='L151'></a><a href='#L151'>151</a>
 <a name='L152'></a><a href='#L152'>152</a>
-<a name='L153'></a><a href='#L153'>153</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -236,6 +239,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -384,12 +390,15 @@ interface WishlistScreenProps {
   searchQuery?: string;
 }
 &nbsp;
-const WishlistScreen: React.FC&lt;WishlistScreenProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> scrollY, searchQuery }) =&gt; {</span>
+const WishlistScreen: React.FC&lt;WishlistScreenProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> scrollY: scrollYProp, searchQuery }) =&gt; {</span>
   const navigation = <span class="cstat-no" title="statement not covered" >useNavigation&lt;NavigationProp&lt;RootStackParamList&gt;&gt;();</span>
-  const { setLoginVisible } = <span class="cstat-no" title="statement not covered" >useUI();</span>
+  const { setLoginVisible, scrollY: globalScrollY } = <span class="cstat-no" title="statement not covered" >useUI();</span>
   const { wishlist, isLoading: wishlistLoading } = <span class="cstat-no" title="statement not covered" >useWishlist();</span>
   const [products, setProducts] = <span class="cstat-no" title="statement not covered" >useState&lt;Product[]&gt;([]);</span>
   const [loading, setLoading] = <span class="cstat-no" title="statement not covered" >useState(true);</span>
+&nbsp;
+  const localScrollY = <span class="cstat-no" title="statement not covered" >useRef(new Animated.Value(0)).current;</span>
+  const scrollY = <span class="cstat-no" title="statement not covered" >scrollYProp || globalScrollY || localScrollY;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
     const loadWishlistProducts = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
@@ -445,7 +454,7 @@ const WishlistScreen: React.FC&lt;WishlistScreenProps&gt; = <span class="cstat-n
           ) : (
             &lt;ProductList 
               category="Wishlist" 
-              onSelectProduct={<span class="fstat-no" title="function not covered" >(p</span>roduct) =&gt; <span class="cstat-no" title="statement not covered" >navigation.navigate('ProductDetails', { product })} </span>
+              onSelectProduct={<span class="fstat-no" title="function not covered" >(p</span>roduct) =&gt; <span class="cstat-no" title="statement not covered" >navigation.navigate('ProductDetails', { id: product.id })} </span>
               sortBy="popularity"
               searchQuery={searchQuery}
               onPressLogin={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setLoginVisible(true)}</span>
@@ -526,7 +535,7 @@ export default WishlistScreen;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-24T12:09:18.962Z
+                at 2026-06-11T10:24:41.208Z
             </div>
         <script src="../prettify.js"></script>
         <script>

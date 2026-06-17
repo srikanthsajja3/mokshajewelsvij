@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Image, ScrollView, StyleSheet, useWindowDimensions, Text, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { View, ScrollView, StyleSheet, useWindowDimensions, Text, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { Image } from "expo-image";
 
 const SLIDER_IMAGES = [
   { id: "1", source: require("../../assets/a.jpg"), alt: "Moksha Jewels Bridal Collection - Gold and Diamonds" },
@@ -56,6 +57,8 @@ const ImageScroller = () => {
               source={img.source} 
               style={[styles.image, { height: scrollerHeight }]} 
               accessibilityLabel={img.alt}
+              contentFit="cover"
+              transition={300}
             />
           </View>
         ))}

@@ -20,6 +20,7 @@ import { formatPrice } from '../utils/currency';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ConfirmationModal from '../components/ConfirmationModal';
+import OptimizedImage from '../components/OptimizedImage';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
@@ -150,7 +151,7 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ scrollY: scrollYProp }) => 
 
     return (
       <View key={item.id} style={styles.orderItemRow}>
-        <Image source={{ uri: productImage }} style={styles.itemThumb} />
+        <OptimizedImage url={productImage} style={styles.itemThumb} shouldLoad={true} />
         <View style={styles.itemDetails}>
           <Text style={styles.itemName} numberOfLines={1}>{productName}</Text>
           <Text style={styles.itemMeta}>Qty: {item.quantity} • {formatPrice(item.price_at_purchase, countryCode)} each</Text>

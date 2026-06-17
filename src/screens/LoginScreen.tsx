@@ -196,7 +196,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   const handleClose = () => {
-    if (isUpdatingPassword || isRecovering) {
+    if (isUpdatingPassword || initialIsUpdatingPassword) {
       setIsRecovering(false);
     }
     onClose();

@@ -8,7 +8,7 @@ import {
   ScrollView, 
   TextInput,
   Platform,
-  Dimensions
+  useWindowDimensions
 } from 'react-native';
 import { ProductFilters } from '../data/products';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -32,6 +32,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onClear
 }) => {
   const [localFilters, setLocalFilters] = useState<ProductFilters>(filters);
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > 768;
 
   const toggleSelection = (key: keyof ProductFilters, value: string) => {
     setLocalFilters(prev => {
@@ -55,11 +57,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
     <Modal
       transparent
       visible={visible}
-      animationType="slide"
+      animationType={isLargeScreen ? "fade" : "slide"}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+      <View style={[styles.overlay, isLargeScreen && styles.overlayLarge]}>
+        <View style={[styles.modalContainer, isLargeScreen && styles.modalContainerLarge]}>
           <View style={styles.header}>
             <Text style={styles.title}>Filter & Refine</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -151,6 +153,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'flex-end',
   },
+  overlayLarge: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
   modalContainer: {
     backgroundColor: '#291c0e',
     borderTopLeftRadius: 20,
@@ -159,6 +166,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(212, 175, 55, 0.3)',
     maxHeight: '80%',
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  modalContainerLarge: {
+    width: 500,
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxHeight: '90%',
+    paddingBottom: 20,
   },
   header: {
     flexDirection: 'row',
@@ -205,6 +220,7 @@ const styles = StyleSheet.create({
     padding: 12,
     color: '#fff',
     fontSize: 14,
+    minWidth: 0,
   },
   priceSeparator: {
     color: '#666',

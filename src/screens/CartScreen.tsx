@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Animated
 } from 'react-native';
+import OptimizedImage from '../components/OptimizedImage';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
@@ -64,7 +65,7 @@ Please provide more details on how to proceed with these items.`;
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.cartItem}>
-      <Image source={{ uri: item.image }} style={styles.itemImage} />
+      <OptimizedImage url={item.image} style={styles.itemImage} shouldLoad={true} />
       <View style={styles.itemInfo}>
         <Text style={styles.itemName}>{item.name}</Text>
         <Text style={styles.itemCategory}>{item.category}</Text>

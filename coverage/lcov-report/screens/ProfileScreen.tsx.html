@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/153</span>
+                <span class='fraction'>0/156</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/81</span>
+                <span class='fraction'>0/84</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/139</span>
+                <span class='fraction'>0/142</span>
             </div>
         
             
@@ -854,7 +854,16 @@
 <a name='L789'></a><a href='#L789'>789</a>
 <a name='L790'></a><a href='#L790'>790</a>
 <a name='L791'></a><a href='#L791'>791</a>
-<a name='L792'></a><a href='#L792'>792</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L792'></a><a href='#L792'>792</a>
+<a name='L793'></a><a href='#L793'>793</a>
+<a name='L794'></a><a href='#L794'>794</a>
+<a name='L795'></a><a href='#L795'>795</a>
+<a name='L796'></a><a href='#L796'>796</a>
+<a name='L797'></a><a href='#L797'>797</a>
+<a name='L798'></a><a href='#L798'>798</a>
+<a name='L799'></a><a href='#L799'>799</a>
+<a name='L800'></a><a href='#L800'>800</a>
+<a name='L801'></a><a href='#L801'>801</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -902,7 +911,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -913,6 +925,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1012,6 +1025,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1230,6 +1244,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1685,13 +1703,16 @@ interface Address {
   is_default: boolean;
 }
 &nbsp;
-const ProfileScreen: React.FC&lt;ProfileScreenProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> scrollY }) =&gt; {</span>
+const ProfileScreen: React.FC&lt;ProfileScreenProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> scrollY: scrollYProp }) =&gt; {</span>
   const navigation = <span class="cstat-no" title="statement not covered" >useNavigation&lt;NavigationProp&lt;RootStackParamList&gt;&gt;();</span>
-  const { setLoginVisible } = <span class="cstat-no" title="statement not covered" >useUI();</span>
+  const { setLoginVisible, scrollY: globalScrollY } = <span class="cstat-no" title="statement not covered" >useUI();</span>
   const { user, signOut } = <span class="cstat-no" title="statement not covered" >useAuth();</span>
   const [loading, setLoading] = <span class="cstat-no" title="statement not covered" >useState(true);</span>
   const [saving, setSaving] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
   const [successMessage, setSuccessMessage] = <span class="cstat-no" title="statement not covered" >useState("");</span>
+  
+  const localScrollY = <span class="cstat-no" title="statement not covered" >useRef(new Animated.Value(0)).current;</span>
+  const scrollY = <span class="cstat-no" title="statement not covered" >scrollYProp || globalScrollY || localScrollY;</span>
   
   // Profile State
   const [fullName, setFullName] = <span class="cstat-no" title="statement not covered" >useState("");</span>
@@ -1710,15 +1731,16 @@ const ProfileScreen: React.FC&lt;ProfileScreenProps&gt; = <span class="cstat-no"
   const [addrLine1, setAddrLine1] = <span class="cstat-no" title="statement not covered" >useState("");</span>
   const [addrLine2, setAddrLine2] = <span class="cstat-no" title="statement not covered" >useState("");</span>
   const [addrCity, setAddrCity] = <span class="cstat-no" title="statement not covered" >useState("");</span>
+  const [addrState, setAddrState] = <span class="cstat-no" title="statement not covered" >useState("");</span>
   const [addrZip, setAddrZip] = <span class="cstat-no" title="statement not covered" >useState("");</span>
   const [addrCountry, setAddrCountry] = <span class="cstat-no" title="statement not covered" >useState("United States");</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (user) {</span>
+<span class="cstat-no" title="statement not covered" >    if (user?.id) {</span>
 <span class="cstat-no" title="statement not covered" >      fetchProfile();</span>
 <span class="cstat-no" title="statement not covered" >      fetchAddresses();</span>
     }
-  }, [user]);
+  }, [user?.id]);
 &nbsp;
   const fetchProfile = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
@@ -1798,6 +1820,7 @@ const ProfileScreen: React.FC&lt;ProfileScreenProps&gt; = <span class="cstat-no"
       address_line1: addrLine1,
       address_line2: addrLine2,
       city: addrCity,
+      state: addrState,
       zip_code: addrZip,
       country: addrCountry,
       is_default: addresses.length === 0 || (editingAddress?.is_default ?? false)
@@ -2061,11 +2084,15 @@ const ProfileScreen: React.FC&lt;ProfileScreenProps&gt; = <span class="cstat-no"
                   &lt;/View&gt;
 &nbsp;
                   &lt;View style={styles.row}&gt;
-                    &lt;View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}&gt;
+                    &lt;View style={[styles.inputGroup, { flex: 2, marginRight: 10 }]}&gt;
                       &lt;Text style={styles.inputLabel}&gt;City&lt;/Text&gt;
                       &lt;TextInput style={styles.input} value={addrCity} onChangeText={setAddrCity} /&gt;
                     &lt;/View&gt;
-                    &lt;View style={[styles.inputGroup, { width: 120 }]}&gt;
+                    &lt;View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}&gt;
+                      &lt;Text style={styles.inputLabel}&gt;State&lt;/Text&gt;
+                      &lt;TextInput style={styles.input} value={addrState} onChangeText={setAddrState} placeholder="e.g. CA" /&gt;
+                    &lt;/View&gt;
+                    &lt;View style={[styles.inputGroup, { width: 100 }]}&gt;
                       &lt;Text style={styles.inputLabel}&gt;ZIP Code&lt;/Text&gt;
                       &lt;TextInput style={styles.input} value={addrZip} onChangeText={setAddrZip} /&gt;
                     &lt;/View&gt;
@@ -2443,7 +2470,7 @@ export default ProfileScreen;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-24T12:09:18.962Z
+                at 2026-06-11T10:24:41.208Z
             </div>
         <script src="../prettify.js"></script>
         <script>

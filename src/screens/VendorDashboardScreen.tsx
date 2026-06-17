@@ -11,10 +11,12 @@ import {
   TextInput,
   Platform,
   KeyboardAvoidingView,
-  useWindowDimensions
+  useWindowDimensions,
+  Animated
 } from 'react-native';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import OptimizedImage from '../components/OptimizedImage';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
@@ -26,6 +28,7 @@ import Papa from 'papaparse';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useUI } from '../contexts/UIContext';
+import { useRef } from 'react';
 
 interface VendorDashboardScreenProps {
   scrollY?: Animated.Value;
@@ -45,7 +48,7 @@ const VendorDashboardScreen: React.FC<VendorDashboardScreenProps> = ({ scrollY: 
   const isSmallMobile = width < 480;
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'm2m'>('products');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'm2m'>('overview');
   
   const [vendorSettings, setVendorSettings] = useState<any>(null);
   const [myProducts, setMyProducts] = useState<Product[]>([]);
@@ -54,6 +57,12 @@ const VendorDashboardScreen: React.FC<VendorDashboardScreenProps> = ({ scrollY: 
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
+
+  // Derived Analytics
+  const totalRevenue = mySales.reduce((sum, sale) => sum + (sale.price_at_purchase * sale.quantity), 0);
+  const totalOrders = mySales.length;
+  const activeProductsCount = myProducts.length;
+  const lowStockCount = myProducts.filter((p: any) => p.stock_quantity < 5).length;
 
   useEffect(() => {
     if (isVendor) {
@@ -272,7 +281,7 @@ const VendorDashboardScreen: React.FC<VendorDashboardScreenProps> = ({ scrollY: 
       isMobile && { width: isSmallMobile ? '100%' : '47%' },
       isDeleteMode && styles.deleteModeCard
     ]}>
-      <Image source={{ uri: (item as any).image_url }} style={styles.productImage} />
+      <OptimizedImage url={(item as any).image_url} style={styles.productImage} />
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
         <View style={styles.stockRow}>
@@ -391,6 +400,30 @@ const VendorDashboardScreen: React.FC<VendorDashboardScreenProps> = ({ scrollY: 
               <ActivityIndicator color="#D4AF37" size="large" style={{ marginTop: 50 }} />
             ) : (
               <View style={styles.content}>
+                {activeTab === 'overview' ? (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Partner Overview</Text>
+                    <View style={styles.statsGrid}>
+                      <View style={styles.statCard}>
+                        <Text style={styles.statLabel}>Total Revenue</Text>
+                        <Text style={styles.statValue}>{formatPrice(totalRevenue, countryCode)}</Text>
+                      </View>
+                      <View style={styles.statCard}>
+                        <Text style={styles.statLabel}>Orders</Text>
+                        <Text style={styles.statValue}>{totalOrders}</Text>
+                      </View>
+                      <View style={styles.statCard}>
+                        <Text style={styles.statLabel}>Active Products</Text>
+                        <Text style={styles.statValue}>{activeProductsCount}</Text>
+                      </View>
+                      <View style={[styles.statCard, lowStockCount > 0 && { borderColor: '#ff4444', backgroundColor: 'rgba(255, 68, 68, 0.05)' }]}>
+                        <Text style={styles.statLabel}>Low Stock Alerts</Text>
+                        <Text style={[styles.statValue, lowStockCount > 0 && { color: '#ff4444' }]}>{lowStockCount}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ) : null}
+
                 {activeTab === 'products' ? (
                   <View style={styles.section}>
                     <View style={[styles.rowBetween, isSmallMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 15 }]}>
@@ -515,6 +548,10 @@ const styles = StyleSheet.create({
   content: { padding: 20, maxWidth: 1200, alignSelf: 'center', width: '100%' },
   section: { marginBottom: 40 },
   sectionTitle: { fontFamily: 'TrajanPro', fontSize: 20, color: '#D4AF37', marginBottom: 20 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 },
+  statCard: { flex: 1, minWidth: 150, backgroundColor: '#3d2b1a', padding: 20, borderRadius: 8, borderWidth: 1, borderColor: '#4a3520' },
+  statLabel: { color: '#888', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+  statValue: { color: '#fff', fontSize: 20, fontWeight: 'bold', fontFamily: 'TrajanPro' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },

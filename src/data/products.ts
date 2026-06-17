@@ -12,6 +12,7 @@ export interface ProductFilters {
   maxPrice?: number;
   purity?: string[];
   metalColor?: string[];
+  subCategory?: string;
 }
 
 export interface Product {

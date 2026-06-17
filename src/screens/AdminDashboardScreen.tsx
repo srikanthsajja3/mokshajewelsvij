@@ -10,11 +10,13 @@ import {
   Platform,
   Image,
   Alert,
-  TextInput
+  TextInput,
+  Animated
 } from 'react-native';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ConfirmationModal from '../components/ConfirmationModal';
+import OptimizedImage from '../components/OptimizedImage';
 import { supabase } from '../../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
@@ -371,7 +373,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
                   <View style={styles.inventoryList}>
                     {inventory.map(item => (
                       <View key={item.id} style={styles.inventoryCard}>
-                        <Image source={{ uri: item.image }} style={styles.invThumb} />
+                        <OptimizedImage url={item.image} style={styles.invThumb} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.invName}>{item.name}</Text>
                           <Text style={styles.invCode}>{item.productCode}</Text>
@@ -380,7 +382,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
                           <Text style={styles.invStock}>Stock: {item.stockQuantity || 0}</Text>
                           <Text style={styles.invCost}>Cost: {formatPrice(item.sourcingCost || 0, countryCode)}</Text>
                           <View style={styles.actionRow}>
-                             <TouchableOpacity onPress={() => navigation.navigate('AddProduct', { product: item })} style={styles.editAction}>
+                             <TouchableOpacity onPress={() => navigation.navigate('AddProduct', { vendorId: (item as any).vendor_id || '', product: item })} style={styles.editAction}>
                                 <Text style={styles.editActionText}>EDIT</Text>
                              </TouchableOpacity>
                              <TouchableOpacity 

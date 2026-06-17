@@ -86,7 +86,7 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
     );
   };
 
-  if (!isVisible && slideAnim._value === -DRAWER_WIDTH) return null;
+  if (!isVisible && (slideAnim as any)._value === -DRAWER_WIDTH) return null;
 
   return (
     <View 

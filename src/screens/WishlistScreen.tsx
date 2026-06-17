@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, ScrollView, Text, ActivityIndicator, TouchableOpacity, Animated } from "react-native";
-import Header from "../components/Header";
+import React, { useRef } from "react";
+import { StyleSheet, View, Text, TouchableOpacity, Animated } from "react-native";
 import Footer from "../components/Footer";
 import ProductList from "../components/ProductList";
-import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useWishlist } from "../contexts/WishlistContext";
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
@@ -19,76 +17,45 @@ const WishlistScreen: React.FC<WishlistScreenProps> = ({ scrollY: scrollYProp, s
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { setLoginVisible, scrollY: globalScrollY } = useUI();
   const { wishlist, isLoading: wishlistLoading } = useWishlist();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const localScrollY = useRef(new Animated.Value(0)).current;
   const scrollY = scrollYProp || globalScrollY || localScrollY;
 
-  useEffect(() => {
-    const loadWishlistProducts = async () => {
-      if (wishlist.length === 0) {
-        setProducts([]);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
-        // Fetch all products and filter by wishlist IDs
-        // In a real app, you'd have a specific fetch for multiple IDs
-        const allProducts = await fetchProductsFromSupabase("All");
-        setProducts(allProducts.filter(p => wishlist.includes(p.id)));
-      } catch (error) {
-        console.error("Error loading wishlist products:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const ListHeader = () => (
+    <View style={styles.headerSection}>
+      <Text style={styles.title}>Your Wishlist</Text>
+      <Text style={styles.subtitle}>Reserved masterpieces waiting for you.</Text>
+    </View>
+  );
 
-    loadWishlistProducts();
-  }, [wishlist]);
+  if (!wishlistLoading && wishlist.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Your wishlist is empty.</Text>
+          <TouchableOpacity style={styles.exploreButton} onPress={() => navigation.navigate('Home')}>
+            <Text style={styles.exploreButtonText}>Explore Collections</Text>
+          </TouchableOpacity>
+        </View>
+        <Footer />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Animated.ScrollView 
+      <ProductList 
+        category="Wishlist" 
+        onSelectProduct={(product) => navigation.navigate('ProductDetails', { id: product.id })} 
+        sortBy="popularity"
+        searchQuery={searchQuery}
+        onPressLogin={() => setLoginVisible(true)}
+        ListHeaderComponent={<ListHeader />}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
         )}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.contentWrapper}>
-          <View style={styles.headerSection}>
-            <Text style={styles.title}>Your Wishlist</Text>
-            <Text style={styles.subtitle}>Reserved masterpieces waiting for you.</Text>
-          </View>
-
-          {loading || wishlistLoading ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color="#D4AF37" />
-            </View>
-          ) : products.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Your wishlist is empty.</Text>
-              <TouchableOpacity style={styles.exploreButton} onPress={() => navigation.navigate('Home')}>
-                <Text style={styles.exploreButtonText}>Explore Collections</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <ProductList 
-              category="Wishlist" 
-              onSelectProduct={(product) => navigation.navigate('ProductDetails', { id: product.id })} 
-              sortBy="popularity"
-              searchQuery={searchQuery}
-              onPressLogin={() => setLoginVisible(true)}
-            />
-          )}
-        </View>
-
-        <Footer />
-      </Animated.ScrollView>
+      />
     </View>
   );
 };
@@ -97,12 +64,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#291c0e",
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  contentWrapper: {
-    flex: 1,
   },
   headerSection: {
     padding: 30,
@@ -122,15 +83,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: "italic",
   },
-  center: {
-    padding: 100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   emptyContainer: {
     padding: 60,
     alignItems: "center",
     justifyContent: "center",
+    flex: 1,
   },
   emptyText: {
     color: "#aaa",

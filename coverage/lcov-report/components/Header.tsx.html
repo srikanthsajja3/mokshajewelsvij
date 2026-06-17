@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/59</span>
+                <span class='fraction'>0/61</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/74</span>
+                <span class='fraction'>0/70</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/51</span>
+                <span class='fraction'>0/53</span>
             </div>
         
             
@@ -446,7 +446,15 @@
 <a name='L381'></a><a href='#L381'>381</a>
 <a name='L382'></a><a href='#L382'>382</a>
 <a name='L383'></a><a href='#L383'>383</a>
-<a name='L384'></a><a href='#L384'>384</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L384'></a><a href='#L384'>384</a>
+<a name='L385'></a><a href='#L385'>385</a>
+<a name='L386'></a><a href='#L386'>386</a>
+<a name='L387'></a><a href='#L387'>387</a>
+<a name='L388'></a><a href='#L388'>388</a>
+<a name='L389'></a><a href='#L389'>389</a>
+<a name='L390'></a><a href='#L390'>390</a>
+<a name='L391'></a><a href='#L391'>391</a>
+<a name='L392'></a><a href='#L392'>392</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -460,6 +468,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -558,7 +567,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -702,10 +711,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -724,6 +729,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -843,7 +859,8 @@ import { RootStackParamList } from "../navigation/types";
 &nbsp;
 import { useUI } from "../contexts/UIContext";
 &nbsp;
-const MAX_CONTENT_WIDTH = <span class="cstat-no" title="statement not covered" >1200;</span>
+const MAX_CONTENT_WIDTH = <span class="cstat-no" title="statement not covered" >Platform.OS === 'web' ? '98%' : 1200;</span>
+const MAX_PX_WIDTH = <span class="cstat-no" title="statement not covered" >2500;</span>
 &nbsp;
 interface HeaderProps {
   scrollY?: Animated.Value;
@@ -927,7 +944,7 @@ const Header: React.FC&lt;HeaderProps&gt; = <span class="cstat-no" title="statem
   const navIconSize = <span class="cstat-no" title="statement not covered" >width &gt; 768 ? 16 : 14;</span>
   
   const paddingHorz = <span class="cstat-no" title="statement not covered" >isWeb </span>
-    ? (width &gt; 1400 ? 50 : 25)
+    ? (width &gt; 1400 ? 30 : 15)
     : (width &lt; 380 ? 8 : 12);
 &nbsp;
   const iconMargin = <span class="cstat-no" title="statement not covered" >width &gt; 768 ? 12 : (width &lt; 380 ? 6 : 8);</span>
@@ -935,13 +952,13 @@ const Header: React.FC&lt;HeaderProps&gt; = <span class="cstat-no" title="statem
   // Animations &amp; Static Sizes
   const scrollOffset = <span class="cstat-no" title="statement not covered" >scrollY || new Animated.Value(0);</span>
 &nbsp;
-  // Logo Scale: 1 on Home, 0.75 on other pages
-  const logoScale = <span class="cstat-no" title="statement not covered" >isHome ? 1 : 0.75;</span>
+  // Logo Scale: Consistent 0.75 scale across all pages for brand consistency
+  const logoScale = <span class="cstat-no" title="statement not covered" >0.75;</span>
 &nbsp;
-  // Header Height: Fixed based on page
-  const headerHeight = <span class="cstat-no" title="statement not covered" >isHome </span>
-    ? (isMobile ? 65 : 90) 
-    : (isMobile ? 50 : 60);
+  // Header Height: Unified height across all pages for a consistent navigation experience
+  const baseHeaderHeight = <span class="cstat-no" title="statement not covered" >isMobile ? 75 : 60;</span>
+  
+  const headerHeight = <span class="cstat-no" title="statement not covered" >isWeb ? baseHeaderHeight : (baseHeaderHeight + insets.top);</span>
 &nbsp;
   const headerPadding = <span class="cstat-no" title="statement not covered" >scrollOffset.interpolate({</span>
     inputRange: [0, 100],
@@ -969,7 +986,7 @@ const Header: React.FC&lt;HeaderProps&gt; = <span class="cstat-no" title="statem
           paddingHorizontal: paddingHorz,
           paddingTop: isWeb ? headerPadding : Math.max(insets.top, 5),
           paddingBottom: headerPadding,
-          height: headerHeight,
+          minHeight: headerHeight,
         }
       ]}&gt;
         &lt;View style={styles.centerWrapper}&gt;
@@ -1008,14 +1025,10 @@ const Header: React.FC&lt;HeaderProps&gt; = <span class="cstat-no" title="statem
 &nbsp;
             {isMobile ? (
               &lt;&gt;
-                &lt;TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToCart}&gt;
+                &lt;TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToOrders}&gt;
                   &lt;View&gt;
-                    &lt;FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" /&gt;
-                    {cartCount &gt; 0 ? (
-                      &lt;View style={styles.badge}&gt;
-                        &lt;Text style={styles.badgeText}&gt;{cartCount}&lt;/Text&gt;
-                      &lt;/View&gt;
-                    ) : null}
+                    &lt;FontAwesome5 name="bell" size={iconSize} color="#D4AF37" /&gt;
+                    &lt;View style={styles.dotBadge} /&gt;
                   &lt;/View&gt;
                 &lt;/TouchableOpacity&gt;
 &nbsp;
@@ -1117,8 +1130,8 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     justifyContent: 'center',
   },
   centerWrapper: {
-    maxWidth: MAX_CONTENT_WIDTH,
-    width: "100%",
+    maxWidth: MAX_PX_WIDTH,
+    width: MAX_CONTENT_WIDTH,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
@@ -1185,6 +1198,17 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     fontSize: 9,
     fontWeight: 'bold',
   },
+  dotBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ff4444',
+    borderWidth: 1.5,
+    borderColor: '#291c0e',
+  },
   adminBadge: {
     color: '#fff', 
     backgroundColor: '#D4AF37', 
@@ -1219,7 +1243,7 @@ export default Header;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-24T12:09:18.962Z
+                at 2026-06-11T10:24:41.208Z
             </div>
         <script src="../prettify.js"></script>
         <script>

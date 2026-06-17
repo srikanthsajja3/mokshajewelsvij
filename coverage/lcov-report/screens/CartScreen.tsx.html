@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/17</span>
+                <span class='fraction'>0/29</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>0/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>0/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/17</span>
+                <span class='fraction'>0/28</span>
             </div>
         
             
@@ -348,7 +348,33 @@
 <a name='L283'></a><a href='#L283'>283</a>
 <a name='L284'></a><a href='#L284'>284</a>
 <a name='L285'></a><a href='#L285'>285</a>
-<a name='L286'></a><a href='#L286'>286</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -385,6 +411,32 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -662,14 +714,40 @@ interface CartScreenProps {
   scrollY?: Animated.Value;
 }
 &nbsp;
-const CartScreen: React.FC&lt;CartScreenProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> scrollY }) =&gt; {</span>
+const CartScreen: React.FC&lt;CartScreenProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> scrollY: scrollYProp }) =&gt; {</span>
   const navigation = <span class="cstat-no" title="statement not covered" >useNavigation&lt;NavigationProp&lt;RootStackParamList&gt;&gt;();</span>
-  const { setLoginVisible } = <span class="cstat-no" title="statement not covered" >useUI();</span>
+  const { setLoginVisible, scrollY: globalScrollY } = <span class="cstat-no" title="statement not covered" >useUI();</span>
   const { cart, removeFromCart, updateQuantity, cartTotal, isLoading } = <span class="cstat-no" title="statement not covered" >useCart();</span>
   const { countryCode } = <span class="cstat-no" title="statement not covered" >useCountry();</span>
   const { width } = <span class="cstat-no" title="statement not covered" >useWindowDimensions();</span>
 &nbsp;
+  const localScrollY = <span class="cstat-no" title="statement not covered" >useRef(new Animated.Value(0)).current;</span>
+  const scrollY = <span class="cstat-no" title="statement not covered" >scrollYProp || globalScrollY || localScrollY;</span>
+&nbsp;
   const isWeb = <span class="cstat-no" title="statement not covered" >Platform.OS === 'web';</span>
+&nbsp;
+  const handleWhatsAppEnquiry = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+    const phoneNumber = <span class="cstat-no" title="statement not covered" >"919922244439";</span>
+    let itemList = <span class="cstat-no" title="statement not covered" >cart.map(<span class="fstat-no" title="function not covered" >it</span>em =&gt; <span class="cstat-no" title="statement not covered" >`- ${item.name} (Qty: ${item.quantity}, ID: ${item.id})`)</span>.join('\n');</span>
+    
+    const message = <span class="cstat-no" title="statement not covered" >`Namaste Moksha Jewels! I am interested in these pieces from my bag:</span>
+    
+${itemList}
+&nbsp;
+Total Amount: ${formatPrice(cartTotal, countryCode)}
+&nbsp;
+Please provide more details on how to proceed with these items.`;
+    
+    const url = <span class="cstat-no" title="statement not covered" >`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;</span>
+    
+<span class="cstat-no" title="statement not covered" >    if (Platform.OS === 'web') {</span>
+<span class="cstat-no" title="statement not covered" >      window.open(url, '_blank');</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      import('expo-linking').then(<span class="fstat-no" title="function not covered" >Li</span>nking =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        Linking.openURL(url);</span>
+      });
+    }
+  };
 &nbsp;
   const renderItem = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> item }: { item: any }) =&gt; (</span>
 <span class="cstat-no" title="statement not covered" >    &lt;View style={styles.cartItem}&gt;</span>
@@ -925,7 +1003,7 @@ export default CartScreen;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-24T12:09:18.962Z
+                at 2026-06-11T10:24:41.208Z
             </div>
         <script src="../prettify.js"></script>
         <script>

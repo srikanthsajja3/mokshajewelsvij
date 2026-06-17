@@ -10,7 +10,8 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
-  Image
+  Image,
+  Animated
 } from 'react-native';
 import Header from '../components/Header';
 import Footer from '../components/Footer';

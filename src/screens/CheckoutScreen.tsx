@@ -10,7 +10,8 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Animated
 } from 'react-native';
 import { useCart } from '../contexts/CartContext';
 import { useCountry } from '../contexts/CountryContext';

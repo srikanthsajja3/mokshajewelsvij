@@ -275,6 +275,8 @@ const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#291c0e",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212, 175, 55, 0.15)",
     zIndex: 100,
   },
   header: {

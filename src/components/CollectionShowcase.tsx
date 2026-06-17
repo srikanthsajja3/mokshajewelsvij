@@ -4,9 +4,9 @@ import {
   View, 
   Text, 
   TouchableOpacity, 
-  ImageBackground, 
   Dimensions 
 } from 'react-native';
+import OptimizedImage from './OptimizedImage';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width > 768 ? (width - 60) / 3 : width - 40;
@@ -55,15 +55,19 @@ const CollectionShowcase: React.FC<CollectionShowcaseProps> = ({ onSelectCategor
             activeOpacity={0.9}
             onPress={() => onSelectCategory(col.category)}
           >
-            <ImageBackground source={{ uri: col.image }} style={styles.image}>
-              <View style={styles.overlay}>
-                <Text style={styles.cardTitle}>{col.title}</Text>
-                <Text style={styles.cardSubtitle}>{col.subtitle}</Text>
-                <View style={styles.btn}>
-                  <Text style={styles.btnText}>EXPLORE</Text>
-                </View>
+            <OptimizedImage 
+              url={col.image} 
+              style={[StyleSheet.absoluteFillObject]} 
+              contentFit="cover"
+              shouldLoad={true}
+            />
+            <View style={styles.overlay}>
+              <Text style={styles.cardTitle}>{col.title}</Text>
+              <Text style={styles.cardSubtitle}>{col.subtitle}</Text>
+              <View style={styles.btn}>
+                <Text style={styles.btnText}>EXPLORE</Text>
               </View>
-            </ImageBackground>
+            </View>
           </TouchableOpacity>
         ))}
       </View>

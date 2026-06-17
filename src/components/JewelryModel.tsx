@@ -11,12 +11,12 @@ interface JewelryModelProps {
 const RING_MODEL_PATH = require('../../assets/models/ring_0.glb');
 
 const RealRingModel: React.FC = () => {
-  const { scene } = useGLTF(RING_MODEL_PATH);
+  const { scene } = useGLTF(RING_MODEL_PATH) as any;
   
   // Apply gold-like material properties to all meshes in the model
   // (Optional: if your GLB doesn't already have materials)
   React.useEffect(() => {
-    scene.traverse((child) => {
+    scene.traverse((child: any) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
@@ -74,8 +74,8 @@ const PlaceholderModel: React.FC<{ type: string }> = ({ type }) => {
           <sphereGeometry args={[0.15, 32, 32]} />
           {goldMaterial}
         </mesh>
-        <mesh position={[0, -0.3, 0]}>
-          <coneGeometry args={[0.1, 0.4, 32]} rotation={[Math.PI, 0, 0]} />
+        <mesh position={[0, -0.3, 0]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.1, 0.4, 32]} />
           {goldMaterial}
         </mesh>
       </group>

@@ -9,6 +9,7 @@ import {
   Dimensions,
   Platform 
 } from 'react-native';
+import OptimizedImage from './OptimizedImage';
 import { Product } from '../data/products';
 import { formatPrice } from '../utils/currency';
 import { useCountry } from '../contexts/CountryContext';
@@ -51,7 +52,11 @@ const ProductHorizontalScroll: React.FC<ProductHorizontalScrollProps> = ({
             onPress={() => onSelectProduct(item)}
           >
             <View style={styles.imageContainer}>
-              <Image source={{ uri: item.image }} style={styles.image} />
+              <OptimizedImage 
+                url={item.image} 
+                style={styles.image} 
+                shouldLoad={true} // Small list, load immediately
+              />
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>NEW</Text>
               </View>

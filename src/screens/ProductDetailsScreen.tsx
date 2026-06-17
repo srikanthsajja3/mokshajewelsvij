@@ -1,9 +1,11 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from "react";
-import { StyleSheet, View, ScrollView, Text, Image, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator, TextInput, Alert, Animated, Modal, SafeAreaView } from "react-native";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator, TextInput, Alert, Animated, Modal, SafeAreaView } from "react-native";
+import { Image } from "expo-image";
 import { FontAwesome5 } from '@expo/vector-icons';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import OptimizedImage from "../components/OptimizedImage";
 import { supabase } from "../../supabase";
 import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
@@ -40,13 +42,14 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
   useEffect(() => {
     const loadProduct = async () => {
-      if (!product && route.params?.id) {
+      const routeId = route.params?.id;
+      if (routeId && (!product || product.id !== routeId)) {
         setFetchingProduct(true);
         try {
-          const fetched = await fetchProductById(route.params.id);
+          const fetched = await fetchProductById(routeId);
           setProduct(fetched);
         } catch (err) {
-          console.error("Error fetching product for deep link:", err);
+          console.error("Error fetching product:", err);
         } finally {
           setFetchingProduct(false);
         }
@@ -142,7 +145,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     };
 
     const checkPurchase = async () => {
-      if (!user?.id) {
+      if (!user?.id || !product?.id) {
         setHasPurchased(false);
         return;
       }
@@ -179,6 +182,8 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
       setLoginVisible(true);
       return;
     }
+    if (!product?.id) return;
+    
     if (!userReview.comment.trim()) {
       Alert.alert("Review Required", "Please share your thoughts on this masterpiece.");
       return;
@@ -214,7 +219,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   };
 
   const handleBuyNow = () => {
-    addToCart(product);
+    if (product) addToCart(product);
     if (!user) {
       setLoginVisible(true);
     } else {
@@ -223,7 +228,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   };
 
   const handleAddToCart = () => {
-    addToCart(product);
+    if (product) addToCart(product);
     setShowAddedMsg(true);
     setTimeout(() => setShowAddedMsg(false), 3000);
   };
@@ -233,6 +238,8 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
       setLoginVisible(true);
       return;
     }
+    if (!product?.id) return;
+    
     if (isInWishlist(product.id)) {
       await removeFromWishlist(product.id);
     } else {
@@ -241,6 +248,9 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   };
 
   const [activeSection, setActiveSection] = useState<string | null>("specs");
+  const toggleSection = (id: string) => {
+    setActiveSection(activeSection === id ? null : id);
+  };
   const [zoomData, setZoomData] = useState({ visible: false, x: 0, y: 0 });
 
   const handleMouseMove = (e: any) => {
@@ -338,7 +348,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                   onScroll={handleScroll}
                   scrollEventThrottle={16}
                 >
-                  {allImages.map((img, index) => (
+                    {allImages.map((img, index) => (
                     <TouchableOpacity 
                       key={index} 
                       style={[styles.imageWrapper, { width: isLargeScreen ? (width * 0.5 - 40) : (width - 40) }]}
@@ -352,7 +362,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                         setIsViewerVisible(true);
                       }}
                     >
-                      <Image source={{ uri: img }} style={styles.mainImage} />
+                      <OptimizedImage url={img} style={styles.mainImage} shouldLoad={true} />
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -423,7 +433,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                   <View style={[styles.zoomedImage, {
                     backgroundImage: `url(${allImages[activeImageIndex]})`,
                     backgroundPosition: `${zoomData.x}% ${zoomData.y}%`,
-                  }]} />
+                  } as any]} />
                 </View>
               )}
 
@@ -645,7 +655,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                     onPress={() => onSelectProduct(item)}
                     activeOpacity={0.8}
                   >
-                    <Image source={{ uri: item.image }} style={styles.recImage} resizeMode="cover" />
+                    <OptimizedImage url={item.image} style={styles.recImage} shouldLoad={true} />
                     <View style={styles.recInfo}>
                       <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
                       <Text style={styles.recPrice}>{formatPrice(item.price, countryCode)}</Text>
@@ -682,6 +692,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#291c0e",
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderRadius: 4,
+    marginTop: 20,
+  },
+  backBtnText: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,
