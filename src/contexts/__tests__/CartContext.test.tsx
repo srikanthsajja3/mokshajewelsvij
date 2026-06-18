@@ -31,15 +31,15 @@ const mockProduct = {
 };
 
 describe('CartContext', () => {
-  it('initializes with an empty cart', () => {
-    const { result } = renderHook(() => useCart(), { wrapper: CartProvider }) as any;
+  it('initializes with an empty cart', async () => {
+    const { result } = await renderHook(() => useCart(), { wrapper: CartProvider });
     expect(result.current.cart).toEqual([]);
     expect(result.current.cartCount).toBe(0);
     expect(result.current.cartTotal).toBe(0);
   });
 
   it('adds a product to the cart', async () => {
-    const { result } = renderHook(() => useCart(), { wrapper: CartProvider }) as any;
+    const { result } = await renderHook(() => useCart(), { wrapper: CartProvider });
 
     await act(async () => {
       await result.current.addToCart(mockProduct);
@@ -53,7 +53,7 @@ describe('CartContext', () => {
   });
 
   it('increments quantity when adding an existing product', async () => {
-    const { result } = renderHook(() => useCart(), { wrapper: CartProvider }) as any;
+    const { result } = await renderHook(() => useCart(), { wrapper: CartProvider });
 
     await act(async () => {
       await result.current.addToCart(mockProduct);
@@ -67,7 +67,7 @@ describe('CartContext', () => {
   });
 
   it('updates quantity of a product', async () => {
-    const { result } = renderHook(() => useCart(), { wrapper: CartProvider }) as any;
+    const { result } = await renderHook(() => useCart(), { wrapper: CartProvider });
 
     await act(async () => {
       await result.current.addToCart(mockProduct);
@@ -80,7 +80,7 @@ describe('CartContext', () => {
   });
 
   it('removes a product from the cart', async () => {
-    const { result } = renderHook(() => useCart(), { wrapper: CartProvider }) as any;
+    const { result } = await renderHook(() => useCart(), { wrapper: CartProvider });
 
     await act(async () => {
       await result.current.addToCart(mockProduct);
@@ -93,7 +93,7 @@ describe('CartContext', () => {
   });
 
   it('clears the cart', async () => {
-    const { result } = renderHook(() => useCart(), { wrapper: CartProvider }) as any;
+    const { result } = await renderHook(() => useCart(), { wrapper: CartProvider });
 
     await act(async () => {
       await result.current.addToCart(mockProduct);

@@ -433,24 +433,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   productCard: {
-    backgroundColor: "#1c140a",
-    borderRadius: 8,
+    backgroundColor: "#150d05", // Rich dark luxury background
+    borderRadius: 4, // Classic straight edges
     overflow: "hidden",
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.12)",
+    borderColor: "rgba(212, 175, 55, 0.08)",
     ...Platform.select({
       web: {
-        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
       }
     })
   },
   productCardHovered: {
-    borderColor: '#D4AF37',
+    borderColor: 'rgba(212, 175, 55, 0.6)',
     ...Platform.select({
       web: {
-        boxShadow: '0 8px 24px rgba(212, 175, 55, 0.18)',
-        transform: 'translateY(-4px)',
+        boxShadow: '0 12px 30px rgba(212, 175, 55, 0.12)',
+        transform: 'translateY(-6px)',
       }
     } as any)
   },
@@ -458,63 +458,75 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: 'rgba(212, 175, 55, 0.95)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
+    backgroundColor: 'rgba(21, 13, 5, 0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.5)',
+    borderRadius: 2,
     zIndex: 10,
   },
   hallmarkBadgeText: {
-    color: '#000',
-    fontSize: 7.5,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    color: '#D4AF37',
+    fontSize: 8,
+    fontWeight: 'bold',
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   imageContainer: {
     position: "relative",
+    backgroundColor: "#201409",
   },
   productImage: {
     width: "100%",
-    height: 145,
+    height: 160, // Taller image for better jewelry visibility
   },
   wishlistIcon: {
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    backgroundColor: "rgba(21, 13, 5, 0.6)",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.25)",
   },
   heart: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
   },
   heartActive: {
     color: "#D4AF37",
   },
   productInfo: {
-    padding: 10,
+    padding: 12,
+    alignItems: "center", // Symmetric centered details for classic luxury look
   },
   productName: {
     color: "#fff",
-    fontSize: 11.5,
-    fontWeight: "bold",
-    marginBottom: 3,
-    letterSpacing: 0.5,
+    fontSize: 12,
+    fontFamily: "TrajanPro", // High-end brand font
+    marginBottom: 4,
+    letterSpacing: 1,
+    textAlign: "center",
   },
   productWeight: {
-    color: "#aaa",
+    color: "#a8927e", // Elegant muted text
     fontSize: 9.5,
-    marginBottom: 4,
+    marginBottom: 5,
+    letterSpacing: 0.5,
+    textAlign: "center",
   },
   productPrice: {
     color: "#D4AF37",
-    fontSize: 12.5,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontFamily: "TrajanPro",
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textAlign: "center",
   },
   emptyContainer: {
     padding: 40,
@@ -545,25 +557,34 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   addToCartBtn: {
-    marginTop: 8,
+    marginTop: 12,
+    width: '100%',
     borderWidth: 1,
-    borderColor: "#D4AF37",
-    paddingVertical: 6,
-    borderRadius: 4,
+    borderColor: "rgba(212, 175, 55, 0.4)",
+    paddingVertical: 8,
+    borderRadius: 2,
     alignItems: "center",
+    backgroundColor: "transparent",
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+      }
+    })
   },
   addToCartBtnSuccess: {
-    backgroundColor: "#D4AF37",
+    backgroundColor: "rgba(212, 175, 55, 0.12)",
+    borderColor: "#D4AF37",
   },
   addToCartBtnText: {
     color: "#D4AF37",
-    fontSize: 9.5,
+    fontSize: 9,
+    fontFamily: "TrajanPro",
     fontWeight: "bold",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   addToCartBtnTextSuccess: {
-    color: "#000",
+    color: "#fff",
   }
 });
 
