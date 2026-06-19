@@ -261,6 +261,7 @@ const ProductList: React.FC<ProductListProps> = ({
       result = result.filter(p => {
         return (p.type?.toLowerCase() === sub) || 
                (p.category?.toLowerCase() === sub) ||
+               (p.collection?.toLowerCase() === sub) ||
                (p.name?.toLowerCase().includes(sub));
       });
     }
@@ -502,21 +503,22 @@ const styles = StyleSheet.create({
     color: "#D4AF37",
   },
   productInfo: {
-    padding: 12,
+    padding: 18,
+    paddingTop: 12,
     alignItems: "center", // Symmetric centered details for classic luxury look
   },
   productName: {
     color: "#fff",
     fontSize: 12,
     fontFamily: "TrajanPro", // High-end brand font
-    marginBottom: 4,
+    marginBottom: 6,
     letterSpacing: 1,
     textAlign: "center",
   },
   productWeight: {
     color: "#a8927e", // Elegant muted text
     fontSize: 9.5,
-    marginBottom: 5,
+    marginBottom: 8,
     letterSpacing: 0.5,
     textAlign: "center",
   },
@@ -527,6 +529,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.5,
     textAlign: "center",
+    marginBottom: 4, // Added margin to space out the button
   },
   emptyContainer: {
     padding: 40,
@@ -559,32 +562,36 @@ const styles = StyleSheet.create({
   addToCartBtn: {
     marginTop: 12,
     width: '100%',
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.4)",
-    paddingVertical: 8,
-    borderRadius: 2,
+    paddingVertical: 12,
+    borderRadius: 25,
     alignItems: "center",
-    backgroundColor: "transparent",
+    backgroundColor: "#D4AF37",
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 3,
     ...Platform.select({
       web: {
         transition: 'all 0.2s ease',
+        cursor: 'pointer',
       }
     })
   },
   addToCartBtnSuccess: {
-    backgroundColor: "rgba(212, 175, 55, 0.12)",
+    backgroundColor: "#291c0e",
+    borderWidth: 1,
     borderColor: "#D4AF37",
   },
   addToCartBtnText: {
-    color: "#D4AF37",
-    fontSize: 9,
-    fontFamily: "TrajanPro",
+    color: "#291c0e",
+    fontSize: 10.5,
     fontWeight: "bold",
     textTransform: "uppercase",
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
   addToCartBtnTextSuccess: {
-    color: "#fff",
+    color: "#D4AF37",
   }
 });
 

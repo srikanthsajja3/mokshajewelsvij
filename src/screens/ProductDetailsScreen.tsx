@@ -18,7 +18,7 @@ import { useNavigation, useRoute, RouteProp, NavigationProp } from "@react-navig
 import { RootStackParamList } from "../navigation/types";
 
 import { useUI } from "../contexts/UIContext";
-
+import { useGoldRate } from "../contexts/GoldRateContext";
 import { fetchProductById } from "../data/products";
 
 interface ProductDetailsScreenProps {
@@ -67,7 +67,9 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const scrollRef = useRef<any>(null);
+  const imageScrollRef = useRef<ScrollView>(null);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
+  const [suiteItems, setSuiteItems] = useState<Product[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
   const [showAddedMsg, setShowAddedMsg] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -76,6 +78,84 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const [hasPurchased, setHasPurchased] = useState(false);
 
   const [activeImageIndex, setActiveIndex] = useState(0);
+
+  // Dynamic Gold Rate Purity & Pricing states
+  const { rates, getLocalizedRate } = useGoldRate();
+  const [selectedPurity, setSelectedPurity] = useState<string>("22K");
+  const [engravingText, setEngravingText] = useState<string>("");
+  const [priceAlertSubscribed, setPriceAlertSubscribed] = useState<boolean>(false);
+  const [selectedSize, setSelectedSize] = useState<number>(7);
+  const [isSizeFinderVisible, setIsSizeFinderVisible] = useState<boolean>(false);
+  const [sizeFinderDiameter, setSizeFinderDiameter] = useState<number>(17.3); // Default size 7 has 17.3mm diameter
+  const [addGiftWrapping, setAddGiftWrapping] = useState<boolean>(false);
+  const [giftMessage, setGiftMessage] = useState<string>("");
+  const [giftOptionsExpanded, setGiftOptionsExpanded] = useState<boolean>(false);
+
+  const jewelryType = useMemo(() => {
+    if (!product) return "";
+    return (product.type || product.name || '').toLowerCase();
+  }, [product]);
+
+  useEffect(() => {
+    if (product) {
+      let p = product.purity || "22K";
+      p = p.replace(/\s+/g, "").toUpperCase();
+      if (p.endsWith("KT")) p = p.slice(0, -2) + "K";
+      setSelectedPurity(p);
+    }
+  }, [product]);
+
+  const dynamicPriceInfo = useMemo(() => {
+    if (!product || !selectedPurity) return null;
+    
+    const cleanedPurity = selectedPurity.replace(/\s+/g, "").toUpperCase();
+    const targetRateObj = rates.find(r => r.purity.replace(/\s+/g, "").toUpperCase() === cleanedPurity || r.purity.replace(/\s+/g, "").toUpperCase() === cleanedPurity.replace("KT", "K"));
+    
+    // Fallback gold rates if fetch failed or loading
+    const baseRatePerGram = targetRateObj ? targetRateObj.rate : (cleanedPurity.startsWith("18") ? 75 * 0.75 : 75 * 0.9167);
+    
+    const metalCost = product.goldWeight * baseRatePerGram;
+    const vaMaking = product.priceBreakup?.vaMaking || 0;
+    const stoneBeads = product.priceBreakup?.stoneBeads || 0;
+    const tax = product.priceBreakup?.tax || 0;
+    
+    let total = metalCost + vaMaking + stoneBeads + tax;
+    if (addGiftWrapping) {
+      total += 10.00; // Gift wrap fee
+    }
+    
+    return {
+      metalCost,
+      vaMaking,
+      stoneBeads,
+      tax,
+      total
+    };
+  }, [product, selectedPurity, rates, addGiftWrapping]);
+
+  const handlePriceAlertToggle = () => {
+    setPriceAlertSubscribed(prev => !prev);
+    Alert.alert(
+      !priceAlertSubscribed ? "Alert Set" : "Alert Off",
+      !priceAlertSubscribed 
+        ? "We'll notify you if the price of this item drops based on live gold market changes!"
+        : "You have unsubscribed from price drop notifications for this item."
+    );
+  };
+
+  const handleShareRegistry = () => {
+    Alert.alert(
+      "Share Registry Item",
+      "Product link copied! Share this with friends or family so they know what you'd like on your registry."
+    );
+  };
+
+  const handleWhatsAppConsultation = () => {
+    Alert.alert(
+      "Live Jeweler Consultation",
+      "Opening WhatsApp to connect you with our lead jewelry consultant..."
+    );
+  };
 
   const allImages = useMemo(() => {
     if (!product) return [];
@@ -88,16 +168,36 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
   const [isViewerVisible, setIsViewerVisible] = useState(false);
 
+  const isLargeScreen = width > 700;
+
+  const thumbnailWidth = 64;
+  const thumbnailSpacing = 12;
+  const mainImageWidth = isLargeScreen 
+    ? (width * 0.5 - 40) - (allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0)
+    : (width - 40);
+
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
-    const itemWidth = isLargeScreen ? (width * 0.5 - 40) : (width - 40);
-    const index = Math.round(scrollPosition / itemWidth);
+    const index = Math.round(scrollPosition / mainImageWidth);
     if (index !== activeImageIndex) {
       setActiveIndex(index);
     }
   };
 
-  const isLargeScreen = width > 700;
+  const handleThumbnailPress = (index: number) => {
+    setActiveIndex(index);
+    imageScrollRef.current?.scrollTo({ x: index * mainImageWidth, animated: true });
+  };
+
+  const isARSupported = useMemo(() => {
+    if (!product) return false;
+    const jewelryType = (product.type || product.name || '').toLowerCase();
+    return jewelryType.includes('ring') || 
+           jewelryType.includes('bracelet') || 
+           jewelryType.includes('earring') || 
+           jewelryType.includes('necklace') || 
+           jewelryType.includes('pendant');
+  }, [product]);
   
   const contentStyle: ViewStyle = isLargeScreen 
     ? { width: "100%", alignSelf: "flex-start", flexDirection: "row" as const } 
@@ -116,14 +216,55 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
     const loadRecommendations = async () => {
       setLoadingRecs(true);
-      const data = await fetchProductsFromSupabase(product.category);
-      // Filter out current product and take top 4
-      setRecommendations(data.filter(p => p.id !== product.id).slice(0, 4));
-      setLoadingRecs(false);
+      try {
+        const data = await fetchProductsFromSupabase("All");
+        
+        // Find items in matching suite
+        const matchingSuite = data.filter(p => {
+          if (p.id === product.id) return false;
+          
+          // 1. Same collection (e.g. "Trinity", "Butterfly")
+          if (product.collection && p.collection && p.collection.toLowerCase() === product.collection.toLowerCase()) {
+            return true;
+          }
+          
+          // 2. Same design theme (e.g. "Floral", "Temple", "Antique")
+          if (product.designTheme && p.designTheme && p.designTheme.toLowerCase() === product.designTheme.toLowerCase()) {
+            return true;
+          }
+          
+          // 3. Name word similarities
+          const productWords = product.name.toLowerCase()
+            .split(/\s+/)
+            .filter(w => w.length > 3 && w !== 'ring' && w !== 'necklace' && w !== 'earring' && w !== 'earrings' && w !== 'bangles' && w !== 'pendant');
+          const pWords = p.name.toLowerCase().split(/\s+/);
+          const hasCommonWord = productWords.some(word => pWords.includes(word));
+          
+          return hasCommonWord;
+        });
+
+        // recommendations: fallback to same category products
+        const categoryMates = data.filter(p => p.category === product.category && p.id !== product.id);
+        
+        // Merge suite items and category mates, avoiding duplicates
+        const combined = [...matchingSuite];
+        categoryMates.forEach(item => {
+          if (!combined.some(c => c.id === item.id)) {
+            combined.push(item);
+          }
+        });
+
+        setRecommendations(combined.slice(0, 6));
+        setSuiteItems(matchingSuite.slice(0, 4));
+      } catch (err) {
+        console.error("Error loading recommendations:", err);
+      } finally {
+        setLoadingRecs(false);
+      }
     };
 
     loadRecommendations();
-  }, [product?.id, product?.category]);
+  }, [product?.id, product?.category, product?.collection, product?.designTheme, product?.name]);
 
   useEffect(() => {
     if (!product?.id) return;
@@ -337,57 +478,139 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Live Gold Rate Ticker */}
+        <View style={styles.goldTicker}>
+          <View style={styles.goldTickerTrack}>
+            <FontAwesome5 name="chart-line" size={10} color="#291c0e" style={{ marginRight: 6 }} />
+            <Text style={styles.goldTickerText}>
+              Live Gold Rates (g) — 24K: {getLocalizedRate(rates.find(r => r.purity === '24K')?.rate || 75)}  |  22K: {getLocalizedRate(rates.find(r => r.purity === '22K')?.rate || 75 * 0.9167)}  |  18K: {getLocalizedRate(rates.find(r => r.purity === '18K')?.rate || 75 * 0.75)}
+            </Text>
+          </View>
+        </View>
+
         <View style={styles.contentWrapper}>
           <View style={[styles.mainContent, contentStyle]}>
             <View style={[styles.imageColumn, { width: isLargeScreen ? "50%" : "100%" }]}>
-              <View style={styles.imageSection}>
-                <ScrollView
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  onScroll={handleScroll}
-                  scrollEventThrottle={16}
-                >
-                    {allImages.map((img, index) => (
-                    <TouchableOpacity 
-                      key={index} 
-                      style={[styles.imageWrapper, { width: isLargeScreen ? (width * 0.5 - 40) : (width - 40) }]}
-                      activeOpacity={1}
-                      // @ts-ignore
-                      onMouseMove={handleMouseMove}
-                      // @ts-ignore
-                      onMouseLeave={() => setZoomData({ ...zoomData, visible: false })}
-                      onPress={() => {
-                        setActiveIndex(index);
-                        setIsViewerVisible(true);
-                      }}
+              <View style={{ flexDirection: isLargeScreen ? "row" : "column" }}>
+                {isLargeScreen && allImages.length > 1 && (
+                  <View style={styles.thumbnailColumn}>
+                    <ScrollView
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={styles.thumbnailScrollContent}
                     >
-                      <OptimizedImage url={img} style={styles.mainImage} shouldLoad={true} />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                {allImages.length > 1 && (
-                  <View style={styles.pagination}>
-                    {allImages.map((_, i) => (
-                      <View 
-                        key={i} 
-                        style={[
-                          styles.dot, 
-                          activeImageIndex === i && styles.activeDot
-                        ]} 
-                      />
-                    ))}
+                      {allImages.map((img, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={[
+                            styles.thumbnailCard,
+                            activeImageIndex === index && styles.activeThumbnailCard
+                          ]}
+                          onPress={() => handleThumbnailPress(index)}
+                          // @ts-ignore
+                          onMouseEnter={() => handleThumbnailPress(index)}
+                        >
+                          <OptimizedImage
+                            url={img}
+                            style={styles.thumbnailImage}
+                            contentFit="cover"
+                            shouldLoad={true}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
                   </View>
                 )}
 
-                <TouchableOpacity 
-                  style={styles.wishlistIcon} 
-                  onPress={handleWishlistToggle}
-                >
-                  <Text style={[styles.heart, isInWishlist(product.id) && styles.heartActive]}>
-                    {isInWishlist(product.id) ? "♥" : "♡"}
-                  </Text>
+                <View style={[styles.imageSection, { 
+                  width: mainImageWidth, 
+                  height: mainImageWidth,
+                }]}>
+                  <ScrollView
+                    ref={imageScrollRef}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                  >
+                      {allImages.map((img, index) => (
+                      <TouchableOpacity 
+                        key={index} 
+                        style={[
+                          styles.imageWrapper, 
+                          { 
+                            width: mainImageWidth,
+                            height: mainImageWidth
+                          }
+                        ]}
+                        activeOpacity={1}
+                        // @ts-ignore
+                        onMouseMove={handleMouseMove}
+                        // @ts-ignore
+                        onMouseLeave={() => setZoomData({ ...zoomData, visible: false })}
+                        onPress={() => {
+                          setActiveIndex(index);
+                          setIsViewerVisible(true);
+                        }}
+                      >
+                        <OptimizedImage 
+                          url={img} 
+                          style={styles.mainImage} 
+                          contentFit="contain" 
+                          shouldLoad={true} 
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {allImages.length > 1 && (
+                    <View style={styles.pagination}>
+                      {allImages.map((_, i) => (
+                        <View 
+                          key={i} 
+                          style={[
+                            styles.dot, 
+                            activeImageIndex === i && styles.activeDot
+                          ]} 
+                        />
+                      ))}
+                    </View>
+                  )}
+
+                  <TouchableOpacity 
+                    style={styles.wishlistIcon} 
+                    onPress={handleWishlistToggle}
+                  >
+                    <Text style={[styles.heart, isInWishlist(product.id) && styles.heartActive]}>
+                      {isInWishlist(product.id) ? "♥" : "♡"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Action Buttons under Image */}
+              <View style={[styles.imageActions, { 
+                marginLeft: isLargeScreen && allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0,
+                width: mainImageWidth,
+              }]}>
+                {isARSupported && (
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.arButton]} 
+                    onPress={() => navigation.navigate('ARTryOn', { product })}
+                  >
+                    <View style={styles.arButtonContent}>
+                      <FontAwesome5 name="camera" size={16} color="#291c0e" style={{ marginRight: 10 }} />
+                      <Text style={styles.actionButtonText}>Virtual Try-On (AR)</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
+                  <Text style={styles.actionButtonText}>Buy Now</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionButton, styles.addToCartButton]} onPress={handleAddToCart}>
+                  <Text style={styles.addToCartButtonText}>Add to Bag</Text>
                 </TouchableOpacity>
               </View>
 
@@ -429,6 +652,8 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                 <View style={[styles.zoomOverlay, { 
                   left: "105%", // Position it to the right of the image column
                   top: 0,
+                  width: 350,
+                  height: 350,
                 }]}>
                   <View style={[styles.zoomedImage, {
                     backgroundImage: `url(${allImages[activeImageIndex]})`,
@@ -437,24 +662,115 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                 </View>
               )}
 
-              {/* Action Buttons under Image */}
-              <View style={styles.imageActions}>
-                <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
-                  <Text style={styles.actionButtonText}>Buy Now</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.actionButton, styles.addToCartButton]} onPress={handleAddToCart}>
-                  <Text style={styles.addToCartButtonText}>Add to Bag</Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
             <View style={[styles.infoSection, { width: isLargeScreen ? "50%" : "100%" }]}>
               <Text style={styles.categoryBadge}>{product.category}</Text>
               <Text style={styles.productName}>{product.name}</Text>
               <Text style={styles.productCode}>Product Code: {product.productCode}</Text>
-              <Text style={styles.price}>{formatPrice(product.price, countryCode)}</Text>
               
+              {/* Dynamic Price Display, Split Payments, and Price Drop Alert */}
+              <View style={styles.priceContainer}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.price}>
+                    {formatPrice(dynamicPriceInfo?.total || product.price, countryCode)}
+                  </Text>
+                  <View style={styles.splitPaymentContainer}>
+                    <FontAwesome5 name="credit-card" size={10} color="#D4AF37" style={{ marginRight: 6 }} />
+                    <Text style={styles.splitPaymentText}>
+                      Or 3 splits of <Text style={styles.splitPaymentHighlight}>{formatPrice((dynamicPriceInfo?.total || product.price) / 3, countryCode)}/mo</Text>
+                    </Text>
+                  </View>
+                </View>
+                
+                <TouchableOpacity 
+                  style={[styles.priceAlertBtn, priceAlertSubscribed && styles.priceAlertBtnActive]} 
+                  onPress={handlePriceAlertToggle}
+                >
+                  <FontAwesome5 
+                    name="bell" 
+                    size={12} 
+                    color={priceAlertSubscribed ? "#291c0e" : "#D4AF37"} 
+                    solid={priceAlertSubscribed}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[styles.priceAlertText, priceAlertSubscribed && styles.priceAlertActiveText]}>
+                    {priceAlertSubscribed ? "Alert On" : "Price Alert"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.divider} />
+
+              {/* Product Configurations section */}
+              <View style={styles.configContainer}>
+                {/* 1. Gold Purity Swapper */}
+                <View style={styles.configSection}>
+                  <Text style={styles.configTitle}>Gold Purity</Text>
+                  <View style={styles.purityRow}>
+                    {['18K', '22K'].map((purity) => (
+                      <TouchableOpacity
+                        key={purity}
+                        style={[styles.purityBadge, selectedPurity === purity && styles.activePurityBadge]}
+                        onPress={() => setSelectedPurity(purity)}
+                      >
+                        <Text style={[styles.purityText, selectedPurity === purity && styles.activePurityText]}>
+                          {purity} Gold
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* 2. Size Selector & Interactive Finder */}
+                {jewelryType.includes('ring') && (
+                  <View style={styles.configSection}>
+                    <View style={styles.sizeHeaderRow}>
+                      <Text style={styles.configTitle}>Ring Size</Text>
+                      <TouchableOpacity onPress={() => setIsSizeFinderVisible(true)}>
+                        <Text style={styles.sizeFinderLink}>📐 Find My Size</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.sizeRow}>
+                      {[6, 7, 8, 9, 10].map((sz) => (
+                        <TouchableOpacity
+                          key={sz}
+                          style={[styles.sizeBadge, selectedSize === sz && styles.activeSizeBadge]}
+                          onPress={() => setSelectedSize(sz)}
+                        >
+                          <Text style={[styles.sizeText, selectedSize === sz && styles.activeSizeText]}>
+                            {sz}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* 3. Engraving Preview */}
+                {(jewelryType.includes('ring') || jewelryType.includes('pendant') || jewelryType.includes('necklace')) && (
+                  <View style={styles.configSection}>
+                    <Text style={styles.configTitle}>Custom Engraving (Free)</Text>
+                    <TextInput
+                      style={styles.engravingInput}
+                      placeholder="Type initials or a message to engrave..."
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      maxLength={15}
+                      value={engravingText}
+                      onChangeText={setEngravingText}
+                    />
+                    {engravingText.length > 0 && (
+                      <View style={styles.engravingPreview}>
+                        <Text style={styles.engravingPreviewLabel}>Laser Engraving Preview:</Text>
+                        <View style={styles.ringPreviewBand}>
+                          <Text style={styles.ringPreviewText}>{engravingText}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
               <View style={styles.divider} />
               
               <View style={styles.section}>
@@ -534,25 +850,61 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                 ) : null}
 
                 <AccordionSection id="price" title="Price Breakup">
+                  {/* Visual Stacked Bar Chart */}
+                  <View style={styles.priceChartContainer}>
+                    <View style={styles.chartStack}>
+                      <View style={[styles.chartBar, { flex: Math.max(1, dynamicPriceInfo?.metalCost || 0), backgroundColor: '#D4AF37' }]} />
+                      <View style={[styles.chartBar, { flex: Math.max(1, dynamicPriceInfo?.vaMaking || 0), backgroundColor: '#4a3520' }]} />
+                      <View style={[styles.chartBar, { flex: Math.max(1, dynamicPriceInfo?.stoneBeads || 0), backgroundColor: '#ffffff' }]} />
+                      <View style={[styles.chartBar, { flex: Math.max(1, dynamicPriceInfo?.tax || 0), backgroundColor: '#777777' }]} />
+                    </View>
+                    <View style={styles.chartLegend}>
+                      <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#D4AF37' }]} />
+                        <Text style={styles.legendText}>Gold: {formatPrice(dynamicPriceInfo?.metalCost || 0, countryCode)}</Text>
+                      </View>
+                      <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#4a3520' }]} />
+                        <Text style={styles.legendText}>Making: {formatPrice(dynamicPriceInfo?.vaMaking || 0, countryCode)}</Text>
+                      </View>
+                      <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#ffffff' }]} />
+                        <Text style={styles.legendText}>Stones: {formatPrice(dynamicPriceInfo?.stoneBeads || 0, countryCode)}</Text>
+                      </View>
+                      <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#777777' }]} />
+                        <Text style={styles.legendText}>Tax: {formatPrice(dynamicPriceInfo?.tax || 0, countryCode)}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={[styles.divider, { marginVertical: 15 }]} />
+
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Metal</Text>
-                    <Text style={styles.priceValue}>{formatPrice(product.priceBreakup?.metal || 0, countryCode)}</Text>
+                    <Text style={styles.priceLabel}>Metal Cost ({selectedPurity})</Text>
+                    <Text style={styles.priceValue}>{formatPrice(dynamicPriceInfo?.metalCost || 0, countryCode)}</Text>
                   </View>
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>VA & Making</Text>
-                    <Text style={styles.priceValue}>{formatPrice(product.priceBreakup?.vaMaking || 0, countryCode)}</Text>
+                    <Text style={styles.priceLabel}>VA & Making Charges</Text>
+                    <Text style={styles.priceValue}>{formatPrice(dynamicPriceInfo?.vaMaking || 0, countryCode)}</Text>
                   </View>
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Stone, Beeds, Etc</Text>
-                    <Text style={styles.priceValue}>{formatPrice(product.priceBreakup?.stoneBeads || 0, countryCode)}</Text>
+                    <Text style={styles.priceLabel}>Gemstones & Beads</Text>
+                    <Text style={styles.priceValue}>{formatPrice(dynamicPriceInfo?.stoneBeads || 0, countryCode)}</Text>
                   </View>
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Tax</Text>
-                    <Text style={styles.priceValue}>{formatPrice(product.priceBreakup?.tax || 0, countryCode)}</Text>
+                    <Text style={styles.priceLabel}>Tax & GST (3%)</Text>
+                    <Text style={styles.priceValue}>{formatPrice(dynamicPriceInfo?.tax || 0, countryCode)}</Text>
                   </View>
+                  {addGiftWrapping && (
+                    <View style={styles.priceRow}>
+                      <Text style={styles.priceLabel}>Luxury Wrapping Fee</Text>
+                      <Text style={styles.priceValue}>{formatPrice(10.00, countryCode)}</Text>
+                    </View>
+                  )}
                   <View style={[styles.priceRow, styles.totalRow]}>
-                    <Text style={styles.totalLabel}>Total</Text>
-                    <Text style={styles.totalValue}>{formatPrice(product.price || 0, countryCode)}</Text>
+                    <Text style={styles.totalLabel}>Total Price</Text>
+                    <Text style={styles.totalValue}>{formatPrice(dynamicPriceInfo?.total || product.price, countryCode)}</Text>
                   </View>
                 </AccordionSection>
               </View>
@@ -564,6 +916,61 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                   {isInWishlist(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                 </Text>
               </TouchableOpacity>
+
+              {/* Gifting & Collaboration Card */}
+              <View style={styles.giftCard}>
+                <TouchableOpacity 
+                  style={styles.giftCardHeader} 
+                  onPress={() => setGiftOptionsExpanded(!giftOptionsExpanded)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <FontAwesome5 name="gift" size={14} color="#D4AF37" style={{ marginRight: 8 }} />
+                    <Text style={styles.giftCardTitle}>Luxury Gift Packaging & Card (+ $10.00)</Text>
+                  </View>
+                  <FontAwesome5 
+                    name={giftOptionsExpanded ? "chevron-up" : "chevron-down"} 
+                    size={10} 
+                    color="#D4AF37" 
+                  />
+                </TouchableOpacity>
+                {giftOptionsExpanded && (
+                  <View style={styles.giftCardContent}>
+                    <TouchableOpacity 
+                      style={styles.giftCheckboxRow}
+                      onPress={() => setAddGiftWrapping(!addGiftWrapping)}
+                    >
+                      <View style={[styles.customCheckbox, addGiftWrapping && styles.customCheckboxChecked]}>
+                        {addGiftWrapping && <FontAwesome5 name="check" size={8} color="#291c0e" />}
+                      </View>
+                      <Text style={styles.giftCheckboxText}>Add Premium Velvet Box & Gift Wrap</Text>
+                    </TouchableOpacity>
+                    
+                    <Text style={styles.giftMsgLabel}>Add Handwritten Note (Optional):</Text>
+                    <TextInput
+                      style={styles.giftMsgInput}
+                      placeholder="E.g. With love, today and always..."
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      multiline
+                      numberOfLines={2}
+                      value={giftMessage}
+                      onChangeText={setGiftMessage}
+                    />
+                  </View>
+                )}
+              </View>
+
+              {/* Engagement Controls */}
+              <View style={styles.engagementRow}>
+                <TouchableOpacity style={styles.engagementBtn} onPress={handleShareRegistry}>
+                  <FontAwesome5 name="share-alt" size={12} color="#D4AF37" style={{ marginRight: 6 }} />
+                  <Text style={styles.engagementBtnText}>Share Registry</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.engagementBtn, styles.whatsappConsultBtn]} onPress={handleWhatsAppConsultation}>
+                  <FontAwesome5 name="whatsapp" size={12} color="#25D366" style={{ marginRight: 6 }} />
+                  <Text style={[styles.engagementBtnText, { color: '#25D366' }]}>Live Jeweler</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -633,6 +1040,57 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
             </View>
           </View>
 
+          {/* Complete the Suite / Matching Items Section */}
+          {suiteItems.length > 0 ? (
+            <View style={styles.suiteSection}>
+              <Text style={styles.suiteTitle}>Complete the Suite</Text>
+              <Text style={styles.suiteSubtitle}>Pair this masterpiece with coordinating items designed to match</Text>
+              
+              <View style={styles.suiteContainer}>
+                {suiteItems.map((item) => (
+                  <View key={item.id} style={styles.suiteCard}>
+                    <TouchableOpacity 
+                      style={styles.suiteCardHeader}
+                      onPress={() => onSelectProduct(item)}
+                      activeOpacity={0.8}
+                    >
+                      <OptimizedImage url={item.image} style={styles.suiteImage} shouldLoad={true} />
+                      <View style={styles.suiteCardInfo}>
+                        <Text style={styles.suiteCardName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.suiteCardMeta}>{item.grossWeight.toFixed(2)}g | {item.category}</Text>
+                        <Text style={styles.suiteCardPrice}>{formatPrice(item.price, countryCode)}</Text>
+                      </View>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={styles.suiteAddBtn}
+                      onPress={() => {
+                        addToCart(item);
+                        Alert.alert("Added Matching Piece", `${item.name} has been added to your bag.`);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.suiteAddBtnText}>Add Matching Piece</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+              
+              {suiteItems.length > 1 && (
+                <TouchableOpacity 
+                  style={styles.addAllSuiteBtn}
+                  onPress={() => {
+                    suiteItems.forEach(item => addToCart(item));
+                    Alert.alert("Entire Suite Added", "Coordinating items have been added to your bag.");
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.addAllSuiteBtnText}>Add Complete Look to Bag</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
+
           {/* Recommendations Section */}
           {recommendations.length > 0 ? (
             <View style={styles.recommendationsSection}>
@@ -684,6 +1142,110 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
         <Footer />
       </Animated.ScrollView>
+
+      {/* Interactive Size Finder Modal */}
+      <Modal
+        visible={isSizeFinderVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsSizeFinderVisible(false)}
+      >
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.sizeFinderCard}>
+            <View style={styles.sizeFinderHeader}>
+              <Text style={styles.sizeFinderTitle}>Ring Size Finder</Text>
+              <TouchableOpacity onPress={() => setIsSizeFinderVisible(false)}>
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView contentContainerStyle={styles.sizeFinderContent}>
+              <Text style={styles.sizeFinderInstruction}>
+                Place a ring you already own directly onto the circle below. Adjust the slider until the outer golden edge matches the inside of your ring perfectly.
+              </Text>
+              
+              <View style={styles.circleContainer}>
+                {/* Measuring Circle */}
+                <View 
+                  style={[
+                    styles.measuringCircle, 
+                    { 
+                      width: sizeFinderDiameter * 6, // scaling factor
+                      height: sizeFinderDiameter * 6,
+                      borderRadius: (sizeFinderDiameter * 6) / 2
+                    }
+                  ]} 
+                />
+                <Text style={styles.diameterText}>{sizeFinderDiameter.toFixed(1)} mm</Text>
+              </View>
+
+              {/* Slider steps */}
+              <View style={styles.sliderContainer}>
+                <Text style={{ color: '#fff', fontSize: 12, marginBottom: 5 }}>Adjust Circle Size:</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', marginRight: 10 }}>Min</Text>
+                  
+                  <TouchableOpacity 
+                    style={styles.stepBtn}
+                    onPress={() => setSizeFinderDiameter(prev => Math.max(14, prev - 0.2))}
+                  >
+                    <Text style={styles.stepBtnText}>-</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.sliderBar}>
+                    <View style={[styles.sliderFill, { width: `${((sizeFinderDiameter - 14) / 8) * 100}%` }]} />
+                  </View>
+
+                  <TouchableOpacity 
+                    style={styles.stepBtn}
+                    onPress={() => setSizeFinderDiameter(prev => Math.min(22, prev + 0.2))}
+                  >
+                    <Text style={styles.stepBtnText}>+</Text>
+                  </TouchableOpacity>
+                  
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', marginLeft: 10 }}>Max</Text>
+                </View>
+              </View>
+
+              {/* Estimated Size Output */}
+              <View style={styles.sizeFinderResult}>
+                <Text style={styles.resultLabel}>Estimated Ring Size:</Text>
+                <Text style={styles.resultValue}>
+                  {sizeFinderDiameter < 15.0 ? "Size 4" :
+                   sizeFinderDiameter < 15.7 ? "Size 5" :
+                   sizeFinderDiameter < 16.5 ? "Size 6" :
+                   sizeFinderDiameter < 17.3 ? "Size 7" :
+                   sizeFinderDiameter < 18.2 ? "Size 8" :
+                   sizeFinderDiameter < 19.0 ? "Size 9" :
+                   sizeFinderDiameter < 19.8 ? "Size 10" :
+                   sizeFinderDiameter < 20.6 ? "Size 11" :
+                   "Size 12"}
+                </Text>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.selectSizeBtn} 
+                onPress={() => {
+                  let est = 7;
+                  if (sizeFinderDiameter < 15.0) est = 4;
+                  else if (sizeFinderDiameter < 15.7) est = 5;
+                  else if (sizeFinderDiameter < 16.5) est = 6;
+                  else if (sizeFinderDiameter < 17.3) est = 7;
+                  else if (sizeFinderDiameter < 18.2) est = 8;
+                  else if (sizeFinderDiameter < 19.0) est = 9;
+                  else if (sizeFinderDiameter < 19.8) est = 10;
+                  else if (sizeFinderDiameter < 20.6) est = 11;
+                  else est = 12;
+                  setSelectedSize(est);
+                  setIsSizeFinderVisible(false);
+                }}
+              >
+                <Text style={styles.selectSizeBtnText}>Select This Size</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 };
@@ -754,17 +1316,46 @@ const styles = StyleSheet.create({
     position: "relative", // Crucial for absolute positioning of the zoom overlay
     zIndex: 10,
   },
+  thumbnailColumn: {
+    width: 64,
+    marginRight: 12,
+    alignItems: 'center',
+  },
+  thumbnailScrollContent: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  thumbnailCard: {
+    width: 64,
+    height: 64,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.15)',
+    overflow: 'hidden',
+    backgroundColor: '#201409',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }
+    })
+  },
+  activeThumbnailCard: {
+    borderColor: '#D4AF37',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
   imageSection: {
     borderRadius: 15,
-    height: 320,
     overflow: "hidden",
-    backgroundColor: "#3d2b1a",
+    backgroundColor: "#1a120b",
     borderWidth: 1,
     borderColor: "#4a3520",
     position: "relative",
   },
   imageWrapper: {
-    height: 320,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -796,7 +1387,6 @@ const styles = StyleSheet.create({
   mainImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
   },
   wishlistIcon: {
     position: "absolute",
@@ -819,9 +1409,7 @@ const styles = StyleSheet.create({
   zoomOverlay: {
     position: "absolute",
     top: 0,
-    width: 400,
-    height: 400,
-    backgroundColor: "#3d2b1a",
+    backgroundColor: "#1a120b",
     borderWidth: 2,
     borderColor: "#D4AF37",
     borderRadius: 8,
@@ -838,7 +1426,7 @@ const styles = StyleSheet.create({
   zoomedImage: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#fff", // Fallback color
+    backgroundColor: "#1a120b", // Match the dark background
     // @ts-ignore
     backgroundRepeat: 'no-repeat',
     // @ts-ignore
@@ -1206,7 +1794,546 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     textAlign: "center",
     padding: 20,
-  }
+  },
+  goldTicker: {
+    backgroundColor: "#D4AF37",
+    paddingVertical: 6,
+    width: "100%",
+    alignItems: "center",
+  },
+  goldTickerTrack: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  goldTickerText: {
+    color: "#291c0e",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  priceContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "rgba(212,175,55,0.05)",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.15)",
+  },
+  priceAlertBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D4AF37",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: "transparent",
+  },
+  priceAlertBtnActive: {
+    backgroundColor: "#D4AF37",
+  },
+  priceAlertText: {
+    color: "#D4AF37",
+    fontSize: 11,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  priceAlertActiveText: {
+    color: "#291c0e",
+  },
+  splitPaymentContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  splitPaymentText: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 11,
+  },
+  splitPaymentHighlight: {
+    color: "#D4AF37",
+    fontWeight: "bold",
+  },
+  configContainer: {
+    gap: 15,
+  },
+  configSection: {
+    gap: 8,
+  },
+  configTitle: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  purityRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  purityBadge: {
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    backgroundColor: "transparent",
+  },
+  activePurityBadge: {
+    borderColor: "#D4AF37",
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
+  },
+  purityText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  activePurityText: {
+    color: "#D4AF37",
+  },
+  sizeHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sizeFinderLink: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "bold",
+    textDecorationLine: "underline",
+  },
+  sizeRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  sizeBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  activeSizeBadge: {
+    borderColor: "#D4AF37",
+    backgroundColor: "#D4AF37",
+  },
+  sizeText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "bold",
+  },
+  activeSizeText: {
+    color: "#291c0e",
+  },
+  engravingInput: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.2)",
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    color: "#fff",
+    fontSize: 13,
+  },
+  engravingPreview: {
+    backgroundColor: "rgba(0,0,0,0.2)",
+    padding: 10,
+    borderRadius: 6,
+    marginTop: 5,
+    alignItems: "center",
+  },
+  engravingPreviewLabel: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 10,
+    marginBottom: 6,
+  },
+  ringPreviewBand: {
+    borderWidth: 3,
+    borderColor: "#D4AF37",
+    borderStyle: "solid",
+    paddingVertical: 6,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    backgroundColor: "rgba(212,175,55,0.05)",
+    shadowColor: "#D4AF37",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    alignItems: "center",
+  },
+  ringPreviewText: {
+    color: "#D4AF37",
+    fontStyle: "italic",
+    fontSize: 13,
+    letterSpacing: 1.5,
+    textShadowColor: "rgba(212, 175, 55, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  priceChartContainer: {
+    marginTop: 5,
+    gap: 10,
+  },
+  chartStack: {
+    height: 10,
+    flexDirection: "row",
+    borderRadius: 5,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  chartBar: {
+    height: "100%",
+  },
+  chartLegend: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  legendText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 11,
+  },
+  giftCard: {
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.2)",
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "rgba(212,175,55,0.02)",
+  },
+  giftCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+    backgroundColor: "rgba(212,175,55,0.04)",
+  },
+  giftCardTitle: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  giftCardContent: {
+    padding: 14,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(212,175,55,0.1)",
+  },
+  giftCheckboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  customCheckbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
+    borderWidth: 1.5,
+    borderColor: "#D4AF37",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  customCheckboxChecked: {
+    backgroundColor: "#D4AF37",
+  },
+  giftCheckboxText: {
+    color: "#fff",
+    fontSize: 12,
+  },
+  giftMsgLabel: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 11,
+    marginTop: 4,
+  },
+  giftMsgInput: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    color: "#fff",
+    padding: 8,
+    fontSize: 12,
+    height: 50,
+    textAlignVertical: "top",
+  },
+  engagementRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 15,
+  },
+  engagementBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#D4AF37",
+    paddingVertical: 12,
+    borderRadius: 6,
+    backgroundColor: "transparent",
+  },
+  engagementBtnText: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  whatsappConsultBtn: {
+    borderColor: "#25D366",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  sizeFinderCard: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: "#291c0e",
+    borderWidth: 1.5,
+    borderColor: "#D4AF37",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  sizeFinderHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212,175,55,0.15)",
+    backgroundColor: "rgba(212,175,55,0.04)",
+  },
+  sizeFinderTitle: {
+    color: "#D4AF37",
+    fontSize: 16,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sizeFinderContent: {
+    padding: 20,
+    alignItems: "center",
+    gap: 15,
+  },
+  sizeFinderInstruction: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  circleContainer: {
+    width: 200,
+    height: 180,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  measuringCircle: {
+    borderWidth: 3,
+    borderColor: "#D4AF37",
+    backgroundColor: "transparent",
+  },
+  diameterText: {
+    color: "#D4AF37",
+    fontSize: 13,
+    fontWeight: "bold",
+    marginTop: 10,
+  },
+  sliderContainer: {
+    width: "100%",
+    marginTop: 10,
+  },
+  stepBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(212,175,55,0.2)",
+    borderWidth: 1,
+    borderColor: "#D4AF37",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepBtnText: {
+    color: "#D4AF37",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  sliderBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 3,
+    marginHorizontal: 12,
+    overflow: "hidden",
+  },
+  sliderFill: {
+    height: "100%",
+    backgroundColor: "#D4AF37",
+  },
+  sizeFinderResult: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(212,175,55,0.05)",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.15)",
+    width: "100%",
+    justifyContent: "center",
+  },
+  resultLabel: {
+    color: "#fff",
+    fontSize: 13,
+  },
+  resultValue: {
+    color: "#D4AF37",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  selectSizeBtn: {
+    backgroundColor: "#D4AF37",
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    width: "100%",
+    marginTop: 10,
+  },
+  selectSizeBtnText: {
+    color: "#291c0e",
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  // Suite / Complete the look styles
+  suiteSection: {
+    marginTop: 20,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(212, 175, 55, 0.15)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212, 175, 55, 0.15)",
+  },
+  suiteTitle: {
+    fontFamily: "TrajanPro",
+    fontSize: 16,
+    color: "#D4AF37",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  suiteSubtitle: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 12,
+    marginBottom: 20,
+  },
+  suiteContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    marginBottom: 20,
+  },
+  suiteCard: {
+    flex: 1,
+    minWidth: 260,
+    backgroundColor: "#150d05",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: "space-between",
+  },
+  suiteCardHeader: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  suiteImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 6,
+    backgroundColor: "#201409",
+  },
+  suiteCardInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  suiteCardName: {
+    fontFamily: "TrajanPro",
+    color: "#fff",
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  suiteCardMeta: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 10,
+  },
+  suiteCardPrice: {
+    color: "#D4AF37",
+    fontSize: 13,
+    fontWeight: "bold",
+  },
+  suiteAddBtn: {
+    borderWidth: 1,
+    borderColor: "#D4AF37",
+    borderRadius: 20,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  suiteAddBtnText: {
+    color: "#D4AF37",
+    fontSize: 11,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  addAllSuiteBtn: {
+    backgroundColor: "#D4AF37",
+    borderRadius: 25,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    maxWidth: 400,
+    alignSelf: "center",
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  addAllSuiteBtnText: {
+    color: "#000",
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
 });
 
 export default ProductDetailsScreen;

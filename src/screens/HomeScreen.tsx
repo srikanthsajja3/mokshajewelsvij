@@ -49,7 +49,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ scrollY: scrollYProp }) => {
               
               <TouchableOpacity 
                 style={styles.exploreButton}
-                onPress={() => navigateToCategory("Gold")}
+                onPress={() => navigateToCategory("All")}
                 activeOpacity={0.8}
               >
                 <Text style={styles.exploreButtonText}>View All Products</Text>

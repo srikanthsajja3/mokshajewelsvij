@@ -2,8 +2,9 @@ import React, { useRef, useState } from "react";
 import { StyleSheet, View, Animated, useWindowDimensions, Text, Platform, ScrollView, TouchableOpacity } from "react-native";
 import { FontAwesome5 } from '@expo/vector-icons';
 import Header from "../components/Header";
-import CategoryBar, { SortOption } from "../components/CategoryBar";
+import { SortOption } from "../components/CategoryBar";
 import ProductList from "../components/ProductList";
+import OptimizedImage from "../components/OptimizedImage";
 import FilterModal from "../components/FilterModal";
 import Footer from "../components/Footer";
 import { Product, ProductFilters } from "../data/products";
@@ -17,13 +18,50 @@ interface CategoryScreenProps {
   scrollY?: Animated.Value;
 }
 
+const CURATED_SUBCATEGORIES = [
+  {
+    title: "RING",
+    value: "Rings",
+    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/LATEST-RINGS.jpeg"
+  },
+  {
+    title: "BRACELET",
+    value: "Bangles",
+    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/TRENDY_BRACELETS.jpg"
+  },
+  {
+    title: "EARRINGS",
+    value: "Ear Rings",
+    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/EARRINGS.jpeg"
+  },
+  {
+    title: "CHAINS",
+    value: "Chains",
+    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/ALL-DAY_CHAINS.jpeg"
+  },
+  {
+    title: "NECKLACE SET",
+    value: "Necklaces",
+    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/TREND_NECKLACES.jpg"
+  },
+  {
+    title: "POOJA ARTICLES",
+    value: "Pooja Articles",
+    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/POOJA_ARTICLES.jpg"
+  },
+  {
+    title: "LONG HARAM",
+    value: "Haram",
+    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/Haram.jpg"
+  }
+];
 
 const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Category'>>();
   const { scrollY: globalScrollY } = useUI();
   const category = route.params?.category || "All";
-  const [subCategory, setSubCategory] = useState("All Items");
+  const [subCategory, setSubCategory] = useState(route.params?.subCategory || "All Items");
   const { width } = useWindowDimensions();
   const isLargeScreen = width > 1024 && Platform.OS === 'web';
   
@@ -32,7 +70,70 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
   
   const [sortBy, setSortBy] = useState<SortOption>("popularity");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const [filters, setFilters] = useState<ProductFilters>({});
+  const [filters, setFilters] = useState<ProductFilters>({
+    minPrice: route.params?.minPrice,
+    maxPrice: route.params?.maxPrice,
+  });
+
+  React.useEffect(() => {
+    setFilters({
+      minPrice: route.params?.minPrice,
+      maxPrice: route.params?.maxPrice,
+    });
+    setSubCategory(route.params?.subCategory || "All Items");
+  }, [route.params?.minPrice, route.params?.maxPrice, route.params?.subCategory]);
+
+  const paddingHorz = Platform.OS === 'web'
+    ? (width > 1400 ? 30 : 15)
+    : (width < 380 ? 8 : 12);
+
+  const CuratedCategoriesRow = () => {
+    return (
+      <View style={styles.curatedWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.curatedScrollContent, { paddingHorizontal: paddingHorz }]}
+        >
+          {CURATED_SUBCATEGORIES.map((item, index) => {
+            const isActive = subCategory === item.value;
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.curatedCard}
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (isActive) {
+                    setSubCategory("All Items");
+                  } else {
+                    setSubCategory(item.value);
+                  }
+                }}
+              >
+                <View style={[
+                  styles.curatedImageContainer,
+                  isActive && styles.activeCuratedImageContainer
+                ]}>
+                  <OptimizedImage
+                    url={item.image}
+                    style={styles.curatedImage}
+                    contentFit="cover"
+                    shouldLoad={true}
+                  />
+                </View>
+                <Text style={[
+                  styles.curatedLabel,
+                  isActive && styles.activeCuratedLabel
+                ]}>
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
 
   const onSelectCategory = (cat: string) => {
     navigation.navigate('Category', { category: cat });
@@ -145,22 +246,12 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
   return (
     <View style={styles.container}>
       <View style={styles.staticHeaderContainer}>
-        <CategoryBar 
-          activeCategory={category} 
-          onSelectCategory={onSelectCategory} 
-          activeSubCategory={subCategory}
-          onSelectSubCategory={setSubCategory}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          onPressFilter={() => setIsFilterVisible(true)}
-          activeFilterCount={activeFilterCount}
-        />
         {hasActiveFilters && (
           <View style={styles.activeFiltersContainer}>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.activeFiltersScroll}
+              contentContainerStyle={[styles.activeFiltersScroll, { paddingHorizontal: paddingHorz }]}
             >
               <Text style={styles.activeFiltersText}>Filters:</Text>
               {chips.map(chip => (
@@ -193,7 +284,7 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
           sortBy={sortBy}
           searchQuery={""} 
           filters={effectiveFilters}
-          ListHeaderComponent={null}
+          ListHeaderComponent={<CuratedCategoriesRow />}
           onClearFilters={handleClearAll}
           hasSidebar={false}
           onScroll={Animated.event(
@@ -361,7 +452,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   activeFiltersScroll: {
-    paddingHorizontal: 15,
     alignItems: 'center',
     gap: 8,
   },
@@ -400,7 +490,72 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     textDecorationLine: 'underline',
-  }
+  },
+  curatedWrapper: {
+    backgroundColor: "#1a1209",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212, 175, 55, 0.08)",
+    paddingVertical: 18,
+    width: "100%",
+  },
+  curatedScrollContent: {
+    gap: 16,
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        justifyContent: 'center',
+        flexWrap: 'nowrap',
+        width: '100%',
+      },
+      default: {}
+    })
+  },
+  curatedCard: {
+    alignItems: "center",
+    width: 80,
+  },
+  curatedImageContainer: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 1.5,
+    borderColor: "rgba(212, 175, 55, 0.15)",
+    overflow: "hidden",
+    backgroundColor: "#150d05",
+    marginBottom: 8,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+      }
+    })
+  },
+  activeCuratedImageContainer: {
+    borderColor: "#D4AF37",
+    borderWidth: 2.5,
+    transform: [{ scale: 1.05 }],
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  curatedImage: {
+    width: "100%",
+    height: "100%",
+  },
+  curatedLabel: {
+    color: "#888",
+    fontSize: 9,
+    fontWeight: "bold",
+    textAlign: "center",
+    letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+  },
+  activeCuratedLabel: {
+    color: "#D4AF37",
+    fontWeight: "bold",
+  },
 });
 
 export default CategoryScreen;

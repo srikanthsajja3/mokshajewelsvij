@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -9,11 +9,14 @@ import {
   TouchableWithoutFeedback,
   Platform,
   ScrollView,
-  Pressable
+  Pressable,
+  Alert
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
 
 interface SideDrawerProps {
   isVisible: boolean;
@@ -30,6 +33,8 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const { user, isAdmin, isVendor, signOut } = useAuth();
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     if (isVisible) {
@@ -66,6 +71,15 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
     onClose();
   };
 
+  const toggleCategory = (catName: string) => {
+    setExpandedCategory(expandedCategory === catName ? null : catName);
+  };
+
+  const handleCategoryPress = (category: string, subCategory?: string) => {
+    onClose();
+    navigation.navigate('Category', { category, subCategory });
+  };
+
   const NavItem = ({ icon, label, screen, badge }: { icon: string, label: string, screen: string, badge?: string }) => {
     const isActive = activeScreen === screen;
     return (
@@ -83,6 +97,50 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
           </View>
         ) : null}
       </TouchableOpacity>
+    );
+  };
+
+  const DrawerCategoryItem = ({ label, icon, subItems, categoryName }: { label: string; icon: string; subItems?: string[]; categoryName: string }) => {
+    const isExpanded = expandedCategory === label;
+    const hasSubitems = subItems && subItems.length > 0;
+    
+    return (
+      <View style={styles.categoryItemContainer}>
+        <TouchableOpacity 
+          style={styles.categoryHeader} 
+          onPress={() => {
+            if (hasSubitems) {
+              toggleCategory(label);
+            } else {
+              handleCategoryPress(categoryName);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <View style={styles.categoryHeaderLeft}>
+            <FontAwesome5 name={icon} size={15} color="#D4AF37" style={styles.categoryHeaderIcon} />
+            <Text style={styles.categoryLabel}>{label}</Text>
+          </View>
+          {hasSubitems ? (
+            <FontAwesome5 name={isExpanded ? "chevron-up" : "chevron-down"} size={12} color="#aaa" />
+          ) : null}
+        </TouchableOpacity>
+        
+        {hasSubitems && isExpanded && (
+          <View style={styles.categorySubList}>
+            {subItems.map((sub, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.categorySubItem}
+                onPress={() => handleCategoryPress(categoryName, sub)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.categorySubItemText}>{sub}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -133,6 +191,68 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
               <NavItem icon="user-circle" label="Profile" screen="profile" />
             </>
           ) : null}
+
+          <View style={styles.separator} />
+
+          <View style={styles.drawerSectionHeader}>
+            <Text style={styles.drawerSectionTitle}>Shop Categories</Text>
+          </View>
+
+          <DrawerCategoryItem 
+            label="Gold" 
+            icon="coins" 
+            categoryName="Gold" 
+            subItems={["Bangles", "HARAMS", "RINGS", "NECKLACE", "Earrings", "PENDANTS"]} 
+          />
+          <DrawerCategoryItem 
+            label="Diamonds" 
+            icon="gem" 
+            categoryName="Diamonds" 
+            subItems={["Bangles", "Earrings", "Rings", "NECKLACE", "PENDANTS"]} 
+          />
+
+          
+
+
+          <TouchableOpacity 
+            style={styles.directCategoryLink}
+            onPress={() => {
+              onClose();
+              Alert.alert(
+                "Video Shopping",
+                "Connecting you with our store representative for a live video consultation. Please ensure your camera and microphone are ready."
+              );
+            }}
+            activeOpacity={0.7}
+          >
+            <FontAwesome5 name="video" size={13} color="#D4AF37" style={styles.categoryHeaderIcon} />
+            <Text style={styles.categoryLabel}>Video Shopping</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.directCategoryLink}
+            onPress={() => {
+              onClose();
+              navigation.navigate("Category", { category: "All" });
+              setTimeout(() => {
+                Alert.alert(
+                  "Virtual Try-On",
+                  "Browse our collections and select any item with the 'Try On' badge to experience virtual jewelry matching in real-time."
+                );
+              }, 300);
+            }}
+            activeOpacity={0.7}
+          >
+            <FontAwesome5 name="camera" size={14} color="#D4AF37" style={styles.categoryHeaderIcon} />
+            <Text style={styles.categoryLabel}>Virtual Try On</Text>
+          </TouchableOpacity>
+
+          <DrawerCategoryItem 
+            label="New Arrivals" 
+            icon="star" 
+            categoryName="All" 
+            subItems={["BUTTERFLY", "GLAM & GLITZ", "SILVIGO", "FLORAL", "V Kids", "TRINITY"]} 
+          />
 
           <View style={styles.separator} />
 
@@ -268,6 +388,65 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     fontWeight: 'bold',
     fontSize: 15,
+  },
+  // Mobile drawer categories styling
+  drawerSectionHeader: {
+    paddingHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  drawerSectionTitle: {
+    color: '#888',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  categoryItemContainer: {
+    marginBottom: 2,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  categoryHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryHeaderIcon: {
+    width: 24,
+    textAlign: 'center',
+    marginRight: 15,
+  },
+  categoryLabel: {
+    color: '#ccc',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  categorySubList: {
+    backgroundColor: 'rgba(212, 175, 55, 0.03)',
+    paddingLeft: 44,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(212, 175, 55, 0.15)',
+    marginVertical: 4,
+  },
+  categorySubItem: {
+    paddingVertical: 8,
+  },
+  categorySubItemText: {
+    color: '#aaa',
+    fontSize: 13,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  directCategoryLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
 });
 

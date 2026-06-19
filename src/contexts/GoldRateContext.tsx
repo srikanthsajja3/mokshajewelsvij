@@ -15,7 +15,7 @@ interface CountryConfig {
 }
 
 const COUNTRY_CONFIGS: Record<string, CountryConfig> = {
-  'IN': { currency: 'INR', unit: '10g', factor: 10, exchangeRate: 83, locale: 'en-IN' },
+  'IN': { currency: 'INR', unit: '1g', factor: 1, exchangeRate: 83, locale: 'en-IN' },
   'US': { currency: 'USD', unit: 'g', factor: 1, exchangeRate: 1, locale: 'en-US' },
   'GB': { currency: 'GBP', unit: 'g', factor: 1, exchangeRate: 0.79, locale: 'en-GB' },
   'AE': { currency: 'AED', unit: 'g', factor: 1, exchangeRate: 3.67, locale: 'en-AE' },

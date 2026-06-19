@@ -52,6 +52,10 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
   const [showCategoryOptions, setShowCategoryOptions] = useState(false);
   const isMobile = width < 1024;
 
+  const paddingHorz = Platform.OS === 'web'
+    ? (width > 1400 ? 30 : 15)
+    : (width < 380 ? 8 : 12);
+
   const closeAll = () => {
     setShowSortOptions(false);
     setShowCategoryOptions(false);
@@ -60,7 +64,7 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.innerContainer}>
-        <View style={styles.topRow}>
+        <View style={[styles.topRow, { paddingLeft: paddingHorz, paddingRight: paddingHorz }]}>
           {/* Main Collection - Row of tabs on Desktop, Dropdown on Mobile */}
           {!isMobile ? (
             <View style={styles.categoriesTabRow}>
@@ -183,7 +187,7 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pillScrollContent}
+            contentContainerStyle={[styles.pillScrollContent, { paddingLeft: paddingHorz, paddingRight: paddingHorz }]}
           >
             {SUB_CATEGORIES.map((sub) => (
               <TouchableOpacity 
@@ -225,7 +229,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 15,
     marginBottom: 10,
     position: "relative",
     zIndex: 10,
@@ -241,7 +244,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subCategoryRow: {
-    paddingHorizontal: 5,
     zIndex: 1,
     ...Platform.select({
       ios: { zIndex: 1 },
@@ -250,7 +252,6 @@ const styles = StyleSheet.create({
     })
   },
   pillScrollContent: {
-    paddingHorizontal: 10,
     gap: 10,
   },
   pill: {
