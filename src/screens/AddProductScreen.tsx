@@ -27,7 +27,7 @@ interface AddProductScreenProps {
   scrollY?: Animated.Value;
 }
 
-const CATEGORIES = ["Gold", "Diamonds", "Polki", "Kundan", "Platinum", "Silver"];
+const CATEGORIES = ["Gold", "Diamonds", "Polki", "Kundan"];
 
 const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -112,6 +112,27 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
   const [gemstoneWeight, setGemstoneWeight] = useState(product?.gemstoneWeight?.toString() || "0.00");
   const [stockQuantity, setStockQuantity] = useState(product?.stockQuantity?.toString() || "1");
   const [sourcingCost, setSourcingCost] = useState(product?.sourcingCost?.toString() || "0");
+  const [matchingProductId, setMatchingProductId] = useState<string>((product as any)?.matchingProductId || "");
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [showMatchingPicker, setShowMatchingPicker] = useState(false);
+
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, name, product_code')
+          .order('name', { ascending: true });
+        if (!error && data) {
+          const filtered = data.filter(p => !product || p.id !== product.id);
+          setAllProducts(filtered);
+        }
+      } catch (err) {
+        console.error("Error fetching products list:", err);
+      }
+    };
+    fetchAllProducts();
+  }, [product?.id]);
   
   // Price Breakup
   const [metalPrice, setMetalPrice] = useState(product?.priceBreakup?.metal?.toString() || "100");
@@ -250,7 +271,8 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
         design_theme: designTheme,
         gemstone_type: gemstoneType,
         gemstone_weight: parseFloat(gemstoneWeight || "0"),
-        gallery_urls: galleryUrls // Re-enabling for multiple image support
+        gallery_urls: galleryUrls,
+        matching_product_id: matchingProductId || null
       };
 
       if (!product) {
@@ -336,6 +358,21 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
                 </View>
 
               <View style={styles.inputGroup}>
+                <Text style={styles.label}>CATEGORY</Text>
+                <View style={styles.pickerContainer}>
+                   {CATEGORIES.map(cat => (
+                     <TouchableOpacity 
+                        key={cat} 
+                        style={[styles.pickerItem, category === cat && styles.activePickerItem]}
+                        onPress={() => setCategory(cat)}
+                      >
+                       <Text style={[styles.pickerText, category === cat && styles.activePickerText]}>{cat}</Text>
+                     </TouchableOpacity>
+                   ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
                 <Text style={styles.label}>PRODUCT NAME *</Text>
                 <TextInput 
                   style={styles.input} 
@@ -345,33 +382,16 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
                   placeholderTextColor="#666"
                 />
               </View>
-
-              <View style={styles.row}>
-                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                  <Text style={styles.label}>CATEGORY</Text>
-                  <View style={styles.pickerContainer}>
-                     {CATEGORIES.map(cat => (
-                       <TouchableOpacity 
-                          key={cat} 
-                          style={[styles.pickerItem, category === cat && styles.activePickerItem]}
-                          onPress={() => setCategory(cat)}
-                        >
-                         <Text style={[styles.pickerText, category === cat && styles.activePickerText]}>{cat}</Text>
-                       </TouchableOpacity>
-                     ))}
-                  </View>
-                </View>
-                
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.label}>PRODUCT CODE *</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    value={productCode} 
-                    onChangeText={setProductCode} 
-                    placeholder="e.g. MJK-101"
-                    placeholderTextColor="#666"
-                  />
-                </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>PRODUCT CODE *</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={productCode} 
+                  onChangeText={setProductCode} 
+                  placeholder="e.g. MJK-101"
+                  placeholderTextColor="#666"
+                />
               </View>
 
               <View style={styles.inputGroup}>
@@ -660,6 +680,54 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
                 </View>
               </View>
 
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>EXPLICIT MATCHING PRODUCT (RECOMMENDATION)</Text>
+                <TouchableOpacity 
+                  style={styles.pickerSelector} 
+                  onPress={() => setShowMatchingPicker(!showMatchingPicker)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.pickerSelectorText}>
+                    {matchingProductId 
+                      ? allProducts.find(p => p.id === matchingProductId)?.name || "Select matching product..."
+                      : "None (Use automatic pairing)"}
+                  </Text>
+                  <Text style={styles.pickerArrow}>{showMatchingPicker ? "▲" : "▼"}</Text>
+                </TouchableOpacity>
+                
+                {showMatchingPicker && (
+                  <View style={styles.matchingPickerList}>
+                    <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
+                      <TouchableOpacity 
+                        style={[styles.matchingPickerItem, !matchingProductId && styles.matchingPickerItemActive]}
+                        onPress={() => {
+                          setMatchingProductId("");
+                          setShowMatchingPicker(false);
+                        }}
+                      >
+                        <Text style={[styles.matchingPickerItemText, !matchingProductId && styles.matchingPickerItemTextActive]}>
+                          None (Use automatic pairing)
+                        </Text>
+                      </TouchableOpacity>
+                      {allProducts.map(p => (
+                        <TouchableOpacity 
+                          key={p.id}
+                          style={[styles.matchingPickerItem, matchingProductId === p.id && styles.matchingPickerItemActive]}
+                          onPress={() => {
+                            setMatchingProductId(p.id);
+                            setShowMatchingPicker(false);
+                          }}
+                        >
+                          <Text style={[styles.matchingPickerItemText, matchingProductId === p.id && styles.matchingPickerItemTextActive]}>
+                            {p.name} ({p.product_code})
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
               <TouchableOpacity 
                 style={[styles.submitBtn, (loading || uploading) && styles.disabledBtn]} 
                 onPress={handleAddProduct}
@@ -945,6 +1013,47 @@ const styles = StyleSheet.create({
   addGalleryText: {
     color: '#D4AF37',
     fontSize: 10,
+    fontWeight: 'bold',
+  },
+  pickerSelector: {
+    backgroundColor: '#3d2b1a',
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    borderRadius: 6,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pickerSelectorText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  pickerArrow: {
+    color: '#D4AF37',
+    fontSize: 10,
+  },
+  matchingPickerList: {
+    backgroundColor: '#312112',
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    borderRadius: 6,
+    marginTop: 5,
+  },
+  matchingPickerItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#4a3520',
+  },
+  matchingPickerItemActive: {
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+  },
+  matchingPickerItemText: {
+    color: '#aaa',
+    fontSize: 13,
+  },
+  matchingPickerItemTextActive: {
+    color: '#D4AF37',
     fontWeight: 'bold',
   },
 });

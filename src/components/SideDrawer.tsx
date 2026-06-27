@@ -214,38 +214,9 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isVisible, onClose, onNavigate,
           
 
 
-          <TouchableOpacity 
-            style={styles.directCategoryLink}
-            onPress={() => {
-              onClose();
-              Alert.alert(
-                "Video Shopping",
-                "Connecting you with our store representative for a live video consultation. Please ensure your camera and microphone are ready."
-              );
-            }}
-            activeOpacity={0.7}
-          >
-            <FontAwesome5 name="video" size={13} color="#D4AF37" style={styles.categoryHeaderIcon} />
-            <Text style={styles.categoryLabel}>Video Shopping</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.directCategoryLink}
-            onPress={() => {
-              onClose();
-              navigation.navigate("Category", { category: "All" });
-              setTimeout(() => {
-                Alert.alert(
-                  "Virtual Try-On",
-                  "Browse our collections and select any item with the 'Try On' badge to experience virtual jewelry matching in real-time."
-                );
-              }, 300);
-            }}
-            activeOpacity={0.7}
-          >
-            <FontAwesome5 name="camera" size={14} color="#D4AF37" style={styles.categoryHeaderIcon} />
-            <Text style={styles.categoryLabel}>Virtual Try On</Text>
-          </TouchableOpacity>
+
+
 
           <DrawerCategoryItem 
             label="New Arrivals" 

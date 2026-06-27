@@ -67,9 +67,11 @@ CREATE TABLE public.products (
   stock_quantity integer DEFAULT 0,
   sourcing_cost numeric DEFAULT 0,
   gallery_urls text[] DEFAULT '{}'::text[],
+  matching_product_id uuid,
   CONSTRAINT products_pkey PRIMARY KEY (id),
   CONSTRAINT products_category_name_fkey FOREIGN KEY (category_name) REFERENCES public.categories(name),
-  CONSTRAINT products_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES public.vendors(id)
+  CONSTRAINT products_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES public.vendors(id),
+  CONSTRAINT products_matching_product_id_fkey FOREIGN KEY (matching_product_id) REFERENCES public.products(id) ON DELETE SET NULL
 );
 
 -- 6. Addresses Table

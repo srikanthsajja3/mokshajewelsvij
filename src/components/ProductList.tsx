@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ActivityIndicator, Animated, FlatList } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { FontAwesome5 } from "@expo/vector-icons";
 import OptimizedImage from "./OptimizedImage";
 import { Product, fetchProductsFromSupabase, ProductFilters } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
@@ -28,6 +30,11 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(20)).current;
   const useNativeDriver = Platform.OS !== 'web';
+  const navigation = useNavigation<any>();
+
+  const images = useMemo(() => {
+    return [item.image, ...(item.galleryUrls || [])].filter(Boolean);
+  }, [item.image, item.galleryUrls]);
 
   useEffect(() => {
     Animated.parallel([
@@ -73,10 +80,24 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
       >
         <View style={styles.imageContainer}>
           <OptimizedImage 
-            url={item.image} 
+            url={images[0]} 
             style={styles.productImage} 
             shouldLoad={shouldLoad}
           />
+          {images.length > 1 && (
+            <View 
+              style={[
+                styles.hoverImageContainer,
+                { opacity: hovered ? 1 : 0 }
+              ]}
+            >
+              <OptimizedImage 
+                url={images[1]} 
+                style={styles.productImage} 
+                shouldLoad={shouldLoad}
+              />
+            </View>
+          )}
           {/* Hallmark Trust Badge */}
           <View style={styles.hallmarkBadge}>
             <Text style={styles.hallmarkBadgeText}>
@@ -85,7 +106,10 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
           </View>
           <TouchableOpacity 
             style={styles.wishlistIcon} 
-            onPress={() => handleWishlistToggle(item.id)}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleWishlistToggle(item.id);
+            }}
           >
             <Text style={[styles.heart, isInWishlist && styles.heartActive]}>
               {isInWishlist ? "♥" : "♡"}
@@ -93,19 +117,34 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
           </TouchableOpacity>
         </View>
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.productWeight}>{item.grossWeight.toFixed(2)}g | {item.purity}</Text>
+          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
           <Text style={styles.productPrice}>{formatPrice(item.price, countryCode)}</Text>
-          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <TouchableOpacity 
-              style={[styles.addToCartBtn, addedToCartId === item.id && styles.addToCartBtnSuccess]}
-              onPress={onPressAddToCart}
+          
+          <TouchableOpacity 
+            style={[
+              styles.addToCartBtnCompact,
+              addedToCartId === item.id && styles.addToCartBtnCompactSuccess
+            ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onPressAddToCart();
+            }}
+            activeOpacity={0.8}
+          >
+            <FontAwesome5 
+              name={addedToCartId === item.id ? "check" : "shopping-bag"} 
+              size={10} 
+              color={addedToCartId === item.id ? "#291c0e" : "#D4AF37"} 
+            />
+            <Text 
+              style={[
+                styles.addToCartBtnCompactText,
+                addedToCartId === item.id && styles.addToCartBtnCompactTextSuccess
+              ]}
             >
-              <Text style={[styles.addToCartBtnText, addedToCartId === item.id && styles.addToCartBtnTextSuccess]}>
-                {addedToCartId === item.id ? "ADDED ✓" : "ADD TO BAG"}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+              {addedToCartId === item.id ? "Added" : "Add to Cart"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -144,74 +183,7 @@ const ProductList: React.FC<ProductListProps> = ({
   const [addedToCartId, setAddedToCartId] = useState<string | null>(null);
 
   // Visibility Tracking
-  const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
-  const isScrolling = useRef(false);
-  const viewableIds = useRef(new Set<string>());
-  const lastProcessedIds = useRef<string>('');
-  const scrollTimer = useRef<any>(null);
-  const sequentialTimer = useRef<any>(null);
 
-  const startSequentialLoad = useCallback((idsToLoad: string[]) => {
-    const idsString = idsToLoad.sort().join(',');
-    if (idsString === lastProcessedIds.current) return;
-    lastProcessedIds.current = idsString;
-
-    if (sequentialTimer.current) clearInterval(sequentialTimer.current);
-    
-    let index = 0;
-    sequentialTimer.current = setInterval(() => {
-      if (index >= idsToLoad.length) {
-        clearInterval(sequentialTimer.current);
-        sequentialTimer.current = null;
-        return;
-      }
-
-      const nextId = idsToLoad[index];
-      setActiveIds(prev => {
-        if (prev.has(nextId)) return prev;
-        const next = new Set(prev);
-        next.add(nextId);
-        return next;
-      });
-      index++;
-    }, 100); 
-  }, []);
-
-  const handleScrollEnd = useCallback(() => {
-    isScrolling.current = false;
-    startSequentialLoad(Array.from(viewableIds.current));
-  }, [startSequentialLoad]);
-
-  const handleScrollBegin = useCallback(() => {
-    isScrolling.current = true;
-    if (sequentialTimer.current) {
-      clearInterval(sequentialTimer.current);
-      sequentialTimer.current = null;
-    }
-    lastProcessedIds.current = ''; 
-  }, []);
-
-  const handleScroll = useCallback((event: any) => {
-    if (onScrollProp) onScrollProp(event);
-    
-    if (Platform.OS === 'web') {
-      isScrolling.current = true;
-      if (sequentialTimer.current) {
-        clearInterval(sequentialTimer.current);
-        sequentialTimer.current = null;
-      }
-      if (scrollTimer.current) clearTimeout(scrollTimer.current);
-      scrollTimer.current = setTimeout(handleScrollEnd, 150);
-    }
-  }, [onScrollProp, handleScrollEnd]);
-
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    const ids = viewableItems.map((vi: any) => vi.item.id);
-    viewableIds.current = new Set(ids);
-    if (!isScrolling.current) {
-      startSequentialLoad(ids);
-    }
-  }).current;
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -323,7 +295,7 @@ const ProductList: React.FC<ProductListProps> = ({
       countryCode={countryCode}
       addedToCartId={addedToCartId}
       handleAddToCart={handleAddToCart}
-      shouldLoad={activeIds.has(item.id)}
+      shouldLoad={true}
     />
   );
 
@@ -335,6 +307,8 @@ const ProductList: React.FC<ProductListProps> = ({
       numColumns={numColumns}
       key={`${numColumns}`}
       style={{ flex: 1 }}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
       contentContainerStyle={[
         styles.list, 
         Platform.OS === 'web' && { alignSelf: 'center', width: '100%', maxWidth: 2500, paddingHorizontal: padding }
@@ -376,12 +350,7 @@ const ProductList: React.FC<ProductListProps> = ({
           )}
         </View>
       ) : null}
-      onViewableItemsChanged={onViewableItemsChanged}
-      viewabilityConfig={{ itemVisiblePercentThreshold: 50, minimumViewTime: 100 }}
-      onScrollBeginDrag={handleScrollBegin}
-      onMomentumScrollEnd={handleScrollEnd}
-      onScrollEndDrag={handleScrollEnd}
-      onScroll={handleScroll}
+      onScroll={onScrollProp}
       scrollEventThrottle={16}
       stickyHeaderIndices={stickyHeaderIndices}
       windowSize={5}
@@ -480,7 +449,7 @@ const styles = StyleSheet.create({
   },
   productImage: {
     width: "100%",
-    height: 160, // Taller image for better jewelry visibility
+    aspectRatio: 1, // Square aspect ratio ensures responsive and sharp scaling
   },
   wishlistIcon: {
     position: "absolute",
@@ -503,9 +472,9 @@ const styles = StyleSheet.create({
     color: "#D4AF37",
   },
   productInfo: {
-    padding: 18,
-    paddingTop: 12,
-    alignItems: "center", // Symmetric centered details for classic luxury look
+    padding: Platform.OS === 'web' ? 12 : 8,
+    paddingTop: 10,
+    alignItems: "flex-start",
   },
   productName: {
     color: "#fff",
@@ -513,14 +482,15 @@ const styles = StyleSheet.create({
     fontFamily: "TrajanPro", // High-end brand font
     marginBottom: 6,
     letterSpacing: 1,
-    textAlign: "center",
+    textAlign: "left",
+    height: 36, // Ensures uniform grid card height when name extends to 2 lines
   },
   productWeight: {
     color: "#a8927e", // Elegant muted text
     fontSize: 9.5,
     marginBottom: 8,
     letterSpacing: 0.5,
-    textAlign: "center",
+    textAlign: "left",
   },
   productPrice: {
     color: "#D4AF37",
@@ -528,7 +498,7 @@ const styles = StyleSheet.create({
     fontFamily: "TrajanPro",
     fontWeight: "600",
     letterSpacing: 0.5,
-    textAlign: "center",
+    textAlign: "left",
     marginBottom: 4, // Added margin to space out the button
   },
   emptyContainer: {
@@ -560,39 +530,147 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   addToCartBtn: {
-    marginTop: 12,
+    marginTop: 18, // Increased spacing above the button
     width: '100%',
-    paddingVertical: 12,
-    borderRadius: 25,
+    paddingVertical: 15, // Increased vertical padding for more text breathing room
+    paddingHorizontal: 15, // Increased horizontal padding
+    borderRadius: 4, // Clean, sharp edges for a high-end luxury look
     alignItems: "center",
-    backgroundColor: "#D4AF37",
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: "#D4AF37",
     shadowColor: "#D4AF37",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
     ...Platform.select({
       web: {
-        transition: 'all 0.2s ease',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         cursor: 'pointer',
       }
     })
   },
+  addToCartBtnHovered: {
+    backgroundColor: "#D4AF37",
+    borderColor: "#D4AF37",
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)',
+      }
+    } as any)
+  },
   addToCartBtnSuccess: {
     backgroundColor: "#291c0e",
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: "#D4AF37",
   },
   addToCartBtnText: {
-    color: "#291c0e",
+    color: "#D4AF37",
     fontSize: 10.5,
     fontWeight: "bold",
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+    ...Platform.select({
+      web: {
+        transition: 'color 0.25s ease',
+      }
+    })
+  },
+  addToCartBtnTextHovered: {
+    color: "#291c0e",
   },
   addToCartBtnTextSuccess: {
     color: "#D4AF37",
-  }
+  },
+  addedLabelContainer: {
+    marginTop: 18,
+    width: '100%',
+    paddingVertical: 15,
+    paddingHorizontal: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addedLabelText: {
+    color: "#D4AF37",
+    fontSize: 11,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+  },
+  hoverImageContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#201409",
+    ...Platform.select({
+      web: {
+        transitionProperty: 'opacity',
+        transitionDuration: '0.3s',
+        transitionTimingFunction: 'ease-in-out',
+      } as any
+    })
+  },
+  actionRow: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  actionBtnOutline: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    backgroundColor: 'transparent',
+    gap: 4,
+  },
+  actionBtnOutlineText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#D4AF37',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+  },
+  addToCartBtnCompact: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 4,
+    gap: 6,
+    width: '100%',
+    marginTop: 4,
+  },
+  addToCartBtnCompactSuccess: {
+    backgroundColor: '#D4AF37',
+    borderColor: '#D4AF37',
+  },
+  addToCartBtnCompactText: {
+    color: '#D4AF37',
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+  },
+  addToCartBtnCompactTextSuccess: {
+    color: '#291c0e',
+  },
 });
 
 export default ProductList;

@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for screens/VendorDashboardScreen.tsx</title>
+    <title>Code coverage report for components/StoreAvailabilityModal.tsx</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">screens</a> VendorDashboardScreen.tsx</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">components</a> StoreAvailabilityModal.tsx</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/162</span>
+                <span class='fraction'>0/84</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/190</span>
+                <span class='fraction'>0/75</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/38</span>
+                <span class='fraction'>0/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/146</span>
+                <span class='fraction'>0/82</span>
             </div>
         
             
@@ -673,7 +673,186 @@
 <a name='L608'></a><a href='#L608'>608</a>
 <a name='L609'></a><a href='#L609'>609</a>
 <a name='L610'></a><a href='#L610'>610</a>
-<a name='L611'></a><a href='#L611'>611</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L611'></a><a href='#L611'>611</a>
+<a name='L612'></a><a href='#L612'>612</a>
+<a name='L613'></a><a href='#L613'>613</a>
+<a name='L614'></a><a href='#L614'>614</a>
+<a name='L615'></a><a href='#L615'>615</a>
+<a name='L616'></a><a href='#L616'>616</a>
+<a name='L617'></a><a href='#L617'>617</a>
+<a name='L618'></a><a href='#L618'>618</a>
+<a name='L619'></a><a href='#L619'>619</a>
+<a name='L620'></a><a href='#L620'>620</a>
+<a name='L621'></a><a href='#L621'>621</a>
+<a name='L622'></a><a href='#L622'>622</a>
+<a name='L623'></a><a href='#L623'>623</a>
+<a name='L624'></a><a href='#L624'>624</a>
+<a name='L625'></a><a href='#L625'>625</a>
+<a name='L626'></a><a href='#L626'>626</a>
+<a name='L627'></a><a href='#L627'>627</a>
+<a name='L628'></a><a href='#L628'>628</a>
+<a name='L629'></a><a href='#L629'>629</a>
+<a name='L630'></a><a href='#L630'>630</a>
+<a name='L631'></a><a href='#L631'>631</a>
+<a name='L632'></a><a href='#L632'>632</a>
+<a name='L633'></a><a href='#L633'>633</a>
+<a name='L634'></a><a href='#L634'>634</a>
+<a name='L635'></a><a href='#L635'>635</a>
+<a name='L636'></a><a href='#L636'>636</a>
+<a name='L637'></a><a href='#L637'>637</a>
+<a name='L638'></a><a href='#L638'>638</a>
+<a name='L639'></a><a href='#L639'>639</a>
+<a name='L640'></a><a href='#L640'>640</a>
+<a name='L641'></a><a href='#L641'>641</a>
+<a name='L642'></a><a href='#L642'>642</a>
+<a name='L643'></a><a href='#L643'>643</a>
+<a name='L644'></a><a href='#L644'>644</a>
+<a name='L645'></a><a href='#L645'>645</a>
+<a name='L646'></a><a href='#L646'>646</a>
+<a name='L647'></a><a href='#L647'>647</a>
+<a name='L648'></a><a href='#L648'>648</a>
+<a name='L649'></a><a href='#L649'>649</a>
+<a name='L650'></a><a href='#L650'>650</a>
+<a name='L651'></a><a href='#L651'>651</a>
+<a name='L652'></a><a href='#L652'>652</a>
+<a name='L653'></a><a href='#L653'>653</a>
+<a name='L654'></a><a href='#L654'>654</a>
+<a name='L655'></a><a href='#L655'>655</a>
+<a name='L656'></a><a href='#L656'>656</a>
+<a name='L657'></a><a href='#L657'>657</a>
+<a name='L658'></a><a href='#L658'>658</a>
+<a name='L659'></a><a href='#L659'>659</a>
+<a name='L660'></a><a href='#L660'>660</a>
+<a name='L661'></a><a href='#L661'>661</a>
+<a name='L662'></a><a href='#L662'>662</a>
+<a name='L663'></a><a href='#L663'>663</a>
+<a name='L664'></a><a href='#L664'>664</a>
+<a name='L665'></a><a href='#L665'>665</a>
+<a name='L666'></a><a href='#L666'>666</a>
+<a name='L667'></a><a href='#L667'>667</a>
+<a name='L668'></a><a href='#L668'>668</a>
+<a name='L669'></a><a href='#L669'>669</a>
+<a name='L670'></a><a href='#L670'>670</a>
+<a name='L671'></a><a href='#L671'>671</a>
+<a name='L672'></a><a href='#L672'>672</a>
+<a name='L673'></a><a href='#L673'>673</a>
+<a name='L674'></a><a href='#L674'>674</a>
+<a name='L675'></a><a href='#L675'>675</a>
+<a name='L676'></a><a href='#L676'>676</a>
+<a name='L677'></a><a href='#L677'>677</a>
+<a name='L678'></a><a href='#L678'>678</a>
+<a name='L679'></a><a href='#L679'>679</a>
+<a name='L680'></a><a href='#L680'>680</a>
+<a name='L681'></a><a href='#L681'>681</a>
+<a name='L682'></a><a href='#L682'>682</a>
+<a name='L683'></a><a href='#L683'>683</a>
+<a name='L684'></a><a href='#L684'>684</a>
+<a name='L685'></a><a href='#L685'>685</a>
+<a name='L686'></a><a href='#L686'>686</a>
+<a name='L687'></a><a href='#L687'>687</a>
+<a name='L688'></a><a href='#L688'>688</a>
+<a name='L689'></a><a href='#L689'>689</a>
+<a name='L690'></a><a href='#L690'>690</a>
+<a name='L691'></a><a href='#L691'>691</a>
+<a name='L692'></a><a href='#L692'>692</a>
+<a name='L693'></a><a href='#L693'>693</a>
+<a name='L694'></a><a href='#L694'>694</a>
+<a name='L695'></a><a href='#L695'>695</a>
+<a name='L696'></a><a href='#L696'>696</a>
+<a name='L697'></a><a href='#L697'>697</a>
+<a name='L698'></a><a href='#L698'>698</a>
+<a name='L699'></a><a href='#L699'>699</a>
+<a name='L700'></a><a href='#L700'>700</a>
+<a name='L701'></a><a href='#L701'>701</a>
+<a name='L702'></a><a href='#L702'>702</a>
+<a name='L703'></a><a href='#L703'>703</a>
+<a name='L704'></a><a href='#L704'>704</a>
+<a name='L705'></a><a href='#L705'>705</a>
+<a name='L706'></a><a href='#L706'>706</a>
+<a name='L707'></a><a href='#L707'>707</a>
+<a name='L708'></a><a href='#L708'>708</a>
+<a name='L709'></a><a href='#L709'>709</a>
+<a name='L710'></a><a href='#L710'>710</a>
+<a name='L711'></a><a href='#L711'>711</a>
+<a name='L712'></a><a href='#L712'>712</a>
+<a name='L713'></a><a href='#L713'>713</a>
+<a name='L714'></a><a href='#L714'>714</a>
+<a name='L715'></a><a href='#L715'>715</a>
+<a name='L716'></a><a href='#L716'>716</a>
+<a name='L717'></a><a href='#L717'>717</a>
+<a name='L718'></a><a href='#L718'>718</a>
+<a name='L719'></a><a href='#L719'>719</a>
+<a name='L720'></a><a href='#L720'>720</a>
+<a name='L721'></a><a href='#L721'>721</a>
+<a name='L722'></a><a href='#L722'>722</a>
+<a name='L723'></a><a href='#L723'>723</a>
+<a name='L724'></a><a href='#L724'>724</a>
+<a name='L725'></a><a href='#L725'>725</a>
+<a name='L726'></a><a href='#L726'>726</a>
+<a name='L727'></a><a href='#L727'>727</a>
+<a name='L728'></a><a href='#L728'>728</a>
+<a name='L729'></a><a href='#L729'>729</a>
+<a name='L730'></a><a href='#L730'>730</a>
+<a name='L731'></a><a href='#L731'>731</a>
+<a name='L732'></a><a href='#L732'>732</a>
+<a name='L733'></a><a href='#L733'>733</a>
+<a name='L734'></a><a href='#L734'>734</a>
+<a name='L735'></a><a href='#L735'>735</a>
+<a name='L736'></a><a href='#L736'>736</a>
+<a name='L737'></a><a href='#L737'>737</a>
+<a name='L738'></a><a href='#L738'>738</a>
+<a name='L739'></a><a href='#L739'>739</a>
+<a name='L740'></a><a href='#L740'>740</a>
+<a name='L741'></a><a href='#L741'>741</a>
+<a name='L742'></a><a href='#L742'>742</a>
+<a name='L743'></a><a href='#L743'>743</a>
+<a name='L744'></a><a href='#L744'>744</a>
+<a name='L745'></a><a href='#L745'>745</a>
+<a name='L746'></a><a href='#L746'>746</a>
+<a name='L747'></a><a href='#L747'>747</a>
+<a name='L748'></a><a href='#L748'>748</a>
+<a name='L749'></a><a href='#L749'>749</a>
+<a name='L750'></a><a href='#L750'>750</a>
+<a name='L751'></a><a href='#L751'>751</a>
+<a name='L752'></a><a href='#L752'>752</a>
+<a name='L753'></a><a href='#L753'>753</a>
+<a name='L754'></a><a href='#L754'>754</a>
+<a name='L755'></a><a href='#L755'>755</a>
+<a name='L756'></a><a href='#L756'>756</a>
+<a name='L757'></a><a href='#L757'>757</a>
+<a name='L758'></a><a href='#L758'>758</a>
+<a name='L759'></a><a href='#L759'>759</a>
+<a name='L760'></a><a href='#L760'>760</a>
+<a name='L761'></a><a href='#L761'>761</a>
+<a name='L762'></a><a href='#L762'>762</a>
+<a name='L763'></a><a href='#L763'>763</a>
+<a name='L764'></a><a href='#L764'>764</a>
+<a name='L765'></a><a href='#L765'>765</a>
+<a name='L766'></a><a href='#L766'>766</a>
+<a name='L767'></a><a href='#L767'>767</a>
+<a name='L768'></a><a href='#L768'>768</a>
+<a name='L769'></a><a href='#L769'>769</a>
+<a name='L770'></a><a href='#L770'>770</a>
+<a name='L771'></a><a href='#L771'>771</a>
+<a name='L772'></a><a href='#L772'>772</a>
+<a name='L773'></a><a href='#L773'>773</a>
+<a name='L774'></a><a href='#L774'>774</a>
+<a name='L775'></a><a href='#L775'>775</a>
+<a name='L776'></a><a href='#L776'>776</a>
+<a name='L777'></a><a href='#L777'>777</a>
+<a name='L778'></a><a href='#L778'>778</a>
+<a name='L779'></a><a href='#L779'>779</a>
+<a name='L780'></a><a href='#L780'>780</a>
+<a name='L781'></a><a href='#L781'>781</a>
+<a name='L782'></a><a href='#L782'>782</a>
+<a name='L783'></a><a href='#L783'>783</a>
+<a name='L784'></a><a href='#L784'>784</a>
+<a name='L785'></a><a href='#L785'>785</a>
+<a name='L786'></a><a href='#L786'>786</a>
+<a name='L787'></a><a href='#L787'>787</a>
+<a name='L788'></a><a href='#L788'>788</a>
+<a name='L789'></a><a href='#L789'>789</a>
+<a name='L790'></a><a href='#L790'>790</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -699,6 +878,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -709,36 +899,55 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -756,33 +965,40 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -790,27 +1006,22 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -820,92 +1031,81 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -926,18 +1126,93 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -945,13 +1220,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -965,7 +1236,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -975,14 +1245,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -993,8 +1261,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1007,24 +1273,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1037,18 +1300,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1059,13 +1313,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1106,7 +1357,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1115,7 +1365,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1136,7 +1385,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1185,8 +1433,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1205,7 +1451,119 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1283,616 +1641,795 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  Image,
-  Alert,
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
   TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  SafeAreaView,
   Platform,
-  KeyboardAvoidingView,
-  useWindowDimensions,
-  Animated
-} from 'react-native';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import OptimizedImage from '../components/OptimizedImage';
-import { supabase } from '../../supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { useCountry } from '../contexts/CountryContext';
-import { formatPrice } from '../utils/currency';
-import { Product, mapProduct } from '../data/products';
-import * as DocumentPicker from 'expo-document-picker';
-import Papa from 'papaparse';
+  Alert
+} from "react-native";
+import { FontAwesome5 } from "@expo/vector-icons";
+import { Product } from "../data/products";
+import OptimizedImage from "./OptimizedImage";
 &nbsp;
-import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { RootStackParamList } from '../navigation/types';
-import { useUI } from '../contexts/UIContext';
-import { useRef } from 'react';
-&nbsp;
-interface VendorDashboardScreenProps {
-  scrollY?: Animated.Value;
+interface StoreAvailabilityModalProps {
+  visible: boolean;
+  onClose: () =&gt; void;
+  product: Product;
+  countryCode: string;
+  matchingProducts: Product[];
+  onSelectProduct?: (product: Product) =&gt; void;
 }
 &nbsp;
-const VendorDashboardScreen: React.FC&lt;VendorDashboardScreenProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> scrollY: scrollYProp }) =&gt; {</span>
-  const navigation = <span class="cstat-no" title="statement not covered" >useNavigation&lt;NavigationProp&lt;RootStackParamList&gt;&gt;();</span>
-  const { setLoginVisible } = <span class="cstat-no" title="statement not covered" >useUI();</span>
-  const { isVendor, user } = <span class="cstat-no" title="statement not covered" >useAuth();</span>
-  
-  const localScrollY = <span class="cstat-no" title="statement not covered" >useRef(new Animated.Value(0)).current;</span>
-  const scrollY = <span class="cstat-no" title="statement not covered" >scrollYProp || localScrollY;</span>
-  
-  const { countryCode } = <span class="cstat-no" title="statement not covered" >useCountry();</span>
-  const { width } = <span class="cstat-no" title="statement not covered" >useWindowDimensions();</span>
-  const isMobile = <span class="cstat-no" title="statement not covered" >width &lt; 768;</span>
-  const isSmallMobile = <span class="cstat-no" title="statement not covered" >width &lt; 480;</span>
+const AVAILABLE_PINCODES = <span class="cstat-no" title="statement not covered" >[</span>
+  "520010", "520001", "520002", "520003", // Vijayawada
+  "560001", "560002", "560038", "560011", "560012", "560076", // Bangalore
+  "110001", "110011", "110021", "110002", // Delhi
+  "400001", "400002", "400050", "400003"  // Mumbai
+];
 &nbsp;
-  const [loading, setLoading] = <span class="cstat-no" title="statement not covered" >useState(true);</span>
-  const [activeTab, setActiveTab] = <span class="cstat-no" title="statement not covered" >useState&lt;'overview' | 'products' | 'orders' | 'm2m'&gt;('overview');</span>
+const STORES_BY_REGION: Record&lt;string, string[]&gt; = <span class="cstat-no" title="statement not covered" >{</span>
+  "52": [
+    "Moksha Jewels Flagship Showroom, Polyclinic Road, Vijayawada",
+    "Moksha Boutique Store, MG Road, Vijayawada"
+  ],
+  "56": [
+    "Moksha Jewels Experience Center, Indiranagar, Bengaluru",
+    "Moksha Jewels Showroom, Jayanagar 4th Block, Bengaluru"
+  ],
+  "11": [
+    "Moksha Jewels Flagship Salon, Connaught Place, New Delhi",
+    "Moksha Jewels Boutique, South Extension I, New Delhi"
+  ],
+  "40": [
+    "Moksha Jewels Premium Salon, Colaba Causeway, Mumbai",
+    "Moksha Jewels Showroom, Bandra West, Mumbai"
+  ]
+};
+&nbsp;
+export const StoreAvailabilityModal: React.FC&lt;StoreAvailabilityModalProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span></span>
+  visible,
+  onClose,
+  product,
+  countryCode,
+  matchingProducts,
+  onSelectProduct
+}) =&gt; {
+  const [currentScreen, setCurrentScreen] = <span class="cstat-no" title="statement not covered" >useState&lt;"search" | "unavailable"&gt;("search");</span>
+  const [pincode, setPincode] = <span class="cstat-no" title="statement not covered" >useState&lt;string&gt;("");</span>
+  const [activeCheckedSku, setActiveCheckedSku] = <span class="cstat-no" title="statement not covered" >useState&lt;string | null&gt;(null);</span>
   
-  const [vendorSettings, setVendorSettings] = <span class="cstat-no" title="statement not covered" >useState&lt;any&gt;(null);</span>
-  const [myProducts, setMyProducts] = <span class="cstat-no" title="statement not covered" >useState&lt;Product[]&gt;([]);</span>
-  const [mySales, setMySales] = <span class="cstat-no" title="statement not covered" >useState&lt;any[]&gt;([]);</span>
-  const [productSearchQuery, setProductSearchQuery] = <span class="cstat-no" title="statement not covered" >useState("");</span>
-  const [isDeleteMode, setIsDeleteMode] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
-  const [deleteModalVisible, setDeleteModalVisible] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
-  const [productIdToDelete, setProductIdToDelete] = <span class="cstat-no" title="statement not covered" >useState&lt;string | null&gt;(null);</span>
+  // Lead form states
+  const [showLeadForm, setShowLeadForm] = <span class="cstat-no" title="statement not covered" >useState&lt;boolean&gt;(false);</span>
+  const [leadName, setLeadName] = <span class="cstat-no" title="statement not covered" >useState&lt;string&gt;("");</span>
+  const [leadPhone, setLeadPhone] = <span class="cstat-no" title="statement not covered" >useState&lt;string&gt;("");</span>
+  
+  // Validation errors
+  const [nameError, setNameError] = <span class="cstat-no" title="statement not covered" >useState&lt;boolean&gt;(false);</span>
+  const [phoneError, setPhoneError] = <span class="cstat-no" title="statement not covered" >useState&lt;boolean&gt;(false);</span>
 &nbsp;
-  // Derived Analytics
-  const totalRevenue = <span class="cstat-no" title="statement not covered" >mySales.reduce(<span class="fstat-no" title="function not covered" >(s</span>um, sale) =&gt; <span class="cstat-no" title="statement not covered" >sum + (sale.price_at_purchase * sale.quantity),</span> 0);</span>
-  const totalOrders = <span class="cstat-no" title="statement not covered" >mySales.length;</span>
-  const activeProductsCount = <span class="cstat-no" title="statement not covered" >myProducts.length;</span>
-  const lowStockCount = <span class="cstat-no" title="statement not covered" >myProducts.filter(<span class="fstat-no" title="function not covered" >(p</span>: any) =&gt; <span class="cstat-no" title="statement not covered" >p.stock_quantity &lt; 5)</span>.length;</span>
+  // Store results visibility
+  const [showStores, setShowStores] = <span class="cstat-no" title="statement not covered" >useState&lt;boolean&gt;(false);</span>
+  const [storesList, setStoresList] = <span class="cstat-no" title="statement not covered" >useState&lt;string[]&gt;([]);</span>
 &nbsp;
+  // Not available states
+  const [expertThanks, setExpertThanks] = <span class="cstat-no" title="statement not covered" >useState&lt;boolean&gt;(false);</span>
+&nbsp;
+  // Reset modal state on close/open
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (isVendor) {</span>
-<span class="cstat-no" title="statement not covered" >      fetchVendorData();</span>
+<span class="cstat-no" title="statement not covered" >    if (visible) {</span>
+<span class="cstat-no" title="statement not covered" >      resetState();</span>
     }
-  }, [isVendor]);
+  }, [visible]);
 &nbsp;
-  const fetchVendorData = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    setLoading(true);</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { data: settings, error: sError } = <span class="cstat-no" title="statement not covered" >await supabase</span>
-        .from('vendor_settings')
-        .select('*, vendors(*)')
-        .eq('user_id', user?.id)
-        .single();
-      
-<span class="cstat-no" title="statement not covered" >      if (sError) <span class="cstat-no" title="statement not covered" >throw sError;</span></span>
-<span class="cstat-no" title="statement not covered" >      setVendorSettings(settings);</span>
+  const resetState = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    setCurrentScreen("search");</span>
+<span class="cstat-no" title="statement not covered" >    setPincode("");</span>
+<span class="cstat-no" title="statement not covered" >    setActiveCheckedSku(null);</span>
+<span class="cstat-no" title="statement not covered" >    setShowLeadForm(false);</span>
+<span class="cstat-no" title="statement not covered" >    setLeadName("");</span>
+<span class="cstat-no" title="statement not covered" >    setLeadPhone("");</span>
+<span class="cstat-no" title="statement not covered" >    setNameError(false);</span>
+<span class="cstat-no" title="statement not covered" >    setPhoneError(false);</span>
+<span class="cstat-no" title="statement not covered" >    setShowStores(false);</span>
+<span class="cstat-no" title="statement not covered" >    setStoresList([]);</span>
+<span class="cstat-no" title="statement not covered" >    setExpertThanks(false);</span>
+  };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (settings.vendor_id) {</span>
-        const { data: products } = <span class="cstat-no" title="statement not covered" >await supabase</span>
-          .from('products')
-          .select('*')
-          .eq('vendor_id', settings.vendor_id);
-        
-<span class="cstat-no" title="statement not covered" >        setMyProducts(products?.map(mapProduct) || []);</span>
+  // Format currency helpers
+  const formatPrice = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(p</span>rice: number) =&gt; {</span>
+    const isIndia = <span class="cstat-no" title="statement not covered" >countryCode === "IN";</span>
+    const localizedPrice = <span class="cstat-no" title="statement not covered" >isIndia ? price * 83 : price;</span>
+<span class="cstat-no" title="statement not covered" >    return isIndia</span>
+      ? `₹${Math.round(localizedPrice).toLocaleString("en-IN")}`
+      : `$${localizedPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 &nbsp;
-        const productIds = <span class="cstat-no" title="statement not covered" >products?.map(<span class="fstat-no" title="function not covered" >p </span>=&gt; <span class="cstat-no" title="statement not covered" >p.id)</span> || [];</span>
-        
-<span class="cstat-no" title="statement not covered" >        if (productIds.length &gt; 0) {</span>
-          const { data: sales } = <span class="cstat-no" title="statement not covered" >await supabase</span>
-            .from('order_items')
-            .select('*, orders(*)')
-            .in('product_id', productIds)
-            .order('created_at', { ascending: false });
-          
-<span class="cstat-no" title="statement not covered" >          setMySales(sales || []);</span>
-        } else {
-<span class="cstat-no" title="statement not covered" >          setMySales([]);</span>
-        }
-      }
+  // Input handlers
+  const handlePincodeChange = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(t</span>ext: string) =&gt; {</span>
+    const cleaned = <span class="cstat-no" title="statement not covered" >text.replace(/[^0-9]/g, "");</span>
+<span class="cstat-no" title="statement not covered" >    setPincode(cleaned);</span>
+  };
 &nbsp;
-    } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error fetching vendor data:', error);</span>
-    } finally {
-<span class="cstat-no" title="statement not covered" >      setLoading(false);</span>
+  const handleNameChange = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(t</span>ext: string) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    setLeadName(text);</span>
+<span class="cstat-no" title="statement not covered" >    if (text.trim().length &gt; 0 &amp;&amp; text.trim().length &lt; 3) {</span>
+<span class="cstat-no" title="statement not covered" >      setNameError(true);</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      setNameError(false);</span>
     }
   };
 &nbsp;
-  const generateApiKey = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const newKey = <span class="cstat-no" title="statement not covered" >'mk_' + Math.random().toString(36).substring(2, 15);</span>
-      const { error } = <span class="cstat-no" title="statement not covered" >await supabase</span>
-        .from('vendor_settings')
-        .update({ api_key_hash: 'simulated_hash' })
-        .eq('user_id', user?.id);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (error) <span class="cstat-no" title="statement not covered" >throw error;</span></span>
-<span class="cstat-no" title="statement not covered" >      Alert.alert("API Key Generated", `Save this key safely. It will not be shown again:\n\n${newKey}`);</span>
-    } catch (e: any) {
-<span class="cstat-no" title="statement not covered" >      Alert.alert("Error", e.message || "Failed to generate API key.");</span>
+  const handlePhoneChange = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(t</span>ext: string) =&gt; {</span>
+    const cleaned = <span class="cstat-no" title="statement not covered" >text.replace(/[^0-9]/g, "");</span>
+<span class="cstat-no" title="statement not covered" >    setLeadPhone(cleaned);</span>
+<span class="cstat-no" title="statement not covered" >    if (cleaned.length &gt; 0 &amp;&amp; cleaned.length !== 10) {</span>
+<span class="cstat-no" title="statement not covered" >      setPhoneError(true);</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      setPhoneError(false);</span>
     }
   };
 &nbsp;
-  const toggleStockStatus = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync (productId: string, currentStatus: boolean) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { error } = <span class="cstat-no" title="statement not covered" >await supabase</span>
-        .from('products')
-        .update({ is_in_stock: !currentStatus })
-        .eq('id', productId);
+  // Actions
+  const handleCheckAvailability = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(s</span>ku: string) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (pincode.length !== 6) <span class="cstat-no" title="statement not covered" >return;</span></span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (error) <span class="cstat-no" title="statement not covered" >throw error;</span></span>
-      
-<span class="cstat-no" title="statement not covered" >      setMyProducts(<span class="fstat-no" title="function not covered" >pr</span>ev =&gt; <span class="cstat-no" title="statement not covered" >prev.map(<span class="fstat-no" title="function not covered" >p </span>=&gt; </span></span>
-<span class="cstat-no" title="statement not covered" >        p.id === productId ? { ...p, is_in_stock: !currentStatus } : p</span>
-      ));
-    } catch (error: any) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error toggling stock status:', error);</span>
-<span class="cstat-no" title="statement not covered" >      Alert.alert("Error", error.message || "Could not update stock status.");</span>
+<span class="cstat-no" title="statement not covered" >    setActiveCheckedSku(sku);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (AVAILABLE_PINCODES.includes(pincode)) {</span>
+      // Pincode is available, prompt for lead info
+<span class="cstat-no" title="statement not covered" >      setShowLeadForm(true);</span>
+<span class="cstat-no" title="statement not covered" >      setShowStores(false);</span>
+    } else {
+      // Pincode is NOT available, transition to the unavailable screen
+<span class="cstat-no" title="statement not covered" >      setCurrentScreen("unavailable");</span>
     }
   };
 &nbsp;
-  const handleDeleteProduct = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync (productId: string) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    setProductIdToDelete(productId);</span>
-<span class="cstat-no" title="statement not covered" >    setDeleteModalVisible(true);</span>
+  const handleSubmitLead = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+    const isNameInvalid = <span class="cstat-no" title="statement not covered" >leadName.trim().length &lt; 3;</span>
+    const isPhoneInvalid = <span class="cstat-no" title="statement not covered" >leadPhone.length !== 10;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    setNameError(isNameInvalid);</span>
+<span class="cstat-no" title="statement not covered" >    setPhoneError(isPhoneInvalid);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (isNameInvalid || isPhoneInvalid) <span class="cstat-no" title="statement not covered" >return;</span></span>
+&nbsp;
+    // Determine stores based on region (first 2 digits of pincode)
+    const prefix = <span class="cstat-no" title="statement not covered" >pincode.substring(0, 2);</span>
+    const regionStores = <span class="cstat-no" title="statement not covered" >STORES_BY_REGION[prefix] || [</span>
+      "Moksha Jewels Vijayawada Showroom, Polyclinic Road"
+    ];
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    setStoresList(regionStores);</span>
+<span class="cstat-no" title="statement not covered" >    setShowStores(true);</span>
   };
 &nbsp;
-  const confirmDelete = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!productIdToDelete) <span class="cstat-no" title="statement not covered" >return;</span></span>
-    
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      setLoading(true);</span>
-      const { error } = <span class="cstat-no" title="statement not covered" >await supabase</span>
-        .from('products')
-        .delete()
-        .eq('id', productIdToDelete);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (error) <span class="cstat-no" title="statement not covered" >throw error;</span></span>
-      
-<span class="cstat-no" title="statement not covered" >      setMyProducts(<span class="fstat-no" title="function not covered" >pr</span>ev =&gt; <span class="cstat-no" title="statement not covered" >prev.filter(<span class="fstat-no" title="function not covered" >p </span>=&gt; <span class="cstat-no" title="statement not covered" >p.id !== productIdToDelete)</span>)</span>;</span>
-<span class="cstat-no" title="statement not covered" >      setDeleteModalVisible(false);</span>
-<span class="cstat-no" title="statement not covered" >      setProductIdToDelete(null);</span>
-    } catch (error: any) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error deleting product:', error);</span>
-<span class="cstat-no" title="statement not covered" >      Alert.alert("Error", error.message || "Could not delete product.");</span>
-    } finally {
-<span class="cstat-no" title="statement not covered" >      setLoading(false);</span>
-    }
+  const handleTalkToExpert = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    setExpertThanks(true);</span>
   };
 &nbsp;
-  const updateOrderStatus = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync (orderId: string, newStatus: string) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { error } = <span class="cstat-no" title="statement not covered" >await supabase</span>
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (error) <span class="cstat-no" title="statement not covered" >throw error;</span></span>
-      
-<span class="cstat-no" title="statement not covered" >      setMySales(<span class="fstat-no" title="function not covered" >pr</span>ev =&gt; <span class="cstat-no" title="statement not covered" >prev.map(<span class="fstat-no" title="function not covered" >sa</span>le =&gt; </span></span>
-<span class="cstat-no" title="statement not covered" >        sale.orders.id === orderId ? { ...sale, orders: { ...sale.orders, status: newStatus } } : sale</span>
-      ));
-      
-<span class="cstat-no" title="statement not covered" >      Alert.alert("Success", `Order status updated to ${newStatus.toUpperCase()}`);</span>
-    } catch (error: any) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error updating order status:', error);</span>
-<span class="cstat-no" title="statement not covered" >      Alert.alert("Error", error.message || "Could not update order status.");</span>
-    }
+  const handleTryAtStore = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    Alert.alert(</span>
+      "Try at Store Request Sent",
+      "Our showroom experts will contact you within 24 hours to coordinate your private viewing.",
+      [{ text: "Okay" }]
+    );
   };
 &nbsp;
-  const handleCSVImport = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!vendorSettings?.vendor_id) {</span>
-<span class="cstat-no" title="statement not covered" >      Alert.alert("Error", "Vendor account not fully initialized. Please contact support.");</span>
-<span class="cstat-no" title="statement not covered" >      return;</span>
-    }
+  // Validate lead form for enabling button
+  const isLeadValid = <span class="cstat-no" title="statement not covered" >leadName.trim().length &gt;= 3 &amp;&amp; leadPhone.length === 10;</span>
+  const isPincodeValid = <span class="cstat-no" title="statement not covered" >pincode.length === 6;</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const result = <span class="cstat-no" title="statement not covered" >await DocumentPicker.getDocumentAsync({</span>
-        type: 'text/csv',
-        copyToCacheDirectory: true,
-      });
+  // Selected products for selection list (include current product and first matching complementary item)
+  const selectionProducts = <span class="cstat-no" title="statement not covered" >[</span>
+    product,
+    ...(matchingProducts &amp;&amp; matchingProducts.length &gt; 0 ? [matchingProducts[0]] : [])
+  ];
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (result.canceled) <span class="cstat-no" title="statement not covered" >return;</span></span>
-&nbsp;
-      const fileUri = <span class="cstat-no" title="statement not covered" >result.assets[0].uri;</span>
-      const response = <span class="cstat-no" title="statement not covered" >await fetch(fileUri);</span>
-      const csvText = <span class="cstat-no" title="statement not covered" >await response.text();</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      setLoading(true);</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      Papa.parse(csvText, {</span>
-        header: true,
-        skipEmptyLines: true,
-        complete: <span class="fstat-no" title="function not covered" >as</span>ync (results) =&gt; {
-          const { data, errors } = <span class="cstat-no" title="statement not covered" >results;</span>
-          
-<span class="cstat-no" title="statement not covered" >          if (errors.length &gt; 0) {</span>
-<span class="cstat-no" title="statement not covered" >            Alert.alert("CSV Error", `Issue parsing file: ${errors[0].message}`);</span>
-<span class="cstat-no" title="statement not covered" >            setLoading(false);</span>
-<span class="cstat-no" title="statement not covered" >            return;</span>
-          }
-&nbsp;
-<span class="cstat-no" title="statement not covered" >          if (data.length === 0) {</span>
-<span class="cstat-no" title="statement not covered" >            Alert.alert("Empty File", "The CSV file contains no data rows.");</span>
-<span class="cstat-no" title="statement not covered" >            setLoading(false);</span>
-<span class="cstat-no" title="statement not covered" >            return;</span>
-          }
-&nbsp;
-          const productsToInsert = <span class="cstat-no" title="statement not covered" >data.map(<span class="fstat-no" title="function not covered" >(r</span>ow: any) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
-            vendor_id: vendorSettings.vendor_id,
-            name: row.name || row.Name,
-            category_name: row.category_name || row.Category || 'Gold',
-            product_code: row.product_code || row.SKU || row.Code,
-            image_url: row.image_url || row.Image || '',
-            gross_weight: parseFloat(row.gross_weight || row.Weight || 0),
-            gold_weight: parseFloat(row.gold_weight || row.NetWeight || 0),
-            purity: row.purity || row.Purity || '22K',
-            metal_color: row.metal_color || row.Color || 'Yellow',
-            base_price_usd: parseFloat(row.base_price_usd || row.Price || 0),
-            stock_quantity: parseInt(row.stock_quantity || row.Stock || 0),
-            sourcing_cost: parseFloat(row.sourcing_cost || row.Cost || 0),
-            metal_price_usd: parseFloat(row.metal_price_usd || row.MetalPrice || 0),            va_making_usd: parseFloat(row.va_making_usd || row.Making || 0),
-            stone_beads_usd: parseFloat(row.stone_beads_usd || row.StonePrice || 0),
-            tax_usd: parseFloat(row.tax_usd || row.Tax || 0),
-            popularity: 0,
-            rating: 0
-          }));
-&nbsp;
-          const invalidRows = <span class="cstat-no" title="statement not covered" >productsToInsert.filter(<span class="fstat-no" title="function not covered" >p </span>=&gt; <span class="cstat-no" title="statement not covered" >!p.name || !p.product_code || p.base_price_usd &lt;= 0)</span>;</span>
-<span class="cstat-no" title="statement not covered" >          if (invalidRows.length &gt; 0) {</span>
-<span class="cstat-no" title="statement not covered" >            Alert.alert("Validation Error", `Found ${invalidRows.length} rows with invalid data.`);</span>
-<span class="cstat-no" title="statement not covered" >            setLoading(false);</span>
-<span class="cstat-no" title="statement not covered" >            return;</span>
-          }
-&nbsp;
-          const { error: insertError } = <span class="cstat-no" title="statement not covered" >await supabase.from('products').insert(productsToInsert);</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >          if (insertError) {</span>
-<span class="cstat-no" title="statement not covered" >            Alert.alert("Upload Failed", insertError.message);</span>
-          } else {
-<span class="cstat-no" title="statement not covered" >            Alert.alert("Success", `Successfully imported ${productsToInsert.length} masterpieces!`);</span>
-<span class="cstat-no" title="statement not covered" >            fetchVendorData();</span>
-          }
-<span class="cstat-no" title="statement not covered" >          setLoading(false);</span>
-        }
-      });
-    } catch (error: any) {
-<span class="cstat-no" title="statement not covered" >      Alert.alert("Error", error.message || "Failed to process CSV file.");</span>
-<span class="cstat-no" title="statement not covered" >      setLoading(false);</span>
-    }
-  };
-&nbsp;
-  const renderProductItem = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(i</span>tem: Product) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >    &lt;View key={item.id} style={[</span>
-      styles.productCard, 
-      isMobile &amp;&amp; { width: isSmallMobile ? '100%' : '47%' },
-      isDeleteMode &amp;&amp; styles.deleteModeCard
-    ]}&gt;
-      &lt;OptimizedImage url={(item as any).image_url} style={styles.productImage} /&gt;
-      &lt;View style={styles.productInfo}&gt;
-        &lt;Text style={styles.productName} numberOfLines={1}&gt;{item.name}&lt;/Text&gt;
-        &lt;View style={styles.stockRow}&gt;
-          &lt;Text style={[styles.productStock, !(item as any).is_in_stock &amp;&amp; styles.outOfStockText]}&gt;
-            {(item as any).is_in_stock ? 'IN STOCK' : 'OUT OF STOCK'}
-          &lt;/Text&gt;
-          &lt;TouchableOpacity 
-            style={styles.toggleBtn}
-            onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >toggleStockStatus(item.id, (item as any).is_in_stock)}</span>
-          &gt;
-            &lt;Text style={styles.toggleBtnText}&gt;TOGGLE&lt;/Text&gt;
-          &lt;/TouchableOpacity&gt;
-        &lt;/View&gt;
-        &lt;View style={styles.priceRow}&gt;
-          &lt;Text style={styles.productPrice}&gt;{formatPrice(item.price, countryCode)}&lt;/Text&gt;
-          &lt;View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}&gt;
-            &lt;TouchableOpacity 
-              style={styles.editBtn}
-              onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.navigate('AddProduct', { product: item, vendorId: (item as any).vendor_id })}</span>
-            &gt;
-              &lt;Text style={styles.editBtnText}&gt;EDIT&lt;/Text&gt;
-            &lt;/TouchableOpacity&gt;
-            {isDeleteMode ? (
-              &lt;TouchableOpacity 
-                style={styles.deleteBtn}
-                onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleDeleteProduct(item.id)}</span>
-              &gt;
-                &lt;Text style={styles.deleteBtnText}&gt;REMOVE&lt;/Text&gt;
-              &lt;/TouchableOpacity&gt;
-            ) : null}
-          &lt;/View&gt;
-        &lt;/View&gt;
-      &lt;/View&gt;
-    &lt;/View&gt;
-  );
-&nbsp;
-  const renderOrderListItem = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(s</span>ale: any) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >    &lt;View key={sale.id} style={styles.orderCard}&gt;</span>
-      &lt;View style={styles.orderHeader}&gt;
-        &lt;View style={{ flex: 1 }}&gt;
-          &lt;Text style={styles.orderId}&gt;ORDER: {sale.orders.id.slice(0, 8).toUpperCase()}&lt;/Text&gt;
-          &lt;Text style={styles.orderDate}&gt;{new Date(sale.orders.created_at).toLocaleDateString()}&lt;/Text&gt;
-        &lt;/View&gt;
-        &lt;View style={[styles.statusBadge, { borderColor: sale.orders.status === 'delivered' ? '#4CAF50' : '#D4AF37' }]}&gt;
-          &lt;Text style={[styles.statusText, { color: sale.orders.status === 'delivered' ? '#4CAF50' : '#D4AF37' }]}&gt;
-            {sale.orders.status.toUpperCase()}
-          &lt;/Text&gt;
-        &lt;/View&gt;
-      &lt;/View&gt;
-      &lt;View style={styles.orderBody}&gt;
-        &lt;Text style={styles.itemTitle}&gt;{sale.quantity}x {myProducts.find(<span class="fstat-no" title="function not covered" >p </span>=&gt; <span class="cstat-no" title="statement not covered" >p.id === sale.product_id)</span>?.name || 'Product'}&lt;/Text&gt;
-        &lt;Text style={styles.orderAmount}&gt;Amount: {formatPrice(sale.price_at_purchase * sale.quantity, countryCode)}&lt;/Text&gt;
-      &lt;/View&gt;
-      &lt;View style={[styles.actionRow, isSmallMobile &amp;&amp; { flexDirection: 'column' }]}&gt;
-        &lt;TouchableOpacity style={styles.statusActionBtn} onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >updateOrderStatus(sale.orders.id, 'processing')}</span>&gt;
-          &lt;Text style={styles.statusActionText}&gt;PROCESS&lt;/Text&gt;
-        &lt;/TouchableOpacity&gt;
-        &lt;TouchableOpacity style={styles.statusActionBtn} onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >updateOrderStatus(sale.orders.id, 'shipped')}</span>&gt;
-          &lt;Text style={styles.statusActionText}&gt;SHIP&lt;/Text&gt;
-        &lt;/TouchableOpacity&gt;
-        &lt;TouchableOpacity style={[styles.statusActionBtn, { borderColor: '#4CAF50' }]} onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >updateOrderStatus(sale.orders.id, 'delivered')}</span>&gt;
-          &lt;Text style={[styles.statusActionText, { color: '#4CAF50' }]}&gt;DELIVER&lt;/Text&gt;
-        &lt;/TouchableOpacity&gt;
-      &lt;/View&gt;
-    &lt;/View&gt;
-  );
+  // Similar products for recommended grid in Case B
+  const similarProducts = <span class="cstat-no" title="statement not covered" >matchingProducts &amp;&amp; matchingProducts.length &gt; 0</span>
+    ? matchingProducts.slice(0, 2)
+    : [];
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return (</span>
-    &lt;View style={styles.container}&gt;
-      &lt;KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}&gt;
-        &lt;ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}&gt;
-          &lt;View style={styles.contentWrapper}&gt;
-            &lt;View style={[styles.vendorHeader, isMobile &amp;&amp; { padding: 20 }]}&gt;
-              &lt;Text style={[styles.vendorTitle, isMobile &amp;&amp; { fontSize: 22 }]}&gt;Partner Portal&lt;/Text&gt;
-              &lt;Text style={styles.vendorSubtitle}&gt;{vendorSettings?.business_name || 'Artisan Partner'} | {vendorSettings?.vendors?.name || 'Pending Link'}&lt;/Text&gt;
-              
-              {__DEV__ &amp;&amp; !vendorSettings?.vendor_id &amp;&amp; !loading ? (
-                &lt;TouchableOpacity 
-                  style={styles.devLinkBtn}
-                  onPress={<span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {
-<span class="cstat-no" title="statement not covered" >                    try {</span>
-<span class="cstat-no" title="statement not covered" >                      setLoading(true);</span>
-                      const { data: vData } = <span class="cstat-no" title="statement not covered" >await supabase.from('vendors').select('id').limit(1).single();</span>
-<span class="cstat-no" title="statement not covered" >                      if (vData) {</span>
-<span class="cstat-no" title="statement not covered" >                        await supabase.from('vendor_settings').update({ vendor_id: vData.id }).eq('user_id', user?.id);</span>
-<span class="cstat-no" title="statement not covered" >                        Alert.alert("Development Link", "Successfully linked to a mock vendor for testing.");</span>
-<span class="cstat-no" title="statement not covered" >                        fetchVendorData();</span>
-                      }
-                    } catch (e) {
-<span class="cstat-no" title="statement not covered" >                      console.error("Failed to dev-link:", e);</span>
-                    } finally {
-<span class="cstat-no" title="statement not covered" >                      setLoading(false);</span>
-                    }
-                  }}
-                &gt;
-                  &lt;Text style={styles.devLinkBtnText}&gt;DEV: QUICK LINK TO VENDOR&lt;/Text&gt;
-                &lt;/TouchableOpacity&gt;
-              ) : null}
-            &lt;/View&gt;
+    &lt;Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    &gt;
+      &lt;SafeAreaView style={styles.modalOverlay}&gt;
+        &lt;View style={styles.popupContainer}&gt;
+          {/* Close button */}
+          &lt;TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}&gt;
+            &lt;Text style={styles.closeBtnText}&gt;✕&lt;/Text&gt;
+          &lt;/TouchableOpacity&gt;
 &nbsp;
-            &lt;View style={styles.tabBarContainer}&gt;
-              &lt;ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBar}&gt;
-                &lt;TouchableOpacity style={[styles.tab, activeTab === 'products' &amp;&amp; styles.activeTab, isMobile &amp;&amp; { minWidth: 120 }]} onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setActiveTab('products')}</span>&gt;
-                  &lt;Text style={[styles.tabText, activeTab === 'products' &amp;&amp; styles.activeTabText]}&gt;Inventory&lt;/Text&gt;
-                &lt;/TouchableOpacity&gt;
-                &lt;TouchableOpacity style={[styles.tab, activeTab === 'orders' &amp;&amp; styles.activeTab, isMobile &amp;&amp; { minWidth: 120 }]} onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setActiveTab('orders')}</span>&gt;
-                  &lt;Text style={[styles.tabText, activeTab === 'orders' &amp;&amp; styles.activeTabText]}&gt;Orders&lt;/Text&gt;
-                &lt;/TouchableOpacity&gt;
-                &lt;TouchableOpacity style={[styles.tab, activeTab === 'm2m' &amp;&amp; styles.activeTab, isMobile &amp;&amp; { minWidth: 120 }]} onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setActiveTab('m2m')}</span>&gt;
-                  &lt;Text style={[styles.tabText, activeTab === 'm2m' &amp;&amp; styles.activeTabText]}&gt;M2M API&lt;/Text&gt;
-                &lt;/TouchableOpacity&gt;
-              &lt;/ScrollView&gt;
-            &lt;/View&gt;
+          {currentScreen === "search" ? (
+            &lt;ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}&gt;
+              &lt;View id="threePdp-main-screen" style={styles.screenWrapper}&gt;
+                &lt;Text style={styles.mainTitle}&gt;Your selections await.&lt;/Text&gt;
+                &lt;Text style={styles.subTitle}&gt;
+                  Enter your PIN to check availability at a Tanishq store near you.
+                &lt;/Text&gt;
 &nbsp;
-            {loading ? (
-              &lt;ActivityIndicator color="#D4AF37" size="large" style={{ marginTop: 50 }} /&gt;
-            ) : (
-              &lt;View style={styles.content}&gt;
-                {activeTab === 'overview' ? (
-                  &lt;View style={styles.section}&gt;
-                    &lt;Text style={styles.sectionTitle}&gt;Partner Overview&lt;/Text&gt;
-                    &lt;View style={styles.statsGrid}&gt;
-                      &lt;View style={styles.statCard}&gt;
-                        &lt;Text style={styles.statLabel}&gt;Total Revenue&lt;/Text&gt;
-                        &lt;Text style={styles.statValue}&gt;{formatPrice(totalRevenue, countryCode)}&lt;/Text&gt;
-                      &lt;/View&gt;
-                      &lt;View style={styles.statCard}&gt;
-                        &lt;Text style={styles.statLabel}&gt;Orders&lt;/Text&gt;
-                        &lt;Text style={styles.statValue}&gt;{totalOrders}&lt;/Text&gt;
-                      &lt;/View&gt;
-                      &lt;View style={styles.statCard}&gt;
-                        &lt;Text style={styles.statLabel}&gt;Active Products&lt;/Text&gt;
-                        &lt;Text style={styles.statValue}&gt;{activeProductsCount}&lt;/Text&gt;
-                      &lt;/View&gt;
-                      &lt;View style={[styles.statCard, lowStockCount &gt; 0 &amp;&amp; { borderColor: '#ff4444', backgroundColor: 'rgba(255, 68, 68, 0.05)' }]}&gt;
-                        &lt;Text style={styles.statLabel}&gt;Low Stock Alerts&lt;/Text&gt;
-                        &lt;Text style={[styles.statValue, lowStockCount &gt; 0 &amp;&amp; { color: '#ff4444' }]}&gt;{lowStockCount}&lt;/Text&gt;
-                      &lt;/View&gt;
-                    &lt;/View&gt;
-                  &lt;/View&gt;
-                ) : null}
+                {/* PIN Code Field */}
+                &lt;View style={styles.pinSection}&gt;
+                  &lt;Text style={styles.label}&gt;ENTER PIN CODE&lt;/Text&gt;
+                  &lt;TextInput
+                    style={styles.input}
+                    placeholder="e.g. 560001"
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    keyboardType="numeric"
+                    maxLength={6}
+                    value={pincode}
+                    onChangeText={handlePincodeChange}
+                  /&gt;
+                &lt;/View&gt;
 &nbsp;
-                {activeTab === 'products' ? (
-                  &lt;View style={styles.section}&gt;
-                    &lt;View style={[styles.rowBetween, isSmallMobile &amp;&amp; { flexDirection: 'column', alignItems: 'flex-start', gap: 15 }]}&gt;
-                      &lt;Text style={styles.sectionTitle}&gt;My Inventory&lt;/Text&gt;
-                      &lt;View style={[styles.headerActions, isSmallMobile &amp;&amp; { width: '100%', justifyContent: 'space-between' }]}&gt;
-                        &lt;TouchableOpacity 
-                          style={[styles.addBtn, { marginRight: 8, borderColor: isDeleteMode ? '#ff4444' : '#aaa' }]} 
-                          onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setIsDeleteMode(!isDeleteMode)}</span>
+                {/* Product List */}
+                &lt;View style={styles.productListContainer}&gt;
+                  {selectionProducts.map(<span class="fstat-no" title="function not covered" >(p</span>rod, index) =&gt; {
+                    const isCheckingThis = <span class="cstat-no" title="statement not covered" >activeCheckedSku === prod.productCode;</span>
+<span class="cstat-no" title="statement not covered" >                    return (</span>
+                      &lt;View key={prod.id || index} style={styles.productCard}&gt;
+                        &lt;OptimizedImage
+                          url={prod.image}
+                          style={styles.prodImage}
+                          shouldLoad={true}
+                        /&gt;
+                        &lt;Text style={styles.prodName} numberOfLines={2}&gt;{prod.name}&lt;/Text&gt;
+                        &lt;Text style={styles.prodPrice}&gt;{formatPrice(prod.price)}&lt;/Text&gt;
+                        
+                        &lt;TouchableOpacity
+                          style={[
+                            styles.checkBtn,
+                            !isPincodeValid &amp;&amp; styles.checkBtnDisabled,
+                            isCheckingThis &amp;&amp; showLeadForm &amp;&amp; styles.checkBtnActive
+                          ]}
+                          disabled={!isPincodeValid}
+                          onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >handleCheckAvailability(prod.productCode)}</span>
+                          activeOpacity={0.8}
                         &gt;
-                          &lt;Text style={[styles.addBtnText, { color: isDeleteMode ? '#ff4444' : '#aaa' }]}&gt;
-                            {isDeleteMode ? 'EXIT MANAGE' : 'MANAGE'}
+                          &lt;Text style={[
+                            styles.checkBtnText,
+                            !isPincodeValid &amp;&amp; styles.checkBtnTextDisabled
+                          ]}&gt;
+                            Check Store Availability
                           &lt;/Text&gt;
                         &lt;/TouchableOpacity&gt;
-                        &lt;TouchableOpacity style={[styles.addBtn, { marginRight: 8, borderColor: '#aaa' }]} onPress={handleCSVImport}&gt;
-                          &lt;Text style={[styles.addBtnText, { color: '#aaa' }]}&gt;IMPORT CSV&lt;/Text&gt;
-                        &lt;/TouchableOpacity&gt;
-                        &lt;TouchableOpacity style={styles.addBtn} onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.navigate('AddProduct', { vendorId: vendorSettings?.vendor_id })}</span>&gt;
-                          &lt;Text style={styles.addBtnText}&gt;+ NEW ITEM&lt;/Text&gt;
-                        &lt;/TouchableOpacity&gt;
                       &lt;/View&gt;
-                    &lt;/View&gt;
+                    );
+                  })}
+                &lt;/View&gt;
 &nbsp;
-                    &lt;View style={styles.searchContainer}&gt;
+                {/* Inline Lead Form */}
+                {showLeadForm &amp;&amp; (
+                  &lt;View style={styles.leadFormInline}&gt;
+                    &lt;Text style={styles.leadFormTitle}&gt;Share your details to see store results.&lt;/Text&gt;
+                    &lt;View style={styles.leadFieldsContainer}&gt;
+                      &lt;Text style={styles.label}&gt;NAME&lt;/Text&gt;
                       &lt;TextInput
-                        style={styles.searchInput}
-                        placeholder="Search your collection..."
-                        placeholderTextColor="#666"
-                        value={productSearchQuery}
-                        onChangeText={setProductSearchQuery}
+                        style={styles.input}
+                        placeholder="Enter your name"
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        value={leadName}
+                        onChangeText={handleNameChange}
                       /&gt;
-                    &lt;/View&gt;
+                      {nameError &amp;&amp; (
+                        &lt;Text style={styles.errorText}&gt;Please enter a valid name (min 3 characters).&lt;/Text&gt;
+                      )}
 &nbsp;
-                    {myProducts.length === 0 ? (
-                      &lt;Text style={styles.emptyText}&gt;No products listed.&lt;/Text&gt;
-                    ) : (
-                      &lt;View style={styles.grid}&gt;
-                        {myProducts
-                          .filter(<span class="fstat-no" title="function not covered" >p </span>=&gt; <span class="cstat-no" title="statement not covered" >p.name.toLowerCase().includes(productSearchQuery.toLowerCase()) || </span>
-                                       (p as any).product_code?.toLowerCase().includes(productSearchQuery.toLowerCase()))
-                          .map(renderProductItem)}
-                      &lt;/View&gt;
-                    )}
-                  &lt;/View&gt;
-                ) : null}
+                      &lt;Text style={[styles.label, { marginTop: 15 }]}&gt;PHONE NUMBER&lt;/Text&gt;
+                      &lt;TextInput
+                        style={styles.input}
+                        placeholder="Enter mobile number"
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        keyboardType="phone-pad"
+                        maxLength={10}
+                        value={leadPhone}
+                        onChangeText={handlePhoneChange}
+                      /&gt;
+                      {phoneError &amp;&amp; (
+                        &lt;Text style={styles.errorText}&gt;Please enter a valid 10-digit number.&lt;/Text&gt;
+                      )}
 &nbsp;
-                {activeTab === 'orders' ? (
-                  &lt;View style={styles.section}&gt;
-                    &lt;Text style={styles.sectionTitle}&gt;Sales Activity&lt;/Text&gt;
-                    {mySales.length === 0 ? (
-                      &lt;Text style={styles.emptyText}&gt;No sales recorded yet.&lt;/Text&gt;
-                    ) : (
-                      &lt;View style={styles.orderList}&gt;
-                        {mySales.map(renderOrderListItem)}
-                      &lt;/View&gt;
-                    )}
-                  &lt;/View&gt;
-                ) : null}
-&nbsp;
-                {activeTab === 'm2m' ? (
-                  &lt;View style={styles.section}&gt;
-                    &lt;Text style={styles.sectionTitle}&gt;API Integration&lt;/Text&gt;
-                    &lt;View style={styles.m2mCard}&gt;
-                      &lt;Text style={styles.m2mLabel}&gt;Endpoint&lt;/Text&gt;
-                      &lt;View style={styles.codeBlock}&gt;&lt;Text style={styles.codeText}&gt;https://api.mokshajewels.com/v1/sync&lt;/Text&gt;&lt;/View&gt;
-                      &lt;TouchableOpacity style={styles.apiKeyBtn} onPress={generateApiKey}&gt;
-                        &lt;Text style={styles.apiKeyBtnText}&gt;Generate API Key&lt;/Text&gt;
+                      &lt;TouchableOpacity
+                        style={[
+                          styles.submitLeadBtn,
+                          !isLeadValid &amp;&amp; styles.submitLeadBtnDisabled
+                        ]}
+                        disabled={!isLeadValid}
+                        onPress={handleSubmitLead}
+                        activeOpacity={0.8}
+                      &gt;
+                        &lt;Text style={[
+                          styles.submitLeadBtnText,
+                          !isLeadValid &amp;&amp; styles.submitLeadBtnTextDisabled
+                        ]}&gt;
+                          SUBMIT &amp; VIEW STORES
+                        &lt;/Text&gt;
                       &lt;/TouchableOpacity&gt;
                     &lt;/View&gt;
                   &lt;/View&gt;
-                ) : null}
-              &lt;/View&gt;
-            )}
-          &lt;/View&gt;
-          &lt;Footer /&gt;
-        &lt;/ScrollView&gt;
-      &lt;/KeyboardAvoidingView&gt;
+                )}
 &nbsp;
-      {deleteModalVisible ? (
-        &lt;View style={styles.modalOverlay}&gt;
-          &lt;View style={styles.modalContent}&gt;
-            &lt;Text style={styles.modalTitle}&gt;Confirm Delete&lt;/Text&gt;
-            &lt;Text style={styles.modalMessage}&gt;Are you sure you want to remove this masterpiece from your collection?&lt;/Text&gt;
-            &lt;View style={styles.modalActions}&gt;
-              &lt;TouchableOpacity 
-                style={[styles.modalBtn, styles.cancelBtn]} 
-                onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; {
-<span class="cstat-no" title="statement not covered" >                  setDeleteModalVisible(false);</span>
-<span class="cstat-no" title="statement not covered" >                  setProductIdToDelete(null);</span>
-                }}
-              &gt;
-                &lt;Text style={styles.cancelBtnText}&gt;CANCEL&lt;/Text&gt;
-              &lt;/TouchableOpacity&gt;
-              &lt;TouchableOpacity 
-                style={[styles.modalBtn, styles.confirmBtn]} 
-                onPress={confirmDelete}
-              &gt;
-                &lt;Text style={styles.confirmBtnText}&gt;DELETE&lt;/Text&gt;
-              &lt;/TouchableOpacity&gt;
-            &lt;/View&gt;
-          &lt;/View&gt;
+                {/* Store Results */}
+                {showStores &amp;&amp; (
+                  &lt;View style={styles.storeResultsSection}&gt;
+                    &lt;View style={styles.divider} /&gt;
+                    &lt;Text style={styles.storeResultsHeader}&gt;Available in&lt;/Text&gt;
+                    &lt;View style={styles.storesListContainer}&gt;
+                      {storesList.map(<span class="fstat-no" title="function not covered" >(s</span>tore, i) =&gt; (
+<span class="cstat-no" title="statement not covered" >                        &lt;View key={i} style={styles.storeRow}&gt;</span>
+                          &lt;FontAwesome5 name="map-marker-alt" size={14} color="#D4AF37" style={{ marginRight: 10, marginTop: 2 }} /&gt;
+                          &lt;View style={{ flex: 1 }}&gt;
+                            &lt;Text style={styles.storeName}&gt;{store}&lt;/Text&gt;
+                            &lt;Text style={styles.storeDetails}&gt;Hours: 10:30 AM - 8:30 PM | Open Daily&lt;/Text&gt;
+                          &lt;/View&gt;
+                        &lt;/View&gt;
+                      ))}
+                    &lt;/View&gt;
+                  &lt;/View&gt;
+                )}
+              &lt;/View&gt;
+            &lt;/ScrollView&gt;
+          ) : (
+            /* Unavailable Screen */
+            &lt;ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}&gt;
+              &lt;View id="threePdp-not-available-screen" style={styles.screenWrapper}&gt;
+                &lt;View style={styles.bannerUnavailable}&gt;
+                  &lt;Text style={styles.bannerUnavailableText}&gt;NOT AVAILABLE IN YOUR PINCODE&lt;/Text&gt;
+                &lt;/View&gt;
+&nbsp;
+                &lt;Text style={styles.mainTitle}&gt;You might also love these.&lt;/Text&gt;
+                &lt;Text style={styles.subTitle}&gt;
+                  Available at our nearest store — curated just for you.
+                &lt;/Text&gt;
+&nbsp;
+                {/* Similar curated list */}
+                {similarProducts.length &gt; 0 ? (
+                  &lt;View style={styles.similarProductsGrid}&gt;
+                    {similarProducts.map(<span class="fstat-no" title="function not covered" >(p</span>rod, index) =&gt; (
+<span class="cstat-no" title="statement not covered" >                      &lt;TouchableOpacity</span>
+                        key={prod.id || index}
+                        style={styles.similarProductCard}
+                        onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; {
+<span class="cstat-no" title="statement not covered" >                          if (onSelectProduct) {</span>
+<span class="cstat-no" title="statement not covered" >                            onSelectProduct(prod);</span>
+                          }
+<span class="cstat-no" title="statement not covered" >                          onClose();</span>
+                        }}
+                        activeOpacity={0.8}
+                      &gt;
+                        &lt;OptimizedImage
+                          url={prod.image}
+                          style={styles.similarProdImage}
+                          shouldLoad={true}
+                        /&gt;
+                        &lt;Text style={styles.similarProdName} numberOfLines={1}&gt;{prod.name}&lt;/Text&gt;
+                        &lt;Text style={styles.similarProdPrice}&gt;{formatPrice(prod.price)}&lt;/Text&gt;
+                      &lt;/TouchableOpacity&gt;
+                    ))}
+                  &lt;/View&gt;
+                ) : (
+                  &lt;Text style={{ color: "rgba(255, 255, 255, 0.4)", fontSize: 12, textAlign: "center", marginVertical: 15 }}&gt;
+                    Loading suggestions...
+                  &lt;/Text&gt;
+                )}
+&nbsp;
+                {/* Nearest store info */}
+                &lt;View style={styles.nearestStoreInfoCard}&gt;
+                  &lt;FontAwesome5 name="store" size={16} color="#D4AF37" style={{ marginBottom: 8 }} /&gt;
+                  &lt;Text style={styles.nearestStoreLabel}&gt;NEAREST AVAILABLE SHOWROOM&lt;/Text&gt;
+                  &lt;Text style={styles.nearestStoreName}&gt;
+                    Moksha Jewels Flagship Showroom, Vijayawada
+                  &lt;/Text&gt;
+                  &lt;Text style={styles.nearestStoreDistance}&gt;
+                    Polyclinic Road, Vijayawada (~120 km away)
+                  &lt;/Text&gt;
+                &lt;/View&gt;
+&nbsp;
+                {/* Action footer */}
+                &lt;View style={styles.actionFooter}&gt;
+                  {expertThanks &amp;&amp; (
+                    &lt;Text style={styles.expertThanksText}&gt;
+                      Our Experts will get in touch with you.
+                    &lt;/Text&gt;
+                  )}
+&nbsp;
+                  {!expertThanks &amp;&amp; (
+                    &lt;TouchableOpacity style={styles.btnOutline} onPress={handleTalkToExpert} activeOpacity={0.8}&gt;
+                      &lt;Text style={styles.btnOutlineText}&gt;TALK TO AN EXPERT&lt;/Text&gt;
+                    &lt;/TouchableOpacity&gt;
+                  )}
+&nbsp;
+                  &lt;TouchableOpacity style={styles.btnDark} onPress={handleTryAtStore} activeOpacity={0.8}&gt;
+                    &lt;Text style={styles.btnDarkText}&gt;TRY AT STORE&lt;/Text&gt;
+                  &lt;/TouchableOpacity&gt;
+                &lt;/View&gt;
+&nbsp;
+                &lt;TouchableOpacity style={styles.backLinkBtn} onPress={resetState} activeOpacity={0.7}&gt;
+                  &lt;Text style={styles.backLinkLabel}&gt;← TRY ANOTHER PIN CODE&lt;/Text&gt;
+                &lt;/TouchableOpacity&gt;
+              &lt;/View&gt;
+            &lt;/ScrollView&gt;
+          )}
         &lt;/View&gt;
-      ) : null}
-    &lt;/View&gt;
+      &lt;/SafeAreaView&gt;
+    &lt;/Modal&gt;
   );
 };
 &nbsp;
 const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.create({</span>
-  container: { flex: 1, backgroundColor: '#291c0e' },
-  scrollContent: { flexGrow: 1 },
-  contentWrapper: { flex: 1 },
-  vendorHeader: { padding: 40, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(212, 175, 55, 0.15)' },
-  vendorTitle: { fontFamily: 'TrajanPro', fontSize: 28, color: '#D4AF37', letterSpacing: 2, marginBottom: 5 },
-  vendorSubtitle: { color: '#888', fontSize: 14, fontStyle: 'italic' },
-  devLinkBtn: { marginTop: 15, paddingHorizontal: 15, paddingVertical: 8, borderStyle: 'dashed', borderWidth: 1, borderColor: '#D4AF37', borderRadius: 4 },
-  devLinkBtnText: { color: '#D4AF37', fontSize: 10, fontWeight: 'bold' },
-  tabBarContainer: { backgroundColor: 'rgba(212, 175, 55, 0.05)', borderBottomWidth: 1, borderBottomColor: 'rgba(212, 175, 55, 0.1)' },
-  tabBar: { flexDirection: 'row' },
-  tab: { flex: 1, paddingVertical: 15, paddingHorizontal: 20, alignItems: 'center' },
-  activeTab: { borderBottomWidth: 2, borderBottomColor: '#D4AF37' },
-  tabText: { color: '#888', fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
-  activeTabText: { color: '#D4AF37' },
-  content: { padding: 20, maxWidth: 1200, alignSelf: 'center', width: '100%' },
-  section: { marginBottom: 40 },
-  sectionTitle: { fontFamily: 'TrajanPro', fontSize: 20, color: '#D4AF37', marginBottom: 20 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 },
-  statCard: { flex: 1, minWidth: 150, backgroundColor: '#3d2b1a', padding: 20, borderRadius: 8, borderWidth: 1, borderColor: '#4a3520' },
-  statLabel: { color: '#888', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
-  statValue: { color: '#fff', fontSize: 20, fontWeight: 'bold', fontFamily: 'TrajanPro' },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
-  searchContainer: { marginBottom: 20 },
-  searchInput: { backgroundColor: '#1a1108', borderWidth: 1, borderColor: '#4a3520', borderRadius: 6, padding: 12, color: '#fff', fontSize: 14 },
-  productCard: { width: Platform.OS === 'web' ? '23%' : '47%', backgroundColor: '#3d2b1a', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#4a3520' },
-  deleteModeCard: { borderColor: '#ff4444', borderWidth: 1.5 },
-  productImage: { width: '100%', height: 150, resizeMode: 'cover' },
-  productInfo: { padding: 12 },
-  productName: { color: '#fff', fontSize: 13, fontWeight: 'bold', marginBottom: 4 },
-  productStock: { color: '#aaa', fontSize: 10, marginBottom: 4 },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  productPrice: { color: '#D4AF37', fontSize: 12, fontWeight: 'bold' },
-  editBtn: { padding: 4, borderWidth: 1, borderColor: '#D4AF37', borderRadius: 4, paddingHorizontal: 6 },
-  editBtnText: { color: '#D4AF37', fontSize: 8, fontWeight: 'bold' },
-  deleteBtn: { padding: 4 },
-  deleteBtnText: { color: '#ff4444', fontSize: 9, fontWeight: 'bold' },
-  addBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#D4AF37', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 4 },
-  addBtnText: { color: '#D4AF37', fontSize: 10, fontWeight: 'bold' },
-  m2mCard: { backgroundColor: '#3d2b1a', padding: 25, borderRadius: 12, borderWidth: 1, borderColor: '#4a3520' },
-  m2mLabel: { color: '#D4AF37', fontSize: 12, fontWeight: 'bold', marginBottom: 10, textTransform: 'uppercase' },
-  codeBlock: { backgroundColor: '#1a1108', padding: 15, borderRadius: 6, marginBottom: 25 },
-  codeText: { color: '#00ff00', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 12 },
-  apiKeyBtn: { backgroundColor: '#D4AF37', paddingVertical: 15, borderRadius: 6, alignItems: 'center' },
-  apiKeyBtnText: { color: '#000', fontWeight: 'bold', textTransform: 'uppercase' },
-  emptyText: { color: '#666', fontStyle: 'italic', textAlign: 'center', padding: 40 },
-  stockRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  outOfStockText: { color: '#ff4444' },
-  toggleBtn: { backgroundColor: 'rgba(212, 175, 55, 0.1)', borderWidth: 1, borderColor: '#D4AF37', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  toggleBtnText: { color: '#D4AF37', fontSize: 8, fontWeight: 'bold' },
-  orderList: { gap: 15 },
-  orderCard: { backgroundColor: '#3d2b1a', borderRadius: 8, padding: 15, borderWidth: 1, borderColor: '#4a3520' },
-  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  orderId: { color: '#fff', fontSize: 12, fontWeight: 'bold', fontFamily: 'TrajanPro' },
-  orderDate: { color: '#888', fontSize: 10 },
-  statusBadge: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  statusText: { fontSize: 9, fontWeight: 'bold' },
-  orderBody: { marginBottom: 15 },
-  itemTitle: { color: '#fff', fontSize: 14, marginBottom: 4 },
-  orderAmount: { color: '#aaa', fontSize: 12 },
-  actionRow: { flexDirection: 'row', gap: 10 },
-  statusActionBtn: { flex: 1, borderWidth: 1, borderColor: '#D4AF37', paddingVertical: 8, borderRadius: 4, alignItems: 'center' },
-  statusActionText: { color: '#D4AF37', fontSize: 10, fontWeight: 'bold' },
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  modalContent: { backgroundColor: '#3d2b1a', padding: 30, borderRadius: 12, borderWidth: 1, borderColor: '#D4AF37', width: '90%', maxWidth: 400, alignItems: 'center' },
-  modalTitle: { fontFamily: 'TrajanPro', fontSize: 20, color: '#D4AF37', marginBottom: 15 },
-  modalMessage: { color: '#fff', textAlign: 'center', lineHeight: 22, marginBottom: 25, fontSize: 14 },
-  modalActions: { flexDirection: 'row', gap: 15, width: '100%' },
-  modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 6, alignItems: 'center', borderWidth: 1 },
-  cancelBtn: { borderColor: '#888' },
-  confirmBtn: { borderColor: '#ff4444', backgroundColor: 'rgba(255, 68, 68, 0.1)' },
-  cancelBtnText: { color: '#888', fontWeight: 'bold', fontSize: 12 },
-  confirmBtnText: { color: '#ff4444', fontWeight: 'bold', fontSize: 12 }
-});
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16
+  },
+  popupContainer: {
+    width: "100%",
+    maxWidth: 480,
+    maxHeight: "90%",
+    backgroundColor: "#1a120b",
+    borderWidth: 1.5,
+    borderColor: "#D4AF37",
+    borderRadius: 12,
+    position: "relative",
+    overflow: "hidden"
+  },
+  closeBtn: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 100,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    borderRadius: 16
+  },
+  closeBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold"
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 24,
+    paddingTop: 40
+  },
+  screenWrapper: {
+    width: "100%"
+  },
+  mainTitle: {
+    fontFamily: Platform.OS === "web" ? "Trajan Pro" : "TrajanPro",
+    fontSize: 20,
+    color: "#D4AF37",
+    letterSpacing: 1,
+    textAlign: "center",
+    marginBottom: 8,
+    textTransform: "uppercase"
+  },
+  subTitle: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    marginBottom: 24
+  },
+  pinSection: {
+    marginBottom: 20
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#D4AF37",
+    letterSpacing: 1,
+    marginBottom: 6,
+    textTransform: "uppercase"
+  },
+  input: {
+    height: 46,
+    borderWidth: 1,
+    borderColor: "#4a3520",
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    color: "#fff",
+    fontSize: 14,
+    backgroundColor: "#291c0e",
+    ...Platform.select({
+      web: {
+        outlineStyle: "none"
+      }
+    })
+  },
+  productListContainer: {
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 24
+  },
+  productCard: {
+    flex: 1,
+    backgroundColor: "#201409",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
+    borderRadius: 8,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  prodImage: {
+    width: "100%",
+    height: 100,
+    borderRadius: 4,
+    backgroundColor: "#1a120b",
+    marginBottom: 8
+  },
+  prodName: {
+    fontFamily: Platform.OS === "web" ? "Trajan Pro" : "TrajanPro",
+    fontSize: 11,
+    color: "#fff",
+    textAlign: "center",
+    height: 32,
+    lineHeight: 15,
+    marginBottom: 4
+  },
+  prodPrice: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#D4AF37",
+    marginBottom: 10
+  },
+  checkBtn: {
+    width: "100%",
+    backgroundColor: "#D4AF37",
+    paddingVertical: 10,
+    borderRadius: 4,
+    alignItems: "center"
+  },
+  checkBtnDisabled: {
+    backgroundColor: "#4a3520",
+    opacity: 0.5
+  },
+  checkBtnActive: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#D4AF37"
+  },
+  checkBtnText: {
+    color: "#000",
+    fontSize: 10,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5
+  },
+  checkBtnTextDisabled: {
+    color: "rgba(255, 255, 255, 0.4)"
+  },
+  leadFormInline: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(212, 175, 55, 0.15)",
+    paddingTop: 20,
+    width: "100%"
+  },
+  leadFormTitle: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 16
+  },
+  leadFieldsContainer: {
+    width: "100%"
+  },
+  errorText: {
+    color: "#ff4d4d",
+    fontSize: 10,
+    marginTop: 4,
+    marginLeft: 2
+  },
+  submitLeadBtn: {
+    width: "100%",
+    backgroundColor: "#D4AF37",
+    paddingVertical: 14,
+    borderRadius: 6,
+    alignItems: "center",
+    marginTop: 20
+  },
+  submitLeadBtnDisabled: {
+    backgroundColor: "#4a3520",
+    opacity: 0.5
+  },
+  submitLeadBtnText: {
+    color: "#000",
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1
+  },
+  submitLeadBtnTextDisabled: {
+    color: "rgba(255, 255, 255, 0.4)"
+  },
+  storeResultsSection: {
+    marginTop: 20,
+    width: "100%"
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(212, 175, 55, 0.15)",
+    marginVertical: 16
+  },
+  storeResultsHeader: {
+    fontFamily: Platform.OS === "web" ? "Trajan Pro" : "TrajanPro",
+    fontSize: 14,
+    color: "#D4AF37",
+    letterSpacing: 0.5,
+    marginBottom: 12,
+    textTransform: "uppercase"
+  },
+  storesListContainer: {
+    gap: 12
+  },
+  storeRow: {
+    flexDirection: "row",
+    backgroundColor: "#201409",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.1)",
+    borderRadius: 6,
+    padding: 12
+  },
+  storeName: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "bold",
+    marginBottom: 4
+  },
+  storeDetails: {
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 11
+  },
 &nbsp;
-export default VendorDashboardScreen;
+  /* Unavailable Screen Styles */
+  bannerUnavailable: {
+    backgroundColor: "#ff4d4d",
+    paddingVertical: 8,
+    borderRadius: 4,
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 20
+  },
+  bannerUnavailableText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "bold",
+    letterSpacing: 1
+  },
+  similarProductsGrid: {
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 24
+  },
+  similarProductCard: {
+    flex: 1,
+    backgroundColor: "#201409",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
+    borderRadius: 8,
+    padding: 10,
+    alignItems: "center"
+  },
+  similarProdImage: {
+    width: "100%",
+    height: 100,
+    borderRadius: 4,
+    backgroundColor: "#1a120b",
+    marginBottom: 8
+  },
+  similarProdName: {
+    fontFamily: Platform.OS === "web" ? "Trajan Pro" : "TrajanPro",
+    fontSize: 11,
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 4
+  },
+  similarProdPrice: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#D4AF37"
+  },
+  nearestStoreInfoCard: {
+    backgroundColor: "#201409",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 24,
+    width: "100%"
+  },
+  nearestStoreLabel: {
+    fontSize: 9,
+    fontWeight: "bold",
+    color: "#D4AF37",
+    letterSpacing: 1,
+    marginBottom: 6
+  },
+  nearestStoreName: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 4
+  },
+  nearestStoreDistance: {
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 11,
+    textAlign: "center"
+  },
+  actionFooter: {
+    width: "100%",
+    gap: 12,
+    marginBottom: 24
+  },
+  expertThanksText: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: 6
+  },
+  btnOutline: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#D4AF37",
+    paddingVertical: 14,
+    borderRadius: 6,
+    alignItems: "center"
+  },
+  btnOutlineText: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1
+  },
+  btnDark: {
+    width: "100%",
+    backgroundColor: "#D4AF37",
+    paddingVertical: 14,
+    borderRadius: 6,
+    alignItems: "center"
+  },
+  btnDarkText: {
+    color: "#000",
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1
+  },
+  backLinkBtn: {
+    alignSelf: "center",
+    padding: 8
+  },
+  backLinkLabel: {
+    color: "#D4AF37",
+    fontSize: 11,
+    fontWeight: "bold",
+    letterSpacing: 0.5
+  }
+});
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->

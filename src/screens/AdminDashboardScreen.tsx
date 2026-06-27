@@ -26,6 +26,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useUI } from '../contexts/UIContext';
+import * as ImagePicker from 'expo-image-picker';
 
 interface Vendor {
   id: string;
@@ -54,7 +55,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
   const { isAdmin, user } = useAuth();
   const { countryCode } = useCountry();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'vendors' | 'orders'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'vendors' | 'orders' | 'banners'>('overview');
   
   const [stats, setStats] = useState<AdminStats>({
     totalSales: 0,
@@ -80,6 +81,17 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
   const [vendorEmail, setVendorContactEmail] = useState('');
   const [vendorPhone, setVendorPhone] = useState('');
   const [vendorAddress, setVendorAddress] = useState('');
+
+  // Banner Form States
+  const [banners, setBanners] = useState<any[]>([]);
+  const [bannerModalVisible, setBannerModalVisible] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<any | null>(null);
+  const [bannerImageUrl, setBannerImageUrl] = useState('');
+  const [bannerAltText, setBannerAltText] = useState('');
+  const [bannerDisplayOrder, setBannerDisplayOrder] = useState('0');
+  const [deleteBannerModal, setDeleteBannerModal] = useState(false);
+  const [bannerIdToDelete, setBannerIdToDelete] = useState<string | null>(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   useEffect(() => {
     console.log("AdminDashboard: isAdmin check:", isAdmin, "User:", user?.email);
@@ -135,6 +147,18 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
         setVendors(vendorData || []);
       } catch (err) {
         console.error("Admin: Error fetching vendors:", err);
+      }
+
+      // Fetch Homepage Banners
+      try {
+        const { data: bannerData, error: bError } = await supabase
+          .from('homepage_banners')
+          .select('*')
+          .order('display_order', { ascending: true });
+        if (bError) throw bError;
+        setBanners(bannerData || []);
+      } catch (err) {
+        console.error("Admin: Error fetching banners:", err);
       }
 
       // 3. Store orders for the Orders tab
@@ -194,6 +218,113 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
       fetchAdminData();
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to save vendor.");
+    }
+  };
+
+  const openBannerModal = (banner?: any) => {
+    if (banner) {
+      setEditingBanner(banner);
+      setBannerImageUrl(banner.image_url);
+      setBannerAltText(banner.alt_text || '');
+      setBannerDisplayOrder(String(banner.display_order || 0));
+    } else {
+      setEditingBanner(null);
+      setBannerImageUrl('');
+      setBannerAltText('');
+      setBannerDisplayOrder('0');
+    }
+    setBannerModalVisible(true);
+  };
+
+  const handlePickBannerImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert("Permission Denied", "Sorry, we need camera roll permissions to make this work!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      await uploadBannerImage(result.assets[0].uri);
+    }
+  };
+
+  const uploadBannerImage = async (uri: string) => {
+    setUploadingBanner(true);
+    try {
+      const fileName = `banners/banner-${Date.now()}-${Math.random().toString(36).substring(2, 9)}.jpg`;
+      const response = await fetch(uri);
+      const body = await response.blob();
+
+      const { data, error } = await supabase.storage
+        .from('products')
+        .upload(fileName, body, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('products')
+        .getPublicUrl(fileName);
+
+      setBannerImageUrl(publicUrl);
+    } catch (error: any) {
+      console.error("Error uploading banner:", error);
+      Alert.alert("Upload Failed", error.message || "Failed to upload banner image.");
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleSaveBanner = async () => {
+    if (!bannerImageUrl) {
+      Alert.alert("Required", "Image URL is mandatory.");
+      return;
+    }
+
+    try {
+      const bannerData = {
+        image_url: bannerImageUrl,
+        alt_text: bannerAltText,
+        display_order: parseInt(bannerDisplayOrder) || 0
+      };
+
+      if (editingBanner) {
+        const { error } = await supabase.from('homepage_banners').update(bannerData).eq('id', editingBanner.id);
+        if (error) throw error;
+        Alert.alert("Success", "Banner updated successfully.");
+      } else {
+        const { error } = await supabase.from('homepage_banners').insert([bannerData]);
+        if (error) throw error;
+        Alert.alert("Success", "New banner added.");
+      }
+      setBannerModalVisible(false);
+      fetchAdminData();
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to save banner.");
+    }
+  };
+
+  const handleDeleteBanner = async () => {
+    if (!bannerIdToDelete) return;
+    try {
+      const { error } = await supabase.from('homepage_banners').delete().eq('id', bannerIdToDelete);
+      if (error) throw error;
+      Alert.alert("Success", "Banner removed.");
+      setDeleteBannerModal(false);
+      fetchAdminData();
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to delete banner.");
     }
   };
 
@@ -295,6 +426,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
               onPress={() => setActiveTab('orders')}
             >
               <Text style={[styles.tabText, activeTab === 'orders' && styles.activeTabText]}>Orders</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'banners' && styles.activeTab]} 
+              onPress={() => setActiveTab('banners')}
+            >
+              <Text style={[styles.tabText, activeTab === 'banners' && styles.activeTabText]}>Banners</Text>
             </TouchableOpacity>
           </View>
 
@@ -500,6 +637,56 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
                   )}
                 </View>
               ) : null}
+
+              {activeTab === 'banners' ? (
+                <View style={styles.section}>
+                  <View style={styles.rowBetween}>
+                    <Text style={styles.sectionTitle}>Homepage Banners</Text>
+                    <TouchableOpacity 
+                      style={styles.addBtn} 
+                      onPress={() => openBannerModal()}
+                    >
+                      <Text style={styles.addBtnText}>+ ADD BANNER</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.vendorList}>
+                    {banners.length === 0 ? (
+                      <Text style={styles.emptyText}>No banners configured. Add a new banner image URL.</Text>
+                    ) : (
+                      banners.map(banner => (
+                        <View key={banner.id} style={styles.vendorCard}>
+                          <Image 
+                            source={{ uri: banner.image_url }} 
+                            style={{ width: 80, height: 50, borderRadius: 4, marginRight: 15 }} 
+                            resizeMode="cover"
+                          />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.vendorName} numberOfLines={1}>{banner.alt_text || 'Untitled Banner'}</Text>
+                            <Text style={styles.vendorMeta}>Order: {banner.display_order}</Text>
+                          </View>
+                          <View style={styles.vendorActions}>
+                            <TouchableOpacity 
+                              style={styles.vendorActionBtn} 
+                              onPress={() => openBannerModal(banner)}
+                            >
+                              <Text style={styles.vendorActionText}>EDIT</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              style={[styles.vendorActionBtn, { borderColor: '#ff4444' }]} 
+                              onPress={() => {
+                                setBannerIdToDelete(banner.id);
+                                setDeleteBannerModal(true);
+                              }}
+                            >
+                              <Text style={[styles.vendorActionText, { color: '#ff4444' }]}>DELETE</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </View>
+              ) : null}
             </View>
           )}
         </View>
@@ -572,6 +759,73 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
         message="Are you sure you want to remove this vendor? All associated products will be unlinked."
         onConfirm={handleDeleteVendor}
         onCancel={() => setDeleteVendorModal(false)}
+        isDestructive={true}
+      />
+
+      {/* Banner Form Modal */}
+      <ConfirmationModal
+        visible={bannerModalVisible}
+        title={editingBanner ? "Edit Homepage Banner" : "Add Homepage Banner"}
+        message=""
+        onConfirm={handleSaveBanner}
+        onCancel={() => setBannerModalVisible(false)}
+        confirmLabel="Save Banner"
+      >
+        <View style={styles.modalForm}>
+          {bannerImageUrl ? (
+            <Image 
+              source={{ uri: bannerImageUrl }} 
+              style={{ width: '100%', height: 120, borderRadius: 6, marginBottom: 5 }} 
+              resizeMode="cover"
+            />
+          ) : null}
+          
+          <TouchableOpacity 
+            style={[styles.uploadBtn, { marginBottom: 5 }]} 
+            onPress={handlePickBannerImage}
+            disabled={uploadingBanner}
+          >
+            {uploadingBanner ? (
+              <ActivityIndicator color="#000" size="small" />
+            ) : (
+              <Text style={styles.uploadBtnText}>
+                {bannerImageUrl ? "Change Banner Image" : "Upload Banner Image"}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TextInput 
+            style={styles.modalInput} 
+            placeholder="Or enter Image URL manually" 
+            placeholderTextColor="#666"
+            value={bannerImageUrl}
+            onChangeText={setBannerImageUrl}
+          />
+          <TextInput 
+            style={styles.modalInput} 
+            placeholder="Alt Accessibility Text" 
+            placeholderTextColor="#666"
+            value={bannerAltText}
+            onChangeText={setBannerAltText}
+          />
+          <TextInput 
+            style={styles.modalInput} 
+            placeholder="Display Order (e.g. 1, 2, 3)" 
+            placeholderTextColor="#666"
+            value={bannerDisplayOrder}
+            onChangeText={setBannerDisplayOrder}
+            keyboardType="number-pad"
+          />
+        </View>
+      </ConfirmationModal>
+
+      {/* Delete Banner Modal */}
+      <ConfirmationModal
+        visible={deleteBannerModal}
+        title="Delete Homepage Banner"
+        message="Are you sure you want to remove this banner image from the homepage slider?"
+        onConfirm={handleDeleteBanner}
+        onCancel={() => setDeleteBannerModal(false)}
         isDestructive={true}
       />
     </View>
@@ -975,6 +1229,18 @@ const styles = StyleSheet.create({
     padding: 12,
     color: '#fff',
     fontSize: 14,
+  },
+  uploadBtn: {
+    backgroundColor: '#D4AF37',
+    paddingVertical: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadBtnText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

@@ -4,7 +4,6 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import Header from "../components/Header";
 import { SortOption } from "../components/CategoryBar";
 import ProductList from "../components/ProductList";
-import OptimizedImage from "../components/OptimizedImage";
 import FilterModal from "../components/FilterModal";
 import Footer from "../components/Footer";
 import { Product, ProductFilters } from "../data/products";
@@ -18,43 +17,7 @@ interface CategoryScreenProps {
   scrollY?: Animated.Value;
 }
 
-const CURATED_SUBCATEGORIES = [
-  {
-    title: "RING",
-    value: "Rings",
-    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/LATEST-RINGS.jpeg"
-  },
-  {
-    title: "BRACELET",
-    value: "Bangles",
-    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/TRENDY_BRACELETS.jpg"
-  },
-  {
-    title: "EARRINGS",
-    value: "Ear Rings",
-    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/EARRINGS.jpeg"
-  },
-  {
-    title: "CHAINS",
-    value: "Chains",
-    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/ALL-DAY_CHAINS.jpeg"
-  },
-  {
-    title: "NECKLACE SET",
-    value: "Necklaces",
-    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/TREND_NECKLACES.jpg"
-  },
-  {
-    title: "POOJA ARTICLES",
-    value: "Pooja Articles",
-    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/POOJA_ARTICLES.jpg"
-  },
-  {
-    title: "LONG HARAM",
-    value: "Haram",
-    image: "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/Haram.jpg"
-  }
-];
+const CATEGORIES = ["All", "Gold", "Diamonds", "Polki", "Kundan"];
 
 const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -63,7 +26,6 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
   const category = route.params?.category || "All";
   const [subCategory, setSubCategory] = useState(route.params?.subCategory || "All Items");
   const { width } = useWindowDimensions();
-  const isLargeScreen = width > 1024 && Platform.OS === 'web';
   
   const localScrollY = useRef(new Animated.Value(0)).current;
   const scrollY = scrollYProp || globalScrollY || localScrollY;
@@ -74,6 +36,7 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
     minPrice: route.params?.minPrice,
     maxPrice: route.params?.maxPrice,
   });
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   React.useEffect(() => {
     setFilters({
@@ -87,45 +50,38 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
     ? (width > 1400 ? 30 : 15)
     : (width < 380 ? 8 : 12);
 
-  const CuratedCategoriesRow = () => {
+  const CategoriesSelectorBar = () => {
     return (
-      <View style={styles.curatedWrapper}>
+      <View style={styles.categoriesSelectorContainer}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.curatedScrollContent, { paddingHorizontal: paddingHorz }]}
+          contentContainerStyle={[styles.categoriesScrollContent, { paddingHorizontal: paddingHorz }]}
         >
-          {CURATED_SUBCATEGORIES.map((item, index) => {
-            const isActive = subCategory === item.value;
+          {CATEGORIES.map((cat) => {
+            const isActive = category === cat;
+            const isHovered = hoveredCategory === cat;
             return (
               <TouchableOpacity
-                key={index}
-                style={styles.curatedCard}
-                activeOpacity={0.8}
-                onPress={() => {
-                  if (isActive) {
-                    setSubCategory("All Items");
-                  } else {
-                    setSubCategory(item.value);
-                  }
-                }}
+                key={cat}
+                style={[
+                  styles.categoryBadge, 
+                  isActive && styles.activeCategoryBadge,
+                  Platform.OS === 'web' && isHovered && styles.hoverCategoryBadge
+                ]}
+                onPress={() => onSelectCategory(cat)}
+                activeOpacity={0.7}
+                // @ts-ignore
+                onMouseEnter={() => setHoveredCategory(cat)}
+                // @ts-ignore
+                onMouseLeave={() => setHoveredCategory(null)}
               >
-                <View style={[
-                  styles.curatedImageContainer,
-                  isActive && styles.activeCuratedImageContainer
-                ]}>
-                  <OptimizedImage
-                    url={item.image}
-                    style={styles.curatedImage}
-                    contentFit="cover"
-                    shouldLoad={true}
-                  />
-                </View>
                 <Text style={[
-                  styles.curatedLabel,
-                  isActive && styles.activeCuratedLabel
+                  styles.categoryBadgeText, 
+                  isActive && styles.activeCategoryBadgeText,
+                  Platform.OS === 'web' && isHovered && styles.hoverCategoryBadgeText
                 ]}>
-                  {item.title}
+                  {cat}
                 </Text>
               </TouchableOpacity>
             );
@@ -153,7 +109,6 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
     (filters.purity?.length || 0) +
     (filters.metalColor?.length || 0)
   );
-
 
   const handleRemovePurity = (p: string) => {
     setFilters(prev => ({
@@ -284,7 +239,7 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
           sortBy={sortBy}
           searchQuery={""} 
           filters={effectiveFilters}
-          ListHeaderComponent={<CuratedCategoriesRow />}
+          ListHeaderComponent={<CategoriesSelectorBar />}
           onClearFilters={handleClearAll}
           hasSidebar={false}
           onScroll={Animated.event(
@@ -308,137 +263,10 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#291c0e",
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "flex-start",
-  },
-  fullWidth: {
-    width: "100%",
-  },
-  mainArea: {
-    flex: 1,
-  },
-  heroContainer: {
-    width: '100%',
-    backgroundColor: '#1a1209',
-  },
-  desktopLayout: {
-    flex: 1,
-    flexDirection: 'row',
-    maxWidth: 2500,
-    width: '100%',
-    alignSelf: 'center',
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  sidebarContainer: {
-    width: 260,
-    marginRight: 24,
-  },
-  gridContainer: {
-    flex: 1,
-  },
-  sidebar: {
-    backgroundColor: '#1a1209',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.15)',
-    padding: 20,
-    ...Platform.select({
-      web: {
-        position: 'sticky' as any,
-        top: 80,
-        maxHeight: 'calc(100vh - 120px)',
-      }
-    } as any)
-  },
-  sidebarTitle: {
-    fontFamily: 'TrajanPro',
-    color: '#D4AF37',
-    fontSize: 16,
-    letterSpacing: 1,
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212, 175, 55, 0.15)',
-    paddingBottom: 8,
-  },
-  sidebarSection: {
-    marginBottom: 24,
-  },
-  sidebarSectionTitle: {
-    color: '#888',
-    fontSize: 10,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  sidebarPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sidebarPriceInput: {
-    flex: 1,
-    backgroundColor: '#291c0e',
-    borderWidth: 1,
-    borderColor: '#4a3520',
-    borderRadius: 4,
-    padding: 8,
-    color: '#fff',
-    fontSize: 12,
-    minWidth: 0,
-  },
-  sidebarPriceSeparator: {
-    color: '#666',
-    fontSize: 11,
-  },
-  sidebarCheckboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sidebarCheckbox: {
-    width: 14,
-    height: 14,
-    borderWidth: 1,
-    borderColor: '#D4AF37',
-    borderRadius: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  sidebarCheckboxChecked: {
-    backgroundColor: '#D4AF37',
-  },
-  sidebarCheckboxLabel: {
-    color: '#ccc',
-    fontSize: 12,
-  },
-  sidebarCheckboxLabelActive: {
-    color: '#D4AF37',
-    fontWeight: 'bold',
-  },
-  sidebarClearBtn: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
-    paddingVertical: 10,
-    borderRadius: 4,
-    alignItems: 'center',
-  },
-  sidebarClearBtnText: {
-    color: '#D4AF37',
-    fontSize: 11,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   staticHeaderContainer: {
     width: '100%',
@@ -491,15 +319,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textDecorationLine: 'underline',
   },
-  curatedWrapper: {
+  categoriesSelectorContainer: {
     backgroundColor: "#1a1209",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(212, 175, 55, 0.08)",
-    paddingVertical: 18,
+    paddingVertical: 12,
     width: "100%",
   },
-  curatedScrollContent: {
-    gap: 16,
+  categoriesScrollContent: {
+    gap: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     ...Platform.select({
       web: {
@@ -510,51 +339,41 @@ const styles = StyleSheet.create({
       default: {}
     })
   },
-  curatedCard: {
-    alignItems: "center",
-    width: 80,
-  },
-  curatedImageContainer: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 1.5,
-    borderColor: "rgba(212, 175, 55, 0.15)",
-    overflow: "hidden",
-    backgroundColor: "#150d05",
-    marginBottom: 8,
+  categoryBadge: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 6,
+    backgroundColor: '#201409',
     ...Platform.select({
       web: {
-        transition: 'all 0.2s ease',
         cursor: 'pointer',
+        transition: 'all 0.2s ease',
       }
     })
   },
-  activeCuratedImageContainer: {
-    borderColor: "#D4AF37",
-    borderWidth: 2.5,
-    transform: [{ scale: 1.05 }],
-    shadowColor: "#D4AF37",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+  activeCategoryBadge: {
+    borderColor: '#D4AF37',
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
   },
-  curatedImage: {
-    width: "100%",
-    height: "100%",
-  },
-  curatedLabel: {
-    color: "#888",
-    fontSize: 9,
-    fontWeight: "bold",
-    textAlign: "center",
+  categoryBadgeText: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
     fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
   },
-  activeCuratedLabel: {
-    color: "#D4AF37",
-    fontWeight: "bold",
+  activeCategoryBadgeText: {
+    color: '#D4AF37',
+  },
+  hoverCategoryBadge: {
+    borderColor: 'rgba(212, 175, 55, 0.6)',
+    backgroundColor: 'rgba(212, 175, 55, 0.08)',
+  },
+  hoverCategoryBadgeText: {
+    color: '#D4AF37',
   },
 });
 

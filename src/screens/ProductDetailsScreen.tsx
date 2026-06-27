@@ -1,11 +1,14 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { StyleSheet, View, ScrollView, Text, TouchableOpacity, useWindowDimensions, ViewStyle, Platform, ActivityIndicator, TextInput, Alert, Animated, Modal, SafeAreaView } from "react-native";
 import { Image } from "expo-image";
+import { BlurView } from 'expo-blur';
 import { FontAwesome5 } from '@expo/vector-icons';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import OptimizedImage from "../components/OptimizedImage";
+import ProductImageGallery from "../components/ProductImageGallery";
+import { StoreAvailabilityModal } from "../components/StoreAvailabilityModal";
 import { supabase } from "../../supabase";
 import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
@@ -67,7 +70,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const scrollRef = useRef<any>(null);
-  const imageScrollRef = useRef<ScrollView>(null);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [suiteItems, setSuiteItems] = useState<Product[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
@@ -77,8 +79,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const [submittingReview, setSubmittingReview] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
 
-  const [activeImageIndex, setActiveIndex] = useState(0);
-
   // Dynamic Gold Rate Purity & Pricing states
   const { rates, getLocalizedRate } = useGoldRate();
   const [selectedPurity, setSelectedPurity] = useState<string>("22K");
@@ -86,6 +86,8 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const [priceAlertSubscribed, setPriceAlertSubscribed] = useState<boolean>(false);
   const [selectedSize, setSelectedSize] = useState<number>(7);
   const [isSizeFinderVisible, setIsSizeFinderVisible] = useState<boolean>(false);
+  const [isStoreCheckVisible, setIsStoreCheckVisible] = useState<boolean>(false);
+  const [isSuiteModalVisible, setIsSuiteModalVisible] = useState<boolean>(false);
   const [sizeFinderDiameter, setSizeFinderDiameter] = useState<number>(17.3); // Default size 7 has 17.3mm diameter
   const [addGiftWrapping, setAddGiftWrapping] = useState<boolean>(false);
   const [giftMessage, setGiftMessage] = useState<string>("");
@@ -94,6 +96,45 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const jewelryType = useMemo(() => {
     if (!product) return "";
     return (product.type || product.name || '').toLowerCase();
+  }, [product]);
+
+  const suiteText = useMemo(() => {
+    if (!product) return { title: "Complete the Suite", subtitle: "Pair this masterpiece with coordinating items designed to match" };
+    
+    const currentLowerName = product.name.toLowerCase();
+    const currentType = (product.type || "").toLowerCase();
+    
+    const isEarring = currentType.includes("earring") || currentLowerName.includes("earring") || currentLowerName.includes("studs");
+    const isNecklace = currentType.includes("necklace") || currentLowerName.includes("necklace") || currentType.includes("pendant") || currentLowerName.includes("pendant");
+    const isRing = currentType.includes("ring") || currentLowerName.includes("ring");
+    const isBracelet = currentType.includes("bracelet") || currentLowerName.includes("bracelet") || currentType.includes("bangle") || currentLowerName.includes("bangle") || currentLowerName.includes("bangles");
+    
+    if (isEarring) {
+      return {
+        title: "Complete the Look",
+        subtitle: "Pair these earrings with a coordinating necklace designed to match"
+      };
+    } else if (isNecklace) {
+      return {
+        title: "Complete the Look",
+        subtitle: "Pair this necklace with coordinating earrings designed to match"
+      };
+    } else if (isRing) {
+      return {
+        title: "Complete the Suite",
+        subtitle: "Pair this ring with coordinating bracelets designed to match"
+      };
+    } else if (isBracelet) {
+      return {
+        title: "Complete the Suite",
+        subtitle: "Pair this bracelet with a coordinating ring designed to match"
+      };
+    }
+    
+    return {
+      title: "Complete the Suite",
+      subtitle: "Pair this masterpiece with coordinating items designed to match"
+    };
   }, [product]);
 
   useEffect(() => {
@@ -166,8 +207,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     return images.filter(img => !!img);
   }, [product?.image, product?.galleryUrls]);
 
-  const [isViewerVisible, setIsViewerVisible] = useState(false);
-
   const isLargeScreen = width > 700;
 
   const thumbnailWidth = 64;
@@ -175,19 +214,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const mainImageWidth = isLargeScreen 
     ? (width * 0.5 - 40) - (allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0)
     : (width - 40);
-
-  const handleScroll = (event: any) => {
-    const scrollPosition = event.nativeEvent.contentOffset.x;
-    const index = Math.round(scrollPosition / mainImageWidth);
-    if (index !== activeImageIndex) {
-      setActiveIndex(index);
-    }
-  };
-
-  const handleThumbnailPress = (index: number) => {
-    setActiveIndex(index);
-    imageScrollRef.current?.scrollTo({ x: index * mainImageWidth, animated: true });
-  };
 
   const isARSupported = useMemo(() => {
     if (!product) return false;
@@ -209,8 +235,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   }, [allImages]);
 
   useEffect(() => {
-    setActiveIndex(0); // Reset index on product change
-    
     // Safety check if product is null
     if (!product || !product.id || !product.category) return;
 
@@ -219,35 +243,21 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
       try {
         const data = await fetchProductsFromSupabase("All");
         
-        // Find items in matching suite
-        const matchingSuite = data.filter(p => {
+        // Find explicitly linked matching products (both directions: direct and reverse)
+        const explicitMatches = data.filter(p => {
           if (p.id === product.id) return false;
-          
-          // 1. Same collection (e.g. "Trinity", "Butterfly")
-          if (product.collection && p.collection && p.collection.toLowerCase() === product.collection.toLowerCase()) {
-            return true;
-          }
-          
-          // 2. Same design theme (e.g. "Floral", "Temple", "Antique")
-          if (product.designTheme && p.designTheme && p.designTheme.toLowerCase() === product.designTheme.toLowerCase()) {
-            return true;
-          }
-          
-          // 3. Name word similarities
-          const productWords = product.name.toLowerCase()
-            .split(/\s+/)
-            .filter(w => w.length > 3 && w !== 'ring' && w !== 'necklace' && w !== 'earring' && w !== 'earrings' && w !== 'bangles' && w !== 'pendant');
-          const pWords = p.name.toLowerCase().split(/\s+/);
-          const hasCommonWord = productWords.some(word => pWords.includes(word));
-          
-          return hasCommonWord;
+          const isDirectMatch = product.matchingProductId && p.id === product.matchingProductId;
+          const isReverseMatch = p.matchingProductId && p.matchingProductId === product.id;
+          return isDirectMatch || isReverseMatch;
         });
 
-        // recommendations: fallback to same category products
+        const finalSuiteItems = explicitMatches;
+
+        // Recommendations: same category products as fallback
         const categoryMates = data.filter(p => p.category === product.category && p.id !== product.id);
         
         // Merge suite items and category mates, avoiding duplicates
-        const combined = [...matchingSuite];
+        const combined = [...finalSuiteItems];
         categoryMates.forEach(item => {
           if (!combined.some(c => c.id === item.id)) {
             combined.push(item);
@@ -255,7 +265,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
         });
 
         setRecommendations(combined.slice(0, 6));
-        setSuiteItems(matchingSuite.slice(0, 4));
+        setSuiteItems(finalSuiteItems.slice(0, 4));
       } catch (err) {
         console.error("Error loading recommendations:", err);
       } finally {
@@ -264,7 +274,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     };
 
     loadRecommendations();
-  }, [product?.id, product?.category, product?.collection, product?.designTheme, product?.name]);
+  }, [product?.id, product?.category, product?.matchingProductId]);
 
   useEffect(() => {
     if (!product?.id) return;
@@ -316,7 +326,17 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   useEffect(() => {
     // Scroll to top when product changes
     scrollRef.current?.scrollTo({ y: 0, animated: true });
+    setIsSuiteModalVisible(false);
   }, [product?.id]);
+
+  useEffect(() => {
+    if (suiteItems && suiteItems.length > 0) {
+      const timer = setTimeout(() => {
+        setIsSuiteModalVisible(true);
+      }, 7000); // 7 seconds delay
+      return () => clearTimeout(timer);
+    }
+  }, [suiteItems]);
 
   const handleSubmitReview = async () => {
     if (!user) {
@@ -392,19 +412,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const toggleSection = (id: string) => {
     setActiveSection(activeSection === id ? null : id);
   };
-  const [zoomData, setZoomData] = useState({ visible: false, x: 0, y: 0 });
-
-  const handleMouseMove = (e: any) => {
-    if (!isLargeScreen || Platform.OS !== 'web') return;
-    
-    // Use client coordinates relative to the element's bounding box for stability
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    setZoomData({ visible: true, x, y });
-  };
-
   const navigateToCategory = (cat: string) => navigation.navigate('Category', { category: cat });
 
   const AccordionSection = ({ 
@@ -478,115 +485,18 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Live Gold Rate Ticker */}
-        <View style={styles.goldTicker}>
-          <View style={styles.goldTickerTrack}>
-            <FontAwesome5 name="chart-line" size={10} color="#291c0e" style={{ marginRight: 6 }} />
-            <Text style={styles.goldTickerText}>
-              Live Gold Rates (g) — 24K: {getLocalizedRate(rates.find(r => r.purity === '24K')?.rate || 75)}  |  22K: {getLocalizedRate(rates.find(r => r.purity === '22K')?.rate || 75 * 0.9167)}  |  18K: {getLocalizedRate(rates.find(r => r.purity === '18K')?.rate || 75 * 0.75)}
-            </Text>
-          </View>
-        </View>
+
 
         <View style={styles.contentWrapper}>
           <View style={[styles.mainContent, contentStyle]}>
             <View style={[styles.imageColumn, { width: isLargeScreen ? "50%" : "100%" }]}>
-              <View style={{ flexDirection: isLargeScreen ? "row" : "column" }}>
-                {isLargeScreen && allImages.length > 1 && (
-                  <View style={styles.thumbnailColumn}>
-                    <ScrollView
-                      showsVerticalScrollIndicator={false}
-                      contentContainerStyle={styles.thumbnailScrollContent}
-                    >
-                      {allImages.map((img, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          style={[
-                            styles.thumbnailCard,
-                            activeImageIndex === index && styles.activeThumbnailCard
-                          ]}
-                          onPress={() => handleThumbnailPress(index)}
-                          // @ts-ignore
-                          onMouseEnter={() => handleThumbnailPress(index)}
-                        >
-                          <OptimizedImage
-                            url={img}
-                            style={styles.thumbnailImage}
-                            contentFit="cover"
-                            shouldLoad={true}
-                          />
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                <View style={[styles.imageSection, { 
-                  width: mainImageWidth, 
-                  height: mainImageWidth,
-                }]}>
-                  <ScrollView
-                    ref={imageScrollRef}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
-                  >
-                      {allImages.map((img, index) => (
-                      <TouchableOpacity 
-                        key={index} 
-                        style={[
-                          styles.imageWrapper, 
-                          { 
-                            width: mainImageWidth,
-                            height: mainImageWidth
-                          }
-                        ]}
-                        activeOpacity={1}
-                        // @ts-ignore
-                        onMouseMove={handleMouseMove}
-                        // @ts-ignore
-                        onMouseLeave={() => setZoomData({ ...zoomData, visible: false })}
-                        onPress={() => {
-                          setActiveIndex(index);
-                          setIsViewerVisible(true);
-                        }}
-                      >
-                        <OptimizedImage 
-                          url={img} 
-                          style={styles.mainImage} 
-                          contentFit="contain" 
-                          shouldLoad={true} 
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-
-                  {allImages.length > 1 && (
-                    <View style={styles.pagination}>
-                      {allImages.map((_, i) => (
-                        <View 
-                          key={i} 
-                          style={[
-                            styles.dot, 
-                            activeImageIndex === i && styles.activeDot
-                          ]} 
-                        />
-                      ))}
-                    </View>
-                  )}
-
-                  <TouchableOpacity 
-                    style={styles.wishlistIcon} 
-                    onPress={handleWishlistToggle}
-                  >
-                    <Text style={[styles.heart, isInWishlist(product.id) && styles.heartActive]}>
-                      {isInWishlist(product.id) ? "♥" : "♡"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+              <ProductImageGallery
+                allImages={allImages}
+                mainImageWidth={mainImageWidth}
+                isLargeScreen={isLargeScreen}
+                isInWishlist={isInWishlist(product.id)}
+                onWishlistToggle={handleWishlistToggle}
+              />
 
               {/* Action Buttons under Image */}
               <View style={[styles.imageActions, { 
@@ -613,55 +523,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                   <Text style={styles.addToCartButtonText}>Add to Bag</Text>
                 </TouchableOpacity>
               </View>
-
-              {/* Full Screen Image Viewer Modal */}
-              <Modal visible={isViewerVisible} transparent={true} onRequestClose={() => setIsViewerVisible(false)}>
-                <View style={{ flex: 1, backgroundColor: 'black' }}>
-                  <ImageViewer 
-                    imageUrls={viewerImages}
-                    index={activeImageIndex}
-                    onSwipeDown={() => setIsViewerVisible(false)}
-                    enableSwipeDown={true}
-                    renderHeader={() => <View />} // Clear default header
-                    renderIndicator={(currentIndex, allSize) => (
-                      <View style={{ position: 'absolute', top: 40, width: '100%', flexDirection: 'row', justifyContent: 'center', zIndex: 1 }}>
-                        <Text style={{ color: 'white', fontSize: 16 }}>{`${currentIndex} / ${allSize}`}</Text>
-                      </View>
-                    )}
-                  />
-                  {/* Absolute positioned close button OVER the ImageViewer */}
-                  <TouchableOpacity 
-                    style={{ 
-                      position: 'absolute', 
-                      top: Platform.OS === 'ios' ? 40 : 20, 
-                      right: 20, 
-                      zIndex: 10000, 
-                      padding: 15, 
-                      backgroundColor: 'rgba(0,0,0,0.6)', 
-                      borderRadius: 25 
-                    }} 
-                    onPress={() => setIsViewerVisible(false)}
-                  >
-                    <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              </Modal>
-
-              {/* Zoom Overlay for Web (Moved outside imageSection to avoid clipping) */}
-              {Platform.OS === 'web' && zoomData.visible && isLargeScreen && (
-                <View style={[styles.zoomOverlay, { 
-                  left: "105%", // Position it to the right of the image column
-                  top: 0,
-                  width: 350,
-                  height: 350,
-                }]}>
-                  <View style={[styles.zoomedImage, {
-                    backgroundImage: `url(${allImages[activeImageIndex]})`,
-                    backgroundPosition: `${zoomData.x}% ${zoomData.y}%`,
-                  } as any]} />
-                </View>
-              )}
-
             </View>
 
             <View style={[styles.infoSection, { width: isLargeScreen ? "50%" : "100%" }]}>
@@ -911,6 +772,15 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
               <View style={styles.divider} />
 
+              {/* Check Store Availability */}
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.storeCheckButton]} 
+                onPress={() => setIsStoreCheckVisible(true)}
+              >
+                <FontAwesome5 name="store" size={14} color="#D4AF37" style={{ marginRight: 10 }} />
+                <Text style={styles.storeCheckButtonText}>Check Store Availability</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={handleWishlistToggle}>
                 <Text style={styles.secondaryButtonText}>
                   {isInWishlist(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
@@ -1040,56 +910,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
             </View>
           </View>
 
-          {/* Complete the Suite / Matching Items Section */}
-          {suiteItems.length > 0 ? (
-            <View style={styles.suiteSection}>
-              <Text style={styles.suiteTitle}>Complete the Suite</Text>
-              <Text style={styles.suiteSubtitle}>Pair this masterpiece with coordinating items designed to match</Text>
-              
-              <View style={styles.suiteContainer}>
-                {suiteItems.map((item) => (
-                  <View key={item.id} style={styles.suiteCard}>
-                    <TouchableOpacity 
-                      style={styles.suiteCardHeader}
-                      onPress={() => onSelectProduct(item)}
-                      activeOpacity={0.8}
-                    >
-                      <OptimizedImage url={item.image} style={styles.suiteImage} shouldLoad={true} />
-                      <View style={styles.suiteCardInfo}>
-                        <Text style={styles.suiteCardName} numberOfLines={1}>{item.name}</Text>
-                        <Text style={styles.suiteCardMeta}>{item.grossWeight.toFixed(2)}g | {item.category}</Text>
-                        <Text style={styles.suiteCardPrice}>{formatPrice(item.price, countryCode)}</Text>
-                      </View>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={styles.suiteAddBtn}
-                      onPress={() => {
-                        addToCart(item);
-                        Alert.alert("Added Matching Piece", `${item.name} has been added to your bag.`);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.suiteAddBtnText}>Add Matching Piece</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-              
-              {suiteItems.length > 1 && (
-                <TouchableOpacity 
-                  style={styles.addAllSuiteBtn}
-                  onPress={() => {
-                    suiteItems.forEach(item => addToCart(item));
-                    Alert.alert("Entire Suite Added", "Coordinating items have been added to your bag.");
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.addAllSuiteBtnText}>Add Complete Look to Bag</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : null}
+
 
           {/* Recommendations Section */}
           {recommendations.length > 0 ? (
@@ -1246,6 +1067,96 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Store Availability Check Modal */}
+      {product && (
+        <StoreAvailabilityModal
+          visible={isStoreCheckVisible}
+          onClose={() => setIsStoreCheckVisible(false)}
+          product={product}
+          countryCode={countryCode}
+          matchingProducts={suiteItems}
+          onSelectProduct={onSelectProduct}
+        />
+      )}
+
+      {/* Complete the Look / Suite Recommendations Bottom Right Popup with Blur */}
+      {isSuiteModalVisible && suiteItems.length > 0 && (
+        <Modal
+          visible={isSuiteModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsSuiteModalVisible(false)}
+        >
+          <View style={styles.blurModalContainer}>
+            {/* Fullscreen Blur backdrop */}
+            {Platform.OS === 'web' ? (
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(10px)' } as any]} />
+            ) : (
+              <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
+            )}
+            
+            {/* Tap outside to close */}
+            <TouchableOpacity 
+              style={StyleSheet.absoluteFillObject} 
+              activeOpacity={1} 
+              onPress={() => setIsSuiteModalVisible(false)} 
+            />
+
+            {/* Bottom Right Card Wrapper */}
+            <View style={styles.bottomRightPopupWrapper}>
+              <View style={styles.bottomRightPopupCard}>
+                <View style={styles.bottomRightPopupHeader}>
+                  <View style={styles.bottomPopupTitleRow}>
+                    <FontAwesome5 name="gem" size={12} color="#D4AF37" style={{ marginRight: 8 }} />
+                    <Text style={styles.bottomRightPopupTitle}>{suiteText.title}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setIsSuiteModalVisible(false)} style={styles.bottomPopupCloseBtn}>
+                    <FontAwesome5 name="times" size={14} color="#D4AF37" />
+                  </TouchableOpacity>
+                </View>
+                
+                <View style={styles.bottomRightPopupBody}>
+                  <OptimizedImage url={suiteItems[0].image} style={styles.bottomRightPopupImage} shouldLoad={true} />
+                  
+                  <View style={styles.bottomRightPopupInfo}>
+                    <Text style={styles.bottomRightPopupName}>{suiteItems[0].name}</Text>
+                    <Text style={styles.bottomRightPopupMeta}>
+                      {suiteItems[0].grossWeight.toFixed(2)}g | {suiteItems[0].purity} {suiteItems[0].metalColor}
+                    </Text>
+                    <Text style={styles.bottomRightPopupPrice}>{formatPrice(suiteItems[0].price, countryCode)}</Text>
+                  </View>
+                  
+                  <View style={styles.bottomRightPopupActions}>
+                    <TouchableOpacity 
+                      style={styles.bottomRightPopupAddBtn}
+                      onPress={() => {
+                        addToCart(suiteItems[0]);
+                        setIsSuiteModalVisible(false);
+                        Alert.alert("Added Matching Piece", `${suiteItems[0].name} has been added to your bag.`);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.bottomRightPopupAddBtnText}>Add Matching Piece</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={styles.bottomRightPopupDetailsBtn}
+                      onPress={() => {
+                        setIsSuiteModalVisible(false);
+                        onSelectProduct(suiteItems[0]);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.bottomRightPopupDetailsBtnText}>View Details</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -1583,6 +1494,21 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
+  storeCheckButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#D4AF37",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  storeCheckButtonText: {
+    color: "#D4AF37",
+    fontSize: 16,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
   secondaryButton: {
     backgroundColor: "transparent",
     borderWidth: 1,
@@ -1610,31 +1536,35 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   recommendationCard: {
-    // 3 columns: (100% - gaps) / 3. Approx 31%
-    width: Platform.OS === 'web' ? '23.8%' : '31.3%',
-    backgroundColor: "#3d2b1a",
+    width: 160,
+    height: 220,
+    backgroundColor: "#150d05",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
     borderRadius: 8,
     overflow: "hidden",
-    marginBottom: 10,
   },
   recImage: {
     width: "100%",
-    aspectRatio: 1, // Force perfect 1:1 square
+    height: 150,
   },
   recInfo: {
-    padding: 12,
-    backgroundColor: "rgba(0,0,0,0.2)",
+    padding: 10,
+    height: 68,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
   recName: {
     color: "#fff",
     fontSize: 12,
     fontWeight: "bold",
     marginBottom: 4,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
   },
   recPrice: {
     color: "#D4AF37",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
   // Recommendation Carousel Styles
   recHeader: {
@@ -1652,6 +1582,7 @@ const styles = StyleSheet.create({
   },
   recScrollContent: {
     paddingRight: 20,
+    paddingVertical: 10,
     gap: 15,
   },
   viewMoreCard: {
@@ -1660,8 +1591,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(212, 175, 55, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    height: 'auto',
-    aspectRatio: 1,
   },
   viewMoreContent: {
     alignItems: 'center',
@@ -1795,21 +1724,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: 20,
   },
-  goldTicker: {
-    backgroundColor: "#D4AF37",
-    paddingVertical: 6,
-    width: "100%",
-    alignItems: "center",
-  },
-  goldTickerTrack: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  goldTickerText: {
-    color: "#291c0e",
-    fontSize: 10,
-    fontWeight: "bold",
-  },
+
   priceContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -2230,7 +2145,7 @@ const styles = StyleSheet.create({
   // Suite / Complete the look styles
   suiteSection: {
     marginTop: 20,
-    paddingVertical: 20,
+    padding: 20,
     borderTopWidth: 1,
     borderTopColor: "rgba(212, 175, 55, 0.15)",
     borderBottomWidth: 1,
@@ -2333,6 +2248,128 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: 1,
+  },
+  blurModalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
+  },
+  bottomRightPopupWrapper: {
+    padding: Platform.OS === 'web' ? 30 : 20,
+    width: "100%",
+    maxWidth: 400,
+    alignSelf: Platform.OS === 'web' ? 'flex-end' : 'center',
+    zIndex: 10001,
+  },
+  bottomRightPopupCard: {
+    backgroundColor: '#1d130a',
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    borderRadius: 12,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 12,
+    width: "100%",
+  },
+  bottomRightPopupHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212,175,55,0.15)",
+    paddingBottom: 10,
+    marginBottom: 15,
+  },
+  bottomRightPopupTitle: {
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+    color: "#D4AF37",
+    fontSize: 13,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    fontWeight: "bold",
+  },
+  bottomRightPopupBody: {
+    gap: 15,
+    alignItems: "center",
+  },
+  bottomRightPopupImage: {
+    width: 140,
+    height: 140,
+    borderRadius: 8,
+    backgroundColor: "#201409",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
+  },
+  bottomRightPopupInfo: {
+    alignItems: "center",
+    gap: 4,
+    width: "100%",
+  },
+  bottomRightPopupName: {
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  bottomRightPopupMeta: {
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 11,
+    textAlign: "center",
+  },
+  bottomRightPopupPrice: {
+    color: "#D4AF37",
+    fontSize: 15,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginTop: 2,
+  },
+  bottomRightPopupActions: {
+    width: "100%",
+    gap: 8,
+    marginTop: 5,
+  },
+  bottomRightPopupAddBtn: {
+    backgroundColor: "#D4AF37",
+    borderRadius: 20,
+    paddingVertical: 10,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomRightPopupAddBtnText: {
+    color: "#291c0e",
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  bottomRightPopupDetailsBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.5)",
+    borderRadius: 20,
+    paddingVertical: 10,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomRightPopupDetailsBtnText: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  bottomPopupTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  bottomPopupCloseBtn: {
+    padding: 2,
   },
 });
 

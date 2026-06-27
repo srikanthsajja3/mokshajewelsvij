@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, ScrollView, StyleSheet, useWindowDimensions, Text, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { Image } from "expo-image";
+import { supabase } from "../../supabase";
 
-const SLIDER_IMAGES = [
+const LOCAL_SLIDER_IMAGES = [
   { id: "1", source: require("../../assets/a.jpg"), alt: "Moksha Jewels Bridal Collection - Gold and Diamonds" },
   { id: "2", source: require("../../assets/b.jpg"), alt: "Exquisite Handcrafted Jewellery - Premium Boutique" },
   { id: "3", source: require("../../assets/c.jpg"), alt: "BIS Hallmarked Gold Ornaments - Traditional Designs" },
@@ -12,14 +13,57 @@ const SLIDER_IMAGES = [
 const ImageScroller = () => {
   const { width } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
   
   const scrollerHeight = width > 1400 ? 600 : (width > 768 ? 450 : 250);
 
   useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('homepage_banners')
+          .select('*')
+          .order('display_order', { ascending: true });
+        if (!error && data && data.length > 0) {
+          setBanners(data.map(item => ({
+            id: item.id,
+            image_url: item.image_url,
+            alt_text: item.alt_text || '',
+            isLocal: false
+          })));
+        } else {
+          // Fallback to local images
+          setBanners(LOCAL_SLIDER_IMAGES.map(img => ({
+            id: img.id,
+            image_url: img.source,
+            alt_text: img.alt,
+            isLocal: true
+          })));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch banners:", err);
+        setBanners(LOCAL_SLIDER_IMAGES.map(img => ({
+          id: img.id,
+          image_url: img.source,
+          alt_text: img.alt,
+          isLocal: true
+        })));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBanners();
+  }, []);
+
+  useEffect(() => {
+    if (banners.length === 0) return;
+    
     const interval = setInterval(() => {
       let nextIndex = activeIndex + 1;
-      if (nextIndex >= SLIDER_IMAGES.length) {
+      if (nextIndex >= banners.length) {
         nextIndex = 0;
       }
       
@@ -31,7 +75,7 @@ const ImageScroller = () => {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [activeIndex, width]);
+  }, [activeIndex, width, banners.length]);
 
   const handleManualScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -40,6 +84,10 @@ const ImageScroller = () => {
       setActiveIndex(currentIndex);
     }
   };
+
+  if (loading || banners.length === 0) {
+    return <View style={[styles.container, { height: scrollerHeight }]} />;
+  }
 
   return (
     <View style={[styles.container, { height: scrollerHeight }]}>
@@ -51,12 +99,12 @@ const ImageScroller = () => {
         onMomentumScrollEnd={handleManualScroll}
         scrollEventThrottle={16}
       >
-        {SLIDER_IMAGES.map((img) => (
+        {banners.map((img) => (
           <View key={img.id} style={[styles.imageWrapper, { width }]}>
             <Image 
-              source={img.source} 
+              source={img.isLocal ? img.image_url : { uri: img.image_url }} 
               style={[styles.image, { height: scrollerHeight }]} 
-              accessibilityLabel={img.alt}
+              accessibilityLabel={img.alt_text}
               contentFit="cover"
               transition={300}
             />
@@ -65,7 +113,7 @@ const ImageScroller = () => {
       </ScrollView>
       
       <View style={styles.pagination}>
-        {SLIDER_IMAGES.map((_, index) => (
+        {banners.map((_, index) => (
           <View 
             key={index} 
             style={[

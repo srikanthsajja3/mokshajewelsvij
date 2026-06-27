@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Platform, ActivityIndicator, Dimensions, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Product } from '../data/products';
 import JewelryModel from '../components/JewelryModel';
 
@@ -17,6 +17,100 @@ const TensorCamera = cameraWithTensors(CameraView);
 
 import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
+
+// ARScene component to handle 3D rendering updates on Three.js useFrame loop natively (avoiding React re-renders)
+interface ARSceneProps {
+  positionRef: React.MutableRefObject<[number, number, number]>;
+  rightEarPosRef: React.MutableRefObject<[number, number, number] | null>;
+  leftEarPosRef: React.MutableRefObject<[number, number, number] | null>;
+  modelVisibleRef: React.MutableRefObject<boolean>;
+  scale: number;
+  selectedStyle: string;
+  isHandJewelry: boolean;
+  jewelryType: string;
+}
+
+const ARScene: React.FC<ARSceneProps> = ({
+  positionRef,
+  rightEarPosRef,
+  leftEarPosRef,
+  modelVisibleRef,
+  scale,
+  selectedStyle,
+  isHandJewelry,
+  jewelryType,
+}) => {
+  const mainGroupRef = useRef<any>(null);
+  const leftEarGroupRef = useRef<any>(null);
+  const rightEarGroupRef = useRef<any>(null);
+
+  useFrame(() => {
+    const visible = modelVisibleRef.current;
+
+    if (isHandJewelry) {
+      if (mainGroupRef.current) {
+        mainGroupRef.current.visible = visible;
+        if (visible) {
+          const pos = positionRef.current;
+          mainGroupRef.current.position.set(pos[0], pos[1], pos[2]);
+          mainGroupRef.current.scale.set(scale, scale, scale);
+        }
+      }
+    } else if (jewelryType.includes('necklace')) {
+      if (mainGroupRef.current) {
+        mainGroupRef.current.visible = visible;
+        if (visible) {
+          const pos = positionRef.current;
+          mainGroupRef.current.position.set(pos[0], pos[1], pos[2]);
+          mainGroupRef.current.scale.set(scale * 1.5, scale * 1.5, scale * 1.5);
+        }
+      }
+    } else if (jewelryType.includes('earring')) {
+      if (rightEarGroupRef.current) {
+        const rightPos = rightEarPosRef.current;
+        const rightVisible = visible && rightPos !== null;
+        rightEarGroupRef.current.visible = rightVisible;
+        if (rightVisible && rightPos) {
+          rightEarGroupRef.current.position.set(rightPos[0], rightPos[1], rightPos[2]);
+          rightEarGroupRef.current.scale.set(scale * 0.4, scale * 0.4, scale * 0.4);
+        }
+      }
+      if (leftEarGroupRef.current) {
+        const leftPos = leftEarPosRef.current;
+        const leftVisible = visible && leftPos !== null;
+        leftEarGroupRef.current.visible = leftVisible;
+        if (leftVisible && leftPos) {
+          leftEarGroupRef.current.position.set(leftPos[0], leftPos[1], leftPos[2]);
+          leftEarGroupRef.current.scale.set(scale * 0.4, scale * 0.4, scale * 0.4);
+        }
+      }
+    }
+  });
+
+  return (
+    <>
+      <ambientLight intensity={0.7} />
+      <pointLight position={[10, 10, 10]} />
+
+      {(isHandJewelry || jewelryType.includes('necklace')) && (
+        <group ref={mainGroupRef}>
+          <JewelryModel type={selectedStyle} />
+        </group>
+      )}
+
+      {jewelryType.includes('earring') && (
+        <>
+          <group ref={rightEarGroupRef}>
+            <JewelryModel type={selectedStyle} />
+          </group>
+          <group ref={leftEarGroupRef}>
+            <JewelryModel type={selectedStyle} />
+          </group>
+        </>
+      )}
+    </>
+  );
+};
 
 const ARTryOnScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -33,14 +127,33 @@ const ARTryOnScreen: React.FC = () => {
   const handDetectorRef = useRef<handPoseDetection.HandDetector | null>(null);
   const faceDetectorRef = useRef<faceLandmarksDetection.FaceLandmarksDetector | null>(null);
   
-  // Interactive State
-  const [position, setPosition] = useState<[number, number, number]>([0, 0, 0]);
-  const [rightEarPos, setRightEarPos] = useState<[number, number, number] | null>(null);
-  const [leftEarPos, setLeftEarPos] = useState<[number, number, number] | null>(null);
+  // Interactive Ref Coordinates for 60fps tracking without React re-renders
+  const positionRef = useRef<[number, number, number]>([0, 0, 0]);
+  const rightEarPosRef = useRef<[number, number, number] | null>(null);
+  const leftEarPosRef = useRef<[number, number, number] | null>(null);
+  
+  const modelVisibleRef = useRef(false);
+  const debugInfoRef = useRef('Initializing AI...');
+
   const [scale, setScale] = useState(1);
   const [isTracking, setIsTracking] = useState(true);
   const [modelVisible, setModelVisible] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('Initializing AI...');
+
+  // State-update throttlers / wrappers to prevent redundant React re-renders
+  const updateVisibility = (visible: boolean) => {
+    if (modelVisibleRef.current !== visible) {
+      modelVisibleRef.current = visible;
+      setModelVisible(visible);
+    }
+  };
+
+  const updateDebugInfo = (info: string) => {
+    if (debugInfoRef.current !== info) {
+      debugInfoRef.current = info;
+      setDebugInfo(info);
+    }
+  };
 
   // Style State
   const [selectedStyle, setSelectedStyle] = useState<string>(product.name);
@@ -108,56 +221,62 @@ const ARTryOnScreen: React.FC = () => {
     let isProcessing = false;
     
     async function processFrame() {
-      if (isTracking && !isProcessing) {
-        isProcessing = true;
-        try {
-          const videos = document.querySelectorAll('video');
-          const video = (videos.length > 0 ? videos[videos.length - 1] : null) as HTMLVideoElement;
-
-          if (video && video.readyState >= 2 && video.videoWidth > 0) {
-            const imageTensor = tf.browser.fromPixels(video);
-            
-            if (isHandJewelry && handDetectorRef.current) {
-              const hands = await handDetectorRef.current.estimateHands(imageTensor, { flipHorizontal: true });
-              if (hands && hands.length > 0) {
-                const keypoint = hands[0].keypoints.find(kp => kp.name === 'ring_finger_mcp') || hands[0].keypoints[9];
-                if (keypoint) {
-                  setPosition([(keypoint.x / video.videoWidth) * 10 - 5, -(keypoint.y / video.videoHeight) * 10 + 5, 0]);
-                  setModelVisible(true);
-                  setDebugInfo('HAND OK');
-                }
-              } else {
-                setModelVisible(false);
-              }
-            } else if (isFaceJewelry && faceDetectorRef.current) {
-              const faces = await faceDetectorRef.current.estimateFaces(imageTensor, { flipHorizontal: true });
-              if (faces && faces.length > 0) {
-                const face = faces[0];
-                if (jewelryType.includes('necklace')) {
-                  const chin = face.keypoints[152];
-                  setPosition([(chin.x / video.videoWidth) * 10 - 5, -(chin.y / video.videoHeight) * 10 + 3.5, 0]);
-                  setModelVisible(true);
-                } else if (jewelryType.includes('earring')) {
-                  const rEar = face.keypoints[234];
-                  const lEar = face.keypoints[454];
-                  setRightEarPos([(rEar.x / video.videoWidth) * 10 - 5, -(rEar.y / video.videoHeight) * 10 + 5, 0]);
-                  setLeftEarPos([(lEar.x / video.videoWidth) * 10 - 5, -(lEar.y / video.videoHeight) * 10 + 5, 0]);
-                  setModelVisible(true);
-                }
-                setDebugInfo('FACE OK');
-              } else {
-                setModelVisible(false);
-              }
-            }
-            
-            imageTensor.dispose(); 
-          }
-        } catch (err) {
-          console.error("Web Processing Error:", err);
-        }
-        isProcessing = false;
+      if (!isTracking) {
+        // Sleep a bit and check again, instead of spinning at 60fps
+        setTimeout(processFrame, 100);
+        return;
       }
-      frameId = requestAnimationFrame(processFrame);
+      
+      isProcessing = true;
+      try {
+        const videos = document.querySelectorAll('video');
+        const video = (videos.length > 0 ? videos[videos.length - 1] : null) as HTMLVideoElement;
+
+        if (video && video.readyState >= 2 && video.videoWidth > 0) {
+          const imageTensor = tf.browser.fromPixels(video);
+          
+          if (isHandJewelry && handDetectorRef.current) {
+            const hands = await handDetectorRef.current.estimateHands(imageTensor, { flipHorizontal: true });
+            if (hands && hands.length > 0) {
+              const keypoint = hands[0].keypoints.find(kp => kp.name === 'ring_finger_mcp') || hands[0].keypoints[9];
+              if (keypoint) {
+                positionRef.current = [(keypoint.x / video.videoWidth) * 10 - 5, -(keypoint.y / video.videoHeight) * 10 + 5, 0];
+                updateVisibility(true);
+                updateDebugInfo('HAND OK');
+              }
+            } else {
+              updateVisibility(false);
+            }
+          } else if (isFaceJewelry && faceDetectorRef.current) {
+            const faces = await faceDetectorRef.current.estimateFaces(imageTensor, { flipHorizontal: true });
+            if (faces && faces.length > 0) {
+              const face = faces[0];
+              if (jewelryType.includes('necklace')) {
+                const chin = face.keypoints[152];
+                positionRef.current = [(chin.x / video.videoWidth) * 10 - 5, -(chin.y / video.videoHeight) * 10 + 3.5, 0];
+                updateVisibility(true);
+              } else if (jewelryType.includes('earring')) {
+                const rEar = face.keypoints[234];
+                const lEar = face.keypoints[454];
+                rightEarPosRef.current = [(rEar.x / video.videoWidth) * 10 - 5, -(rEar.y / video.videoHeight) * 10 + 5, 0];
+                leftEarPosRef.current = [(lEar.x / video.videoWidth) * 10 - 5, -(lEar.y / video.videoHeight) * 10 + 5, 0];
+                updateVisibility(true);
+              }
+              updateDebugInfo('FACE OK');
+            } else {
+              updateVisibility(false);
+            }
+          }
+          
+          imageTensor.dispose(); 
+        }
+      } catch (err) {
+        console.error("Web Processing Error:", err);
+      } finally {
+        isProcessing = false;
+        // Schedule next processing frame sequentially
+        frameId = requestAnimationFrame(processFrame);
+      }
     }
 
     processFrame();
@@ -183,11 +302,11 @@ const ARTryOnScreen: React.FC = () => {
           const hands = await handDetectorRef.current.estimateHands(imageTensor, { flipHorizontal: false });
           if (hands && hands.length > 0) {
             const kp = hands[0].keypoints.find(k => k.name === 'ring_finger_mcp') || hands[0].keypoints[9];
-            setPosition([(kp.x / 152) * 10 - 5, -(kp.y / 200) * 10 + 5, 0]);
-            setModelVisible(true);
-            setDebugInfo('HAND OK');
+            positionRef.current = [(kp.x / 152) * 10 - 5, -(kp.y / 200) * 10 + 5, 0];
+            updateVisibility(true);
+            updateDebugInfo('HAND OK');
           } else {
-            setModelVisible(false);
+            updateVisibility(false);
           }
         } else if (isFaceJewelry && faceDetectorRef.current) {
           const faces = await faceDetectorRef.current.estimateFaces(imageTensor, { flipHorizontal: false });
@@ -195,18 +314,18 @@ const ARTryOnScreen: React.FC = () => {
             const face = faces[0];
             if (jewelryType.includes('necklace')) {
               const chin = face.keypoints[152];
-              setPosition([(chin.x / 152) * 10 - 5, -(chin.y / 200) * 10 + 3.5, 0]);
-              setModelVisible(true);
+              positionRef.current = [(chin.x / 152) * 10 - 5, -(chin.y / 200) * 10 + 3.5, 0];
+              updateVisibility(true);
             } else if (jewelryType.includes('earring')) {
               const rEar = face.keypoints[234];
               const lEar = face.keypoints[454];
-              setRightEarPos([(rEar.x / 152) * 10 - 5, -(rEar.y / 200) * 10 + 5, 0]);
-              setLeftEarPos([(lEar.x / 152) * 10 - 5, -(lEar.y / 200) * 10 + 5, 0]);
-              setModelVisible(true);
+              rightEarPosRef.current = [(rEar.x / 152) * 10 - 5, -(rEar.y / 200) * 10 + 5, 0];
+              leftEarPosRef.current = [(lEar.x / 152) * 10 - 5, -(lEar.y / 200) * 10 + 5, 0];
+              updateVisibility(true);
             }
-            setDebugInfo('FACE OK');
+            updateDebugInfo('FACE OK');
           } else {
-            setModelVisible(false);
+            updateVisibility(false);
           }
         }
       } catch (err) {
@@ -280,35 +399,16 @@ const ARTryOnScreen: React.FC = () => {
           orthographic 
           camera={{ left: -5, right: 5, top: 5, bottom: -5, near: 0.1, far: 100, position: [0, 0, 10] }}
         >
-          <ambientLight intensity={0.7} />
-          <pointLight position={[10, 10, 10]} />
-          
-          {modelVisible && isHandJewelry && (
-            <group position={position} scale={[scale, scale, scale]}>
-              <JewelryModel type={selectedStyle} />
-            </group>
-          )}
-
-          {modelVisible && jewelryType.includes('necklace') && (
-            <group position={position} scale={[scale * 1.5, scale * 1.5, scale * 1.5]}>
-              <JewelryModel type={selectedStyle} />
-            </group>
-          )}
-
-          {modelVisible && jewelryType.includes('earring') && (
-            <>
-              {rightEarPos && (
-                <group position={rightEarPos} scale={[scale * 0.4, scale * 0.4, scale * 0.4]}>
-                  <JewelryModel type={selectedStyle} />
-                </group>
-              )}
-              {leftEarPos && (
-                <group position={leftEarPos} scale={[scale * 0.4, scale * 0.4, scale * 0.4]}>
-                  <JewelryModel type={selectedStyle} />
-                </group>
-              )}
-            </>
-          )}
+          <ARScene
+            positionRef={positionRef}
+            rightEarPosRef={rightEarPosRef}
+            leftEarPosRef={leftEarPosRef}
+            modelVisibleRef={modelVisibleRef}
+            scale={scale}
+            selectedStyle={selectedStyle}
+            isHandJewelry={isHandJewelry}
+            jewelryType={jewelryType}
+          />
         </Canvas>
       </View>
 

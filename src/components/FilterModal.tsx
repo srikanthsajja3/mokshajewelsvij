@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { ProductFilters } from '../data/products';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { useCountry } from '../contexts/CountryContext';
 
 interface FilterModalProps {
   visible: boolean;
@@ -33,7 +34,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
 }) => {
   const [localFilters, setLocalFilters] = useState<ProductFilters>(filters);
   const { width } = useWindowDimensions();
+  const { countryCode } = useCountry();
   const isLargeScreen = width > 768;
+  const exchangeRate = 83; // 1 USD = 83 INR
+
+  // Sync local filters state with prop updates
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters, visible]);
 
   const toggleSelection = (key: keyof ProductFilters, value: string) => {
     setLocalFilters(prev => {
@@ -45,13 +53,66 @@ const FilterModal: React.FC<FilterModalProps> = ({
     });
   };
 
-  const updatePrice = (key: 'minPrice' | 'maxPrice', value: string) => {
-    const num = parseFloat(value);
+  const handlePriceChange = (key: 'minPrice' | 'maxPrice', text: string) => {
+    const cleaned = text.replace(/[^0-9.]/g, '');
+    const val = parseFloat(cleaned);
+    const converted = isNaN(val) ? undefined : val / (countryCode === 'IN' ? exchangeRate : 1);
     setLocalFilters(prev => ({
       ...prev,
-      [key]: isNaN(num) ? undefined : num
+      [key]: converted
     }));
   };
+
+  // Preset Filters
+  const presets = useMemo(() => {
+    return countryCode === 'IN' ? [
+      { label: 'Under ₹25k', min: undefined, max: 25000 / 83 },
+      { label: '₹25k - ₹50k', min: 25000 / 83, max: 50000 / 83 },
+      { label: '₹50k - ₹1L', min: 50000 / 83, max: 100000 / 83 },
+      { label: '₹1L & Above', min: 100000 / 83, max: undefined }
+    ] : [
+      { label: 'Under $500', min: undefined, max: 500 },
+      { label: '$500 - $1,000', min: 500, max: 1000 },
+      { label: '$1,000 - $2,500', min: 1000, max: 2500 },
+      { label: '$2,500 & Above', min: 2500, max: undefined }
+    ];
+  }, [countryCode]);
+
+  const isPresetActive = (preset: any) => {
+    const minMatch = preset.min === undefined 
+      ? localFilters.minPrice === undefined 
+      : Math.abs((localFilters.minPrice || 0) - preset.min) < 2;
+    const maxMatch = preset.max === undefined 
+      ? localFilters.maxPrice === undefined 
+      : Math.abs((localFilters.maxPrice || 0) - preset.max) < 2;
+    return minMatch && maxMatch;
+  };
+
+  const selectPreset = (preset: any) => {
+    if (isPresetActive(preset)) {
+      // Toggle off
+      setLocalFilters(prev => ({
+        ...prev,
+        minPrice: undefined,
+        maxPrice: undefined
+      }));
+    } else {
+      setLocalFilters(prev => ({
+        ...prev,
+        minPrice: preset.min,
+        maxPrice: preset.max
+      }));
+    }
+  };
+
+  // Localized displayed text inputs
+  const minDisp = localFilters.minPrice 
+    ? Math.round(localFilters.minPrice * (countryCode === 'IN' ? exchangeRate : 1)).toString() 
+    : '';
+
+  const maxDisp = localFilters.maxPrice 
+    ? Math.round(localFilters.maxPrice * (countryCode === 'IN' ? exchangeRate : 1)).toString() 
+    : '';
 
   return (
     <Modal
@@ -70,17 +131,40 @@ const FilterModal: React.FC<FilterModalProps> = ({
           </View>
 
           <ScrollView style={styles.content}>
-            {/* Price Range */}
+            {/* Price Presets */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Price Range (USD)</Text>
+              <Text style={styles.sectionTitle}>Price Ranges</Text>
+              <View style={styles.chipRow}>
+                {presets.map((preset, index) => {
+                  const active = isPresetActive(preset);
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.chip, active && styles.activeChip]}
+                      onPress={() => selectPreset(preset)}
+                    >
+                      <Text style={[styles.chipText, active && styles.activeChipText]}>
+                        {preset.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Custom Price Range */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                Custom Price Range ({countryCode === 'IN' ? 'INR' : 'USD'})
+              </Text>
               <View style={styles.priceRow}>
                 <TextInput
                   style={styles.priceInput}
                   placeholder="Min"
                   placeholderTextColor="#666"
                   keyboardType="numeric"
-                  value={localFilters.minPrice?.toString()}
-                  onChangeText={(val) => updatePrice('minPrice', val)}
+                  value={minDisp}
+                  onChangeText={(val) => handlePriceChange('minPrice', val)}
                 />
                 <Text style={styles.priceSeparator}>to</Text>
                 <TextInput
@@ -88,8 +172,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   placeholder="Max"
                   placeholderTextColor="#666"
                   keyboardType="numeric"
-                  value={localFilters.maxPrice?.toString()}
-                  onChangeText={(val) => updatePrice('maxPrice', val)}
+                  value={maxDisp}
+                  onChangeText={(val) => handlePriceChange('maxPrice', val)}
                 />
               </View>
             </View>

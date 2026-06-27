@@ -16,17 +16,17 @@ interface CountryConfig {
 
 const COUNTRY_CONFIGS: Record<string, CountryConfig> = {
   'IN': { currency: 'INR', unit: '1g', factor: 1, exchangeRate: 83, locale: 'en-IN' },
-  'US': { currency: 'USD', unit: 'g', factor: 1, exchangeRate: 1, locale: 'en-US' },
-  'GB': { currency: 'GBP', unit: 'g', factor: 1, exchangeRate: 0.79, locale: 'en-GB' },
-  'AE': { currency: 'AED', unit: 'g', factor: 1, exchangeRate: 3.67, locale: 'en-AE' },
-  'CA': { currency: 'CAD', unit: 'g', factor: 1, exchangeRate: 1.35, locale: 'en-CA' },
-  'AU': { currency: 'AUD', unit: 'g', factor: 1, exchangeRate: 1.52, locale: 'en-AU' },
-  'SG': { currency: 'SGD', unit: 'g', factor: 1, exchangeRate: 1.34, locale: 'en-SG' },
+  'US': { currency: 'USD', unit: '1g', factor: 1, exchangeRate: 1, locale: 'en-US' },
+  'GB': { currency: 'GBP', unit: '1g', factor: 1, exchangeRate: 0.79, locale: 'en-GB' },
+  'AE': { currency: 'AED', unit: '1g', factor: 1, exchangeRate: 3.67, locale: 'en-AE' },
+  'CA': { currency: 'CAD', unit: '1g', factor: 1, exchangeRate: 1.35, locale: 'en-CA' },
+  'AU': { currency: 'AUD', unit: '1g', factor: 1, exchangeRate: 1.52, locale: 'en-AU' },
+  'SG': { currency: 'SGD', unit: '1g', factor: 1, exchangeRate: 1.34, locale: 'en-SG' },
 };
 
 const DEFAULT_CONFIG: CountryConfig = { 
   currency: 'USD', 
-  unit: 'g', 
+  unit: '1g', 
   factor: 1, 
   exchangeRate: 1, 
   locale: 'en-US' 

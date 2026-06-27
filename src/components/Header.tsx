@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, TextInput, ScrollView, Animated, Alert } from "react-native";
 import { useCountry } from "../contexts/CountryContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,182 +23,7 @@ interface HeaderProps {
   onPressMenu?: () => void;
 }
 
-interface MegaMenuColumn {
-  title: string;
-  items: {
-    label: string;
-    icon?: string;
-    subItems?: string[];
-    priceRange?: { min: number; max: number };
-  }[];
-}
 
-// Gold Category Submenus
-const GOLD_COLUMNS: MegaMenuColumn[] = [
-  {
-    title: "Women",
-    items: [
-      { label: "Bangles", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/G-Bangles.png" },
-      { label: "HARAMS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/G-Haram.png" },
-      { label: "VADDANAM", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-vaddanam-icon.png" },
-      { label: "LOCKET", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-locket-icon.png" },
-      { label: "VANKI", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-vanky-icon.png" },
-      { 
-        label: "CHAINS", 
-        icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-women-chains-icon.png",
-        subItems: ["SIMPLE CHAINS", "ROPE CHAINS", "THALI CHAINS", "FANCY CHAINS", "DAILYWEAR CHAINS"]
-      },
-      { 
-        label: "RINGS", 
-        icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-ladies-ring-icon.png",
-        subItems: ["ENGAGEMENT RINGS", "PLAIN RINGS", "GEMSTONE", "FLORAL RINGS", "BUTTERFLY RINGS", "COUPLE RINGS", "SOLITAIRE RINGS", "FANCY RINGS"]
-      },
-      { label: "MAANG TIKKA", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/mangtikka_icon.png" }
-    ]
-  },
-  {
-    title: "", // Women Part 2
-    items: [
-      { 
-        label: "NECKLACE", 
-        icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-necklace-icon.png",
-        subItems: ["ANTIQUE NECKLACE", "PACHI NECKLACE", "TEMPLE NECKLACE", "LONG NECKLACE", "SHORT NECKLACE", "PEARLS NECKLACE", "RUBY NECKLACE"]
-      },
-      { 
-        label: "Earrings", 
-        icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-earrings-icon-.png",
-        subItems: ["SUI DHAGA", "HUGGIES", "CHANDBALI", "HANGINGS", "HOOPS", "DANGLES", "STUDS", "JHUMKAS"]
-      },
-      { label: "PENDANTS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-pendant-icon.png" },
-      { label: "MANGALSUTRA", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-mangalsutra-icon.png" },
-      { label: "CHOKERS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold_choker-icon.png" },
-      { label: "BRACELETS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-bracelet-icon.png" },
-      { label: "ACCESSORIES", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/women-accessories-icon.png" },
-      { label: "GOLD IDOLS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-idols-icon.png" }
-    ]
-  },
-  {
-    title: "Men",
-    items: [
-      { 
-        label: "RINGS", 
-        icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-man-ring-icon.png",
-        subItems: ["ENGAGEMENT RINGS"]
-      },
-      { label: "BRACELETS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-men-_bracelet-icon.png" },
-      { label: "CHAINS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-men-chains-icon.png" },
-      { label: "ACCESSORIES", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-men-accessories-icon.png" }
-    ]
-  },
-  {
-    title: "Kids",
-    items: [
-      { label: "BANGLES", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-baby-bangles-icon.png" },
-      { label: "BRACELETS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-baby-bracelets-icon.png" },
-      { label: "MAANG TIKKA", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/gold-baby-maang-tikka.png" },
-      { label: "RINGS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/kids-ring-icon.png" },
-      { label: "ACCESSORIES", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/kids-accessories-icon.png" }
-    ]
-  },
-  {
-    title: "SHOP BY PRICE",
-    items: [
-      { label: "UNDER 10K", priceRange: { min: 0, max: 10000 } },
-      { label: "10K TO 20K", priceRange: { min: 10000, max: 20000 } },
-      { label: "20K TO 30K", priceRange: { min: 20000, max: 30000 } },
-      { label: "ABOVE 30K", priceRange: { min: 30000, max: 1000000 } }
-    ]
-  }
-];
-
-// Diamonds Category Submenus
-const DIAMOND_COLUMNS: MegaMenuColumn[] = [
-  {
-    title: "Women",
-    items: [
-      { label: "Bangles", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-bangles-iocn.png" },
-      { 
-        label: "Earrings", 
-        icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-earrings-icon.png",
-        subItems: ["JHUMKAS", "HANGINGS", "STUDS", "SUIDHAGA", "DROPS"]
-      },
-      { label: "MANGALSUTRA", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-mangalsutra-icon.png" },
-      { label: "NOSEPINS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-nosepin-icon.png" },
-      { label: "PENDANT SETS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-pendant-sets-icon.png" },
-      { label: "VADDANAM", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-vaddanam-icon.png" }
-    ]
-  },
-  {
-    title: "", // Women Part 2
-    items: [
-      { label: "Bracelets", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-bracelets-icon.png" },
-      { label: "NECKLACE", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-necklace-icon.png" },
-      { label: "PENDANTS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-pendants-icon.png" },
-      { 
-        label: "Rings", 
-        icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/diamond-rings-icon.png",
-        subItems: ["ENGAGEMENT RINGS", "FANCY RINGS", "SWITCH RINGS", "NAVRATNA RINGS", "STACKABLE RINGS", "SILVIGO COLLECTIONS", "SOLITAIRE RINGS", "COUPLE RINGS"]
-      }
-    ]
-  },
-  {
-    title: "SHOP BY PRICE",
-    items: [
-      { label: "UNDER 10K", priceRange: { min: 0, max: 10000 } },
-      { label: "10K TO 20K", priceRange: { min: 10000, max: 20000 } },
-      { label: "20K TO 30K", priceRange: { min: 20000, max: 30000 } },
-      { label: "ABOVE 30K", priceRange: { min: 30000, max: 1000000 } }
-    ]
-  }
-];
-
-// Silver Category Submenus
-const SILVER_COLUMNS: MegaMenuColumn[] = [
-  {
-    title: "SHOP BY CATEGORY",
-    items: [
-      { label: "SILVER GIFTS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/Silver-article.png" },
-      { label: "DINNER SETS, GLASSES & TUMBLERS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/dinnerset1.png" }
-    ]
-  },
-  {
-    title: "", // Category Part 2
-    items: [
-      { label: "POOJA ARTICLES", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/silver-pooja.png" },
-      { label: "JEWELLERY", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/silver-jewellery.jpg" },
-      { label: "SILVER COINS", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/silver-coin.png" }
-    ]
-  },
-  {
-    title: "SHOP BY PRICE",
-    items: [
-      { label: "UNDER 10K", priceRange: { min: 0, max: 10000 } },
-      { label: "10K TO 20K", priceRange: { min: 10000, max: 20000 } },
-      { label: "20K TO 30K", priceRange: { min: 20000, max: 30000 } },
-      { label: "ABOVE 30K", priceRange: { min: 30000, max: 1000000 } }
-    ]
-  }
-];
-
-// New Arrivals Category Submenus
-const NEW_ARRIVALS_COLUMNS: MegaMenuColumn[] = [
-  {
-    title: "SHOP BY COLLECTION",
-    items: [
-      { label: "BUTTERFLY", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/butterfly.png" },
-      { label: "GLAM & GLITZ", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/glam.png" },
-      { label: "SILVIGO", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/silvigo.png" }
-    ]
-  },
-  {
-    title: "", // Collection Part 2
-    items: [
-      { label: "FLORAL", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/floral.png" },
-      { label: "V Kids", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/tara.png" },
-      { label: "TRINITY", icon: "https://cdnmedia-breeze.vaibhavjewellers.com/media/.renditions/wysiwyg/trinity.jpg" }
-    ]
-  }
-];
 
 const Header: React.FC<HeaderProps> = ({ 
   scrollY,
@@ -216,8 +41,6 @@ const Header: React.FC<HeaderProps> = ({
   const [searchVisible, setSearchVisible] = useState(false);
   const searchAnim = React.useRef(new Animated.Value(0)).current;
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const [activeHoverMenu, setActiveHoverMenu] = useState<string | null>(null);
-  
   const isHome = !!isHomeProp;
   
   const isWeb = Platform.OS === "web";
@@ -246,16 +69,50 @@ const Header: React.FC<HeaderProps> = ({
   const navigateToAdmin = () => isAdmin ? navigation.navigate('AdminDashboard') : null;
   const navigateToVendor = () => isVendor ? navigation.navigate('VendorDashboard') : null;
 
-  const toggleSearch = () => {
-    const toValue = searchVisible ? 0 : 1;
-    Animated.spring(searchAnim, {
-      toValue,
-      useNativeDriver: false,
-      friction: 8,
-      tension: 40
-    }).start();
-    setSearchVisible(!searchVisible);
-  };
+  const handleGoBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Home');
+    }
+  }, [navigation]);
+
+  const toggleSearch = useCallback(() => {
+    setSearchVisible(prev => {
+      const nextVal = !prev;
+      Animated.spring(searchAnim, {
+        toValue: nextVal ? 1 : 0,
+        useNativeDriver: false,
+        friction: 8,
+        tension: 40
+      }).start();
+      return nextVal;
+    });
+  }, [searchAnim]);
+
+  useEffect(() => {
+    if (scrollY) {
+      const listenerId = scrollY.addListener(({ value }) => {
+        if (value > 50) {
+          setSearchVisible(currentVisible => {
+            if (currentVisible) {
+              Animated.spring(searchAnim, {
+                toValue: 0,
+                useNativeDriver: false,
+                friction: 8,
+                tension: 40
+              }).start();
+              return false;
+            }
+            return currentVisible;
+          });
+        }
+      });
+      return () => {
+        scrollY.removeListener(listenerId);
+      };
+    }
+  }, [scrollY, searchAnim]);
 
   const searchHeight = searchAnim.interpolate({
     inputRange: [0, 1],
@@ -305,168 +162,11 @@ const Header: React.FC<HeaderProps> = ({
 
   const bannerHeight = scrollOffset.interpolate({
     inputRange: [0, 50],
-    outputRange: [40, 0],
+    outputRange: [45, 0],
     extrapolate: 'clamp',
   });
 
-  const handleNavPress = (category: string, subCategory?: string, minPrice?: number, maxPrice?: number) => {
-    setActiveHoverMenu(null);
-    navigation.navigate('Category', {
-      category,
-      subCategory,
-      minPrice,
-      maxPrice
-    });
-  };
 
-  const renderMegaMenu = (menuType: 'Gold' | 'Diamonds' | 'New Arrivals') => {
-    let columns: MegaMenuColumn[] = [];
-    let bannerUrl = "";
-    let categoryName = "";
-    
-    if (menuType === 'Gold') {
-      columns = GOLD_COLUMNS;
-      bannerUrl = "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/gold-banner-mega-menu.jpg";
-      categoryName = "Gold";
-    } else if (menuType === 'Diamonds') {
-      columns = DIAMOND_COLUMNS;
-      bannerUrl = "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/diamond-banner-mega-menu.jpg";
-      categoryName = "Diamonds";
-    } else if (menuType === 'New Arrivals') {
-      columns = NEW_ARRIVALS_COLUMNS;
-      bannerUrl = "https://cdnmedia-breeze.vaibhavjewellers.com/media/wysiwyg/trinity-banner-mega-menu.gif";
-      categoryName = "All"; 
-    }
-
-    return (
-      <View style={styles.megaMenuPanel}>
-        <View style={styles.megaMenuColsContainer}>
-          {columns.map((col, idx) => (
-            <View key={idx} style={styles.megaMenuCol}>
-              {col.title ? (
-                <Text style={styles.megaMenuColTitle}>{col.title}</Text>
-              ) : (
-                <View style={{ height: 26 }} />
-              )}
-              
-              <View style={styles.megaMenuSubList}>
-                {col.items.map((item, itemIdx) => (
-                  <View key={itemIdx}>
-                    <TouchableOpacity
-                      style={styles.megaMenuItemRow}
-                      onPress={() => {
-                        if (item.priceRange) {
-                          handleNavPress(categoryName, undefined, item.priceRange.min, item.priceRange.max);
-                        } else {
-                          handleNavPress(categoryName, item.label);
-                        }
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      {item.icon ? (
-                        <Image source={{ uri: item.icon }} style={styles.megaMenuIcon} />
-                      ) : null}
-                      <Text style={styles.megaMenuItemText}>{item.label}</Text>
-                    </TouchableOpacity>
-                    
-                    {item.subItems && item.subItems.length > 0 ? (
-                      <View style={styles.megaMenuNestedList}>
-                        {item.subItems.map((sub, subIdx) => (
-                          <TouchableOpacity
-                            key={subIdx}
-                            style={styles.megaMenuNestedLink}
-                            onPress={() => handleNavPress(categoryName, sub)}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={styles.megaMenuNestedText}>• {sub}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    ) : null}
-                  </View>
-                ))}
-              </View>
-            </View>
-          ))}
-        </View>
-        
-        {bannerUrl ? (
-          <View style={styles.megaMenuBannerContainer}>
-            <Image source={{ uri: bannerUrl }} style={styles.megaMenuBanner} />
-          </View>
-        ) : null}
-      </View>
-    );
-  };
-
-  const renderNavMenuCenter = () => {
-    const tabs: { label: string; hasDropdown: boolean; menuType?: 'Gold' | 'Diamonds' | 'New Arrivals'; action?: () => void }[] = [
-      { label: "Gold", hasDropdown: true, menuType: "Gold" },
-      { label: "Diamonds", hasDropdown: true, menuType: "Diamonds" },
-      { 
-        label: "Video Shopping", 
-        hasDropdown: false, 
-        action: () => {
-          Alert.alert(
-            "Video Shopping",
-            "Connecting you with our store representative for a live video consultation. Please ensure your camera and microphone are ready."
-          );
-        }
-      },
-      { 
-        label: "Try On", 
-        hasDropdown: false, 
-        action: () => {
-          navigation.navigate("Category", { category: "All" });
-          setTimeout(() => {
-            Alert.alert(
-              "Virtual Try-On",
-              "Browse our collections and select any item with the 'Try On' badge to experience virtual jewelry matching in real-time."
-            );
-          }, 300);
-        }
-      },
-      { label: "New Arrivals", hasDropdown: true, menuType: "New Arrivals" },
-    ];
-
-    return (
-      <View style={styles.navMenuCenter}>
-        {tabs.map((tab, idx) => {
-          const isActive = activeHoverMenu === tab.menuType;
-          return (
-            <View
-              key={idx}
-              // @ts-ignore
-              onMouseEnter={() => {
-                if (tab.hasDropdown && tab.menuType) {
-                  setActiveHoverMenu(tab.menuType);
-                } else {
-                  setActiveHoverMenu(null);
-                }
-              }}
-              style={styles.navTabContainer}
-            >
-              <TouchableOpacity
-                style={styles.navTabItem}
-                onPress={() => {
-                  if (tab.action) {
-                    tab.action();
-                  } else if (tab.menuType) {
-                    handleNavPress(tab.menuType === "Diamonds" ? "Diamonds" : tab.menuType);
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.navTabText, isActive && styles.navTabActiveText]}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
 
   return (
     <Animated.View style={styles.container}>
@@ -481,38 +181,45 @@ const Header: React.FC<HeaderProps> = ({
       ]}>
         <View 
           style={styles.centerWrapper}
-          // @ts-ignore
-          onMouseLeave={() => setActiveHoverMenu(null)}
         >
-          <TouchableOpacity 
-            style={styles.brandContainer}
-            onPress={navigateToHome}
-            activeOpacity={0.7}
-          >
-            <Animated.View style={{ 
-              flexDirection: 'row',
-              alignItems: 'center',
-              // @ts-ignore - transformOrigin is supported in modern RN (0.73+) and Web
-              transformOrigin: 'left center',
-              transform: [
-                { scale: logoScale },
-              ]
-            }}>
-              <Image
-                source={require("../../assets/logo.jpg")}
-                style={[styles.logo, { width: baseLogoSize, height: baseLogoSize, borderRadius: 8 }]}
-              />
-              <Text 
-                numberOfLines={1} 
-                adjustsFontSizeToFit 
-                style={[styles.title, { fontSize: baseTitleSize, letterSpacing: letterSpacing }]}
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+            {!isHome && (
+              <TouchableOpacity 
+                style={[styles.actionItem, { marginRight: 8 }]} 
+                onPress={handleGoBack}
               >
-                MOKSHA JEWELS
-              </Text>
-            </Animated.View>
-          </TouchableOpacity>
+                <FontAwesome5 name="chevron-left" size={iconSize} color="#D4AF37" />
+              </TouchableOpacity>
+            )}
 
-          {!isMobile && isWeb && renderNavMenuCenter()}
+            <TouchableOpacity 
+              style={styles.brandContainer}
+              onPress={navigateToHome}
+              activeOpacity={0.7}
+            >
+              <Animated.View style={{ 
+                flexDirection: 'row',
+                alignItems: 'center',
+                // @ts-ignore - transformOrigin is supported in modern RN (0.73+) and Web
+                transformOrigin: 'left center',
+                transform: [
+                  { scale: logoScale },
+                ]
+              }}>
+                <Image
+                  source={require("../../assets/logo.jpg")}
+                  style={[styles.logo, { width: baseLogoSize, height: baseLogoSize, borderRadius: 8 }]}
+                />
+                <Text 
+                  numberOfLines={1} 
+                  adjustsFontSizeToFit 
+                  style={[styles.title, { fontSize: baseTitleSize, letterSpacing: letterSpacing }]}
+                >
+                  MOKSHA JEWELS
+                </Text>
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.actionsRightGroup}>
             <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={toggleSearch}>
@@ -521,10 +228,18 @@ const Header: React.FC<HeaderProps> = ({
 
             {isMobile ? (
               <>
-                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToOrders}>
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToWishlist}>
+                  <FontAwesome5 name="heart" size={iconSize} color="#D4AF37" />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToCart}>
                   <View>
-                    <FontAwesome5 name="bell" size={iconSize} color="#D4AF37" />
-                    <View style={styles.dotBadge} />
+                    <FontAwesome5 name="shopping-bag" size={iconSize} color="#D4AF37" />
+                    {cartCount > 0 ? (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{cartCount}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 </TouchableOpacity>
 
@@ -581,9 +296,6 @@ const Header: React.FC<HeaderProps> = ({
               </>
             )}
           </View>
-
-          {/* Absolute overlay rendered directly under centerWrapper */}
-          {!isMobile && isWeb && activeHoverMenu && renderMegaMenu(activeHoverMenu as any)}
         </View>
       </Animated.View>
 
@@ -599,12 +311,37 @@ const Header: React.FC<HeaderProps> = ({
               onChangeText={onSearch}
               autoFocus={searchVisible}
               clearButtonMode="while-editing"
+              onBlur={() => {
+                setTimeout(() => {
+                  setSearchVisible(currentVisible => {
+                    if (currentVisible) {
+                      Animated.spring(searchAnim, {
+                        toValue: 0,
+                        useNativeDriver: false,
+                        friction: 8,
+                        tension: 40
+                      }).start();
+                      return false;
+                    }
+                    return currentVisible;
+                  });
+                }, 250);
+              }}
             />
+            <TouchableOpacity style={{ padding: 4, marginRight: 6 }} onPress={() => Alert.alert("Voice Search", "Voice recognition starts...")}>
+              <FontAwesome5 name="microphone" size={14} color="#D4AF37" />
+            </TouchableOpacity>
+            <TouchableOpacity style={{ padding: 4, marginRight: 6 }} onPress={() => Alert.alert("Visual Search", "Image search camera opens...")}>
+              <FontAwesome5 name="camera" size={14} color="#D4AF37" />
+            </TouchableOpacity>
             {searchQuery.length > 0 ? (
-              <TouchableOpacity onPress={() => onSearch("")}>
+              <TouchableOpacity onPress={() => onSearch("")} style={{ marginRight: 12 }}>
                 <FontAwesome5 name="times-circle" size={16} color="#888" />
               </TouchableOpacity>
             ) : null}
+            <TouchableOpacity onPress={toggleSearch} style={{ padding: 4 }}>
+              <FontAwesome5 name="times" size={16} color="#D4AF37" />
+            </TouchableOpacity>
           </View>
         </View>
       </Animated.View>
@@ -736,129 +473,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   // Centered navigation tabs on desktop
-  navMenuCenter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-    height: "100%",
-    marginHorizontal: 20,
-  },
-  navTabContainer: {
-    justifyContent: "center",
-    height: "100%",
-  },
-  navTabItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  navTabText: {
-    color: "#ccc",
-    fontSize: 13,
-    fontWeight: "600",
-    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    ...Platform.select({
-      web: {
-        transition: 'color 0.2s ease',
-      }
-    })
-  },
-  navTabActiveText: {
-    color: "#D4AF37",
-  },
-  // Mega Menu Panel Dropdown Style
-  megaMenuPanel: {
-    position: "absolute",
-    top: "100%",
-    left: 0,
-    right: 0,
-    backgroundColor: "#1c1209",
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.25)",
-    padding: 24,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    zIndex: 1000,
-    ...Platform.select({
-      web: {
-        boxShadow: "0 15px 30px rgba(0, 0, 0, 0.65)",
-      }
-    })
-  },
-  megaMenuColsContainer: {
-    flex: 1,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  megaMenuCol: {
-    flex: 1,
-    minWidth: 140,
-  },
-  megaMenuColTitle: {
-    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
-    color: "#D4AF37",
-    fontSize: 12,
-    fontWeight: "bold",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(212, 175, 55, 0.15)",
-    paddingBottom: 6,
-    marginBottom: 12,
-  },
-  megaMenuSubList: {
-    gap: 6,
-  },
-  megaMenuItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 5,
-  },
-  megaMenuItemText: {
-    color: "#dcdcdc",
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 0.5,
-  },
-  megaMenuIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 8,
-    borderRadius: 10,
-    resizeMode: "contain",
-  },
-  megaMenuNestedList: {
-    paddingLeft: 28,
-    marginTop: 2,
-    marginBottom: 6,
-    gap: 4,
-  },
-  megaMenuNestedLink: {
-    paddingVertical: 2,
-  },
-  megaMenuNestedText: {
-    color: "#999",
-    fontSize: 10,
-    fontWeight: "400",
-    textTransform: "uppercase",
-  },
-  megaMenuBannerContainer: {
-    width: 240,
-    marginLeft: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  megaMenuBanner: {
-    width: "100%",
-    height: 280,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.15)",
-    resizeMode: "cover",
-  },
+
 });
 
 export default Header;
