@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useCountry } from './CountryContext';
+import { supabase } from '../../supabase';
 
 interface GoldRate {
   purity: string;
@@ -52,33 +53,28 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const fetchGoldRate = async () => {
       setIsLoading(true);
       try {
-        // Primary: freegoldapi.com (CORS-friendly, no-key required)
-        const response = await fetch('https://freegoldapi.com/data/latest.json');
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data) && data.length > 0) {
-            const latest = data[data.length - 1];
-            if (latest.price) {
-              setBaseRate(latest.price);
+        // 0. Manual Override: Check if rate is set in Supabase database
+        try {
+          const { data: dbRates, error: dbError } = await supabase
+            .from('gold_rates')
+            .select('rate_per_gram_usd')
+            .eq('purity', '24K')
+            .order('updated_at', { ascending: false })
+            .limit(1);
+
+          if (!dbError && dbRates && dbRates.length > 0) {
+            const customRate = parseFloat(dbRates[0].rate_per_gram_usd);
+            if (customRate > 0) {
+              setBaseRate(customRate);
               setIsLoading(false);
               return;
             }
           }
+        } catch (dbErr) {
+          console.warn("Failed to check gold rates override in Supabase:", dbErr);
         }
 
-        // Secondary: gold-api.com (might have CORS issues on web)
-        const responseG = await fetch('https://gold-api.com/api/XAU');
-        if (responseG.ok) {
-          const data = await responseG.json();
-          if (data.price) {
-            const pricePerGram = data.price / 31.1035;
-            setBaseRate(pricePerGram);
-            setIsLoading(false);
-            return;
-          }
-        }
-
-        // Secondary: GoldAPI.io (requires key)
+        // Primary: GoldAPI.io (use if key is provided)
         if (GOLD_API_KEY && GOLD_API_KEY !== 'goldapi-placeholder-key') {
           const responseIO = await fetch('https://www.goldapi.io/api/XAU/USD', {
             headers: {
@@ -94,6 +90,32 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               setIsLoading(false);
               return;
             }
+          }
+        }
+
+        // Secondary: freegoldapi.com (CORS-friendly, no-key required fallback)
+        const response = await fetch('https://freegoldapi.com/data/latest.json');
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const latest = data[data.length - 1];
+            if (latest.price) {
+              setBaseRate(latest.price);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+
+        // Tertiary: gold-api.com (CORS issues might occur on web)
+        const responseG = await fetch('https://gold-api.com/api/XAU');
+        if (responseG.ok) {
+          const data = await responseG.json();
+          if (data.price) {
+            const pricePerGram = data.price / 31.1035;
+            setBaseRate(pricePerGram);
+            setIsLoading(false);
+            return;
           }
         }
         

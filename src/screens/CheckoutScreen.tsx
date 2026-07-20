@@ -167,79 +167,65 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
     setIsProcessing(true);
     
     try {
-      // Choose parameters based on provider
+      // 1. Create the pending order first securely via server RPC to compute authentic prices
+      console.log('Creating secure order in Supabase for user:', user.id);
+      const cartItemsPayload = cart.map(item => ({
+        product_id: item.id,
+        quantity: item.quantity
+      }));
+
+      const { data: orderId, error: orderError } = await supabase
+        .rpc('place_secure_order', {
+          p_shipping_address: state ? `${address}, ${state}` : address,
+          p_city: city,
+          p_zip_code: zip,
+          p_shipping_country: country,
+          p_cart_items: cartItemsPayload
+        });
+
+      if (orderError) {
+        console.error('Order Placement RPC Error:', orderError);
+        Alert.alert("Checkout Error", orderError.message || "Failed to create order securely.");
+        setIsProcessing(false);
+        return;
+      }
+
+      if (!orderId) {
+        throw new Error("Failed to retrieve order reference from secure server.");
+      }
+
+      // 2. Choose parameters and process payment
       const paymentParams = provider === 'razorpay' ? {
         amount: cartTotal,
         currency: countryCode === 'IN' ? 'INR' : 'USD',
         email: user.email
       } : undefined;
 
-      const { error } = await presentPaymentSheet(paymentParams as any);
+      const { error: paymentError } = await presentPaymentSheet(paymentParams as any);
 
-      if (error) {
-        if (error.code === 'Canceled') {
+      if (paymentError) {
+        if (paymentError.code === 'Canceled') {
           // User canceled
         } else {
-          Alert.alert(`Error`, error.message);
+          Alert.alert(`Payment Error`, paymentError.message);
         }
         setIsProcessing(false);
         return;
       }
 
-      // 3. Create the Order in Supabase after successful payment
-      console.log('Creating order in Supabase for user:', user.id);
-      
-      const orderPayload = {
-        user_id: user.id,
-        total_amount: cartTotal,
-        shipping_address: state ? `${address}, ${state}` : address,
-        city: city,
-        zip_code: zip,
-        shipping_country: country,
-        status: 'paid' as const
-      };
+      // 3. Confirm payment securely on server
+      console.log('Confirming secure payment for order:', orderId);
+      const { data: confirmSuccess, error: confirmError } = await supabase
+        .rpc('confirm_secure_payment', {
+          p_order_id: orderId,
+          p_payment_intent_id: null
+        });
 
-      // Only add address_id if it exists to avoid foreign key violations
-      if (selectedAddressId) {
-        (orderPayload as any).address_id = selectedAddressId;
-      }
-
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderPayload)
-        .select('id')
-        .single();
-
-      if (orderError) {
-        console.error('Order Insertion Error:', orderError);
-        if (orderError.message.includes('profiles_fkey')) {
-           Alert.alert("Profile Error", "Your user profile is not fully initialized in the database. Please contact support or re-login.");
-           setIsProcessing(false);
-           return;
-        }
-        throw orderError;
-      }
-
-      if (!orderData?.id) {
-        throw new Error("Failed to retrieve order reference. Please contact support.");
-      }
-
-      // 4. Insert Order Items
-      console.log('Inserting items for order:', orderData.id);
-      const orderItems = cart.map(item => ({
-        order_id: orderData.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        price_at_purchase: item.price
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) {
-        console.error('Order Items Insertion Error:', itemsError);
-        throw itemsError;
+      if (confirmError || !confirmSuccess) {
+        console.error('Payment Confirmation Error:', confirmError);
+        Alert.alert("Payment Warning", "Payment succeeded, but failed to update status. Please contact support.");
+        setIsProcessing(false);
+        return;
       }
 
       // 5. Success Flow

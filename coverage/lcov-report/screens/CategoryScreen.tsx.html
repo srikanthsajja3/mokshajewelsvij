@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/81</span>
+                <span class='fraction'>0/85</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/67</span>
+                <span class='fraction'>0/71</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/76</span>
+                <span class='fraction'>0/80</span>
             </div>
         
             
@@ -443,7 +443,22 @@
 <a name='L378'></a><a href='#L378'>378</a>
 <a name='L379'></a><a href='#L379'>379</a>
 <a name='L380'></a><a href='#L380'>380</a>
-<a name='L381'></a><a href='#L381'>381</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L381'></a><a href='#L381'>381</a>
+<a name='L382'></a><a href='#L382'>382</a>
+<a name='L383'></a><a href='#L383'>383</a>
+<a name='L384'></a><a href='#L384'>384</a>
+<a name='L385'></a><a href='#L385'>385</a>
+<a name='L386'></a><a href='#L386'>386</a>
+<a name='L387'></a><a href='#L387'>387</a>
+<a name='L388'></a><a href='#L388'>388</a>
+<a name='L389'></a><a href='#L389'>389</a>
+<a name='L390'></a><a href='#L390'>390</a>
+<a name='L391'></a><a href='#L391'>391</a>
+<a name='L392'></a><a href='#L392'>392</a>
+<a name='L393'></a><a href='#L393'>393</a>
+<a name='L394'></a><a href='#L394'>394</a>
+<a name='L395'></a><a href='#L395'>395</a>
+<a name='L396'></a><a href='#L396'>396</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -462,6 +477,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -592,8 +608,13 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -656,6 +677,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -829,6 +859,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import Header from "../components/Header";
 import { SortOption } from "../components/CategoryBar";
 import ProductList from "../components/ProductList";
+import CategorySlider from "../components/CategorySlider";
 import FilterModal from "../components/FilterModal";
 import Footer from "../components/Footer";
 import { Product, ProductFilters } from "../data/products";
@@ -973,9 +1004,14 @@ const CategoryScreen: React.FC&lt;CategoryScreenProps&gt; = <span class="cstat-n
 &nbsp;
   // Subcategory chip
 <span class="cstat-no" title="statement not covered" >  if (subCategory !== "All Items") {</span>
+    let displayLabel = <span class="cstat-no" title="statement not covered" >subCategory;</span>
+<span class="cstat-no" title="statement not covered" >    if (subCategory.includes(':')) {</span>
+      const parts = <span class="cstat-no" title="statement not covered" >subCategory.split(':');</span>
+<span class="cstat-no" title="statement not covered" >      displayLabel = `${parts[0]} - ${parts[1]}`;</span>
+    }
 <span class="cstat-no" title="statement not covered" >    chips.push({</span>
       id: 'subcategory',
-      label: subCategory,
+      label: displayLabel,
       onPress: handleRemoveSubCategory,
     });
   }
@@ -1064,7 +1100,16 @@ const CategoryScreen: React.FC&lt;CategoryScreenProps&gt; = <span class="cstat-n
           sortBy={sortBy}
           searchQuery={""} 
           filters={effectiveFilters}
-          ListHeaderComponent={&lt;CategoriesSelectorBar /&gt;}
+          ListHeaderComponent={
+            &lt;View style={Platform.OS === 'web' ? { zIndex: 1000, position: 'relative' } : undefined}&gt;
+              &lt;CategoriesSelectorBar /&gt;
+              &lt;CategorySlider 
+                hideTitle={true} 
+                activeSubCategory={subCategory} 
+                onSelectSubCategory={setSubCategory} 
+              /&gt;
+            &lt;/View&gt;
+          }
           onClearFilters={handleClearAll}
           hasSidebar={false}
           onScroll={Animated.event(
@@ -1210,7 +1255,7 @@ export default CategoryScreen;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-27T13:06:26.198Z
+                at 2026-07-13T07:40:03.893Z
             </div>
         <script src="../prettify.js"></script>
         <script>

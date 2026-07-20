@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">90.9% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>10/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>1/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">90.9% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>10/11</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -106,26 +106,26 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { createContext, useContext, useState, useRef } from 'react';
 import { Animated } from 'react-native';
@@ -138,26 +138,26 @@ interface UIContextType {
   scrollY: Animated.Value;
 }
 &nbsp;
-const UIContext = <span class="cstat-no" title="statement not covered" >createContext&lt;UIContextType | undefined&gt;(undefined);</span>
+const UIContext = createContext&lt;UIContextType | undefined&gt;(undefined);
 &nbsp;
-export const UIProvider: React.FC&lt;{ children: React.ReactNode }&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> children }) =&gt; {</span>
-  const [loginVisible, setLoginVisible] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
-  const [drawerVisible, setDrawerVisible] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
-  const scrollY = <span class="cstat-no" title="statement not covered" >useRef(new Animated.Value(0)).current;</span>
+export const UIProvider: React.FC&lt;{ children: React.ReactNode }&gt; = ({ children }) =&gt; {
+  const [loginVisible, setLoginVisible] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return (</span>
+  return (
     &lt;UIContext.Provider value={{ loginVisible, setLoginVisible, drawerVisible, setDrawerVisible, scrollY }}&gt;
       {children}
     &lt;/UIContext.Provider&gt;
   );
 };
 &nbsp;
-export const useUI = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-  const context = <span class="cstat-no" title="statement not covered" >useContext(UIContext);</span>
-<span class="cstat-no" title="statement not covered" >  if (context === undefined) {</span>
+export const useUI = () =&gt; {
+  const context = useContext(UIContext);
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (context === undefined) {
 <span class="cstat-no" title="statement not covered" >    throw new Error('useUI must be used within a UIProvider');</span>
   }
-<span class="cstat-no" title="statement not covered" >  return context;</span>
+  return context;
 };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -166,7 +166,7 @@ export const useUI = <span class="cstat-no" title="statement not covered" ><span
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-27T13:06:26.198Z
+                at 2026-07-13T07:40:03.893Z
             </div>
         <script src="../prettify.js"></script>
         <script>

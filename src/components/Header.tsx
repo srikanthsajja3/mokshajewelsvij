@@ -15,12 +15,40 @@ import { useUI } from "../contexts/UIContext";
 const MAX_CONTENT_WIDTH = Platform.OS === 'web' ? '98%' : 1200;
 const MAX_PX_WIDTH = 2500;
 
+const HoverNavBadge = ({ label, isActive, onPress }: { label: string; isActive: boolean; onPress: () => void }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <TouchableOpacity
+      style={[
+        styles.navBadge,
+        isActive && styles.activeNavBadge,
+        hovered && !isActive && styles.hoverNavBadge
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      // @ts-ignore
+      onMouseEnter={() => setHovered(true)}
+      // @ts-ignore
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Text style={[
+        styles.navBadgeText,
+        isActive && styles.activeNavBadgeText,
+        hovered && !isActive && styles.hoverNavBadgeText
+      ]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
 interface HeaderProps {
   scrollY?: Animated.Value;
   searchQuery: string;
   onSearch: (query: string) => void;
   isHome?: boolean;
   onPressMenu?: () => void;
+  activeCategory?: string;
 }
 
 
@@ -30,7 +58,8 @@ const Header: React.FC<HeaderProps> = ({
   searchQuery,
   onSearch,
   isHome: isHomeProp,
-  onPressMenu
+  onPressMenu,
+  activeCategory = ""
 }) => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -46,6 +75,7 @@ const Header: React.FC<HeaderProps> = ({
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
   const isMobile = width < 1024; // Align with CategoryBar's width breakpoint for desktop tabs
+
 
   const navigateToHome = () => navigation.navigate('Home');
   const navigateToLogin = () => setLoginVisible(true);
@@ -220,6 +250,19 @@ const Header: React.FC<HeaderProps> = ({
               </Animated.View>
             </TouchableOpacity>
           </View>
+
+          {!isMobile && (
+            <View style={styles.centerNav}>
+              {["All", "Gold", "Diamonds", "Polki", "Kundan"].map((cat) => (
+                <HoverNavBadge
+                  key={cat}
+                  label={cat}
+                  isActive={activeCategory === cat}
+                  onPress={() => navigation.navigate('Category', { category: cat, subCategory: 'All Items' })}
+                />
+              ))}
+            </View>
+          )}
 
           <View style={styles.actionsRightGroup}>
             <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={toggleSearch}>
@@ -472,8 +515,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  // Centered navigation tabs on desktop
-
+  centerNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    flexGrow: 1,
+    flexShrink: 1,
+    paddingHorizontal: 20,
+  },
+  navBadge: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    backgroundColor: 'transparent',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }
+    }) as any,
+  },
+  activeNavBadge: {
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+  },
+  hoverNavBadge: {
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+  },
+  navBadgeText: {
+    color: 'rgba(212, 175, 55, 0.6)',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+    ...Platform.select({
+      web: {
+        transition: 'color 0.2s ease',
+      }
+    }) as any,
+  },
+  activeNavBadgeText: {
+    color: '#D4AF37',
+  },
+  hoverNavBadgeText: {
+    color: '#D4AF37',
+  },
 });
 
 export default Header;

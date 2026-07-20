@@ -216,13 +216,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     : (width - 40);
 
   const isARSupported = useMemo(() => {
-    if (!product) return false;
-    const jewelryType = (product.type || product.name || '').toLowerCase();
-    return jewelryType.includes('ring') || 
-           jewelryType.includes('bracelet') || 
-           jewelryType.includes('earring') || 
-           jewelryType.includes('necklace') || 
-           jewelryType.includes('pendant');
+    return !!product && !!product.image;
   }, [product]);
   
   const contentStyle: ViewStyle = isLargeScreen 

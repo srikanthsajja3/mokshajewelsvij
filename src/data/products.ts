@@ -43,6 +43,7 @@ export interface Product {
   stockQuantity?: number;
   sourcingCost?: number;
   matchingProductId?: string;
+  vendorId?: string;
 }
 
 /**
@@ -86,6 +87,7 @@ export const mapProduct = (row: any): Product => ({
   stockQuantity: parseInt(row.stock_quantity || 0),
   sourcingCost: parseFloat(row.sourcing_cost || 0),
   matchingProductId: row.matching_product_id || undefined,
+  vendorId: row.vendor_id || undefined,
 });
 
 

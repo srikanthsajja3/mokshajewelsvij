@@ -300,7 +300,7 @@ const VendorDashboardScreen: React.FC<VendorDashboardScreenProps> = ({ scrollY: 
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TouchableOpacity 
               style={styles.editBtn}
-              onPress={() => navigation.navigate('AddProduct', { product: item, vendorId: (item as any).vendor_id })}
+              onPress={() => navigation.navigate('AddProduct', { product: item, vendorId: item.vendorId || vendorSettings?.vendor_id || '' })}
             >
               <Text style={styles.editBtnText}>EDIT</Text>
             </TouchableOpacity>

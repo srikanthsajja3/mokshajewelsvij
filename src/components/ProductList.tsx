@@ -63,6 +63,10 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
     handleAddToCart(item);
   };
 
+  const showAR = useMemo(() => {
+    return !!item && !!item.image;
+  }, [item]);
+
   return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY }], width: itemWidth }}>
       <TouchableOpacity 
@@ -115,6 +119,19 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
               {isInWishlist ? "♥" : "♡"}
             </Text>
           </TouchableOpacity>
+          {showAR && (
+            <TouchableOpacity 
+              style={styles.arBadge}
+              onPress={(e) => {
+                e.stopPropagation();
+                navigation.navigate('ARTryOn', { product: item });
+              }}
+              activeOpacity={0.8}
+            >
+              <FontAwesome5 name="camera" size={8} color="#000" />
+              <Text style={styles.arBadgeText}>TRY ON</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
@@ -229,13 +246,49 @@ const ProductList: React.FC<ProductListProps> = ({
     }
 
     if (filters.subCategory) {
-      const sub = filters.subCategory.toLowerCase();
-      result = result.filter(p => {
-        return (p.type?.toLowerCase() === sub) || 
-               (p.category?.toLowerCase() === sub) ||
-               (p.collection?.toLowerCase() === sub) ||
-               (p.name?.toLowerCase().includes(sub));
-      });
+      const rawSub = filters.subCategory.toLowerCase();
+      if (rawSub.includes(':')) {
+        const [mainSubRaw, subOptionRaw] = rawSub.split(':');
+        const mainSub = mainSubRaw.toLowerCase();
+        const subOption = subOptionRaw.toLowerCase();
+        result = result.filter(p => {
+          const matchesMain = (p.type?.toLowerCase() === mainSub) || 
+                              (p.category?.toLowerCase() === mainSub) ||
+                              (p.collection?.toLowerCase() === mainSub) ||
+                              (p.name?.toLowerCase().includes(mainSub)) ||
+                              (mainSub === 'accessories') ||
+                              (mainSub === 'other') ||
+                              (mainSub === 'lockets' && (p.type?.toLowerCase() === 'lockets / pendents' || p.collection?.toLowerCase() === 'lockets / pendents')) ||
+                              (mainSub === 'earrings' && ['studs', 'jumkies', 'fancy'].includes(p.type?.toLowerCase() || '')) ||
+                              (mainSub === 'necklace' && ['necklace short/medium', 'necklace set'].includes(p.type?.toLowerCase() || '')) ||
+                              (mainSub === 'bracelet' && ['plain', 'stones'].includes(p.type?.toLowerCase() || '')) ||
+                              (mainSub === 'bangles' && ['plain', 'stones'].includes(p.type?.toLowerCase() || ''));
+                              
+          const matchesOption = (p.gender?.toLowerCase() === subOption) ||
+                                (p.type?.toLowerCase() === subOption) ||
+                                (p.category?.toLowerCase() === subOption) ||
+                                (p.collection?.toLowerCase() === subOption) ||
+                                (p.name?.toLowerCase().includes(subOption));
+          return matchesMain && matchesOption;
+        });
+      } else {
+        const sub = rawSub.toLowerCase();
+        result = result.filter(p => {
+          const matchesOther = (sub === 'other' || sub === 'accessories') && 
+                               ['coins', 'bhajubandh', 'watch', 'tikka'].includes(p.type?.toLowerCase() || '');
+          return (p.type?.toLowerCase() === sub) || 
+                 (p.category?.toLowerCase() === sub) ||
+                 (p.collection?.toLowerCase() === sub) ||
+                 (p.name?.toLowerCase().includes(sub)) ||
+                 (p.gender?.toLowerCase() === sub) ||
+                 matchesOther ||
+                 (sub === 'lockets' && (p.type?.toLowerCase() === 'lockets / pendents' || p.collection?.toLowerCase() === 'lockets / pendents')) ||
+                 (sub === 'earrings' && ['studs', 'jumkies', 'fancy'].includes(p.type?.toLowerCase() || '')) ||
+                 (sub === 'necklace' && ['necklace short/medium', 'necklace set'].includes(p.type?.toLowerCase() || '')) ||
+                 (sub === 'bracelet' && ['plain', 'stones'].includes(p.type?.toLowerCase() || '')) ||
+                 (sub === 'bangles' && ['plain', 'stones'].includes(p.type?.toLowerCase() || ''));
+        });
+      }
     }
 
     if (filters.minPrice !== undefined) {
@@ -316,7 +369,18 @@ const ProductList: React.FC<ProductListProps> = ({
       columnWrapperStyle={numColumns > 1 ? { gap: spacing } : undefined}
       ListHeaderComponent={() => (
         <>
-          {ListHeaderComponent}
+          {ListHeaderComponent ? (
+            <View style={{ 
+              marginHorizontal: Platform.OS === 'web' ? -padding : -15,
+              zIndex: 9999,
+              position: 'relative',
+              overflow: 'visible'
+            }}>
+              {React.isValidElement(ListHeaderComponent)
+                ? ListHeaderComponent
+                : React.createElement(ListHeaderComponent as any)}
+            </View>
+          ) : null}
           <View style={styles.headerRow}>
             <Text style={styles.title}>
               {searchQuery ? `Search: ${searchQuery}` : `${category} Collection`}
@@ -470,6 +534,32 @@ const styles = StyleSheet.create({
   },
   heartActive: {
     color: "#D4AF37",
+  },
+  arBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    backgroundColor: "#D4AF37",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.15)",
+    zIndex: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 10px rgba(212, 175, 55, 0.3)',
+      }
+    } as any)
+  },
+  arBadgeText: {
+    color: "#000",
+    fontSize: 8,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
   },
   productInfo: {
     padding: Platform.OS === 'web' ? 12 : 8,

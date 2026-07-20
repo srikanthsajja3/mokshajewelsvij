@@ -4,17 +4,15 @@ import * as THREE from 'three';
 
 interface JewelryModelProps {
   type: string;
+  imageUrl?: string;
 }
 
-// Pre-load the model to prevent lag during tracking
-// On web, this will be a URL; on native, it uses the asset system
+// Pre-load the default ring model to prevent lag
 const RING_MODEL_PATH = require('../../assets/models/ring_0.glb');
 
 const RealRingModel: React.FC = () => {
   const { scene } = useGLTF(RING_MODEL_PATH) as any;
   
-  // Apply gold-like material properties to all meshes in the model
-  // (Optional: if your GLB doesn't already have materials)
   React.useEffect(() => {
     scene.traverse((child: any) => {
       if ((child as THREE.Mesh).isMesh) {
@@ -28,6 +26,100 @@ const RealRingModel: React.FC = () => {
   }, [scene]);
 
   return <primitive object={scene} scale={0.5} rotation={[Math.PI / 2, 0, 0]} />;
+};
+
+/**
+ * Loads a dynamic GLB/glTF model from a URL or asset path.
+ */
+const RealGLBModel: React.FC<{ modelPath: string; type: string }> = ({ modelPath, type }) => {
+  const { scene } = useGLTF(modelPath) as any;
+
+  React.useEffect(() => {
+    scene.traverse((child: any) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (mesh.material) {
+          (mesh.material as THREE.MeshStandardMaterial).metalness = 1;
+          (mesh.material as THREE.MeshStandardMaterial).roughness = 0.1;
+        }
+      }
+    });
+  }, [scene, modelPath]);
+
+  let scaleFactor = 0.5;
+  if (type.toLowerCase().includes('necklace')) {
+    scaleFactor = 1.0;
+  } else if (type.toLowerCase().includes('earring')) {
+    scaleFactor = 0.3;
+  }
+
+  return <primitive object={scene} scale={scaleFactor} />;
+};
+
+/**
+ * Loads a 2D transparent product image and projects it as a billboard/sprite in 3D.
+ * This provides photorealism when a full 3D model is not available.
+ */
+const RealImageModel: React.FC<{ imageUrl: string; type: string }> = ({ imageUrl, type }) => {
+  const [texture, setTexture] = React.useState<THREE.Texture | null>(null);
+  const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!imageUrl) return;
+
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin('anonymous');
+    loader.load(
+      imageUrl,
+      (tex) => {
+        // High quality filtering for jewelry details
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        setTexture(tex);
+        setFailed(false);
+      },
+      undefined,
+      (err) => {
+        console.warn('[RealImageModel] Failed to load texture:', imageUrl, err);
+        setFailed(true);
+      }
+    );
+  }, [imageUrl]);
+
+  if (failed || !imageUrl) {
+    return <PlaceholderModel type={type} />;
+  }
+
+  if (!texture) {
+    return <PlaceholderModel type={type} />;
+  }
+
+  // Adjust size of the billboard mesh to fit the product type
+  let width = 2;
+  let height = 2;
+
+  if (type.toLowerCase().includes('necklace')) {
+    width = 3.5;
+    height = 3.5;
+  } else if (type.toLowerCase().includes('earring')) {
+    width = 0.8;
+    height = 0.8;
+  } else if (type.toLowerCase().includes('ring')) {
+    width = 0.6;
+    height = 0.6;
+  }
+
+  return (
+    <mesh>
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial 
+        map={texture} 
+        transparent={true} 
+        depthWrite={false} 
+        side={THREE.DoubleSide} 
+      />
+    </mesh>
+  );
 };
 
 const PlaceholderModel: React.FC<{ type: string }> = ({ type }) => {
@@ -108,12 +200,10 @@ const PlaceholderModel: React.FC<{ type: string }> = ({ type }) => {
     // Default Traditional Necklace
     return (
       <group rotation={[0.2, 0, 0]}>
-        {/* Main Chain Curve */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[2.0, 0.05, 16, 100, Math.PI]} />
           {goldMaterial}
         </mesh>
-        {/* Center Pendant */}
         <mesh position={[0, -2.0, 0.1]}>
           <octahedronGeometry args={[0.4]} />
           {goldMaterial}
@@ -122,7 +212,6 @@ const PlaceholderModel: React.FC<{ type: string }> = ({ type }) => {
     );
   }
 
-  // Generic Pendant/Other placeholder
   return (
     <group>
       <mesh>
@@ -137,7 +226,7 @@ const PlaceholderModel: React.FC<{ type: string }> = ({ type }) => {
   );
 };
 
-const JewelryModel: React.FC<JewelryModelProps> = ({ type }) => {
+const JewelryModel: React.FC<JewelryModelProps> = ({ type, imageUrl }) => {
   const isRing = type.toLowerCase().includes('ring');
 
   if (isRing) {
@@ -146,6 +235,18 @@ const JewelryModel: React.FC<JewelryModelProps> = ({ type }) => {
         <RealRingModel />
       </Suspense>
     );
+  }
+
+  if (imageUrl) {
+    if (imageUrl.toLowerCase().endsWith('.glb') || imageUrl.toLowerCase().endsWith('.gltf')) {
+      return (
+        <Suspense fallback={<PlaceholderModel type={type} />}>
+          <RealGLBModel modelPath={imageUrl} type={type} />
+        </Suspense>
+      );
+    } else {
+      return <RealImageModel imageUrl={imageUrl} type={type} />;
+    }
   }
 
   return <PlaceholderModel type={type} />;

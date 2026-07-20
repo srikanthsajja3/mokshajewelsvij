@@ -4,6 +4,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import Header from "../components/Header";
 import { SortOption } from "../components/CategoryBar";
 import ProductList from "../components/ProductList";
+import CategorySlider from "../components/CategorySlider";
 import FilterModal from "../components/FilterModal";
 import Footer from "../components/Footer";
 import { Product, ProductFilters } from "../data/products";
@@ -26,6 +27,10 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
   const category = route.params?.category || "All";
   const [subCategory, setSubCategory] = useState(route.params?.subCategory || "All Items");
   const { width } = useWindowDimensions();
+  const isMobile = width < 1024;
+  const gridPadding = Platform.OS === 'web'
+    ? (width > 1200 ? Math.max(width * 0.02, 50) : 50)
+    : 15;
   
   const localScrollY = useRef(new Animated.Value(0)).current;
   const scrollY = scrollYProp || globalScrollY || localScrollY;
@@ -56,7 +61,14 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.categoriesScrollContent, { paddingHorizontal: paddingHorz }]}
+          contentContainerStyle={[
+            styles.categoriesScrollContent, 
+            { paddingHorizontal: paddingHorz },
+            Platform.OS === 'web' && {
+              justifyContent: width >= 600 ? 'center' : 'flex-start',
+              minWidth: '100%',
+            }
+          ]}
         >
           {CATEGORIES.map((cat) => {
             const isActive = category === cat;
@@ -148,9 +160,14 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
 
   // Subcategory chip
   if (subCategory !== "All Items") {
+    let displayLabel = subCategory;
+    if (subCategory.includes(':')) {
+      const parts = subCategory.split(':');
+      displayLabel = `${parts[0]} - ${parts[1]}`;
+    }
     chips.push({
       id: 'subcategory',
-      label: subCategory,
+      label: displayLabel,
       onPress: handleRemoveSubCategory,
     });
   }
@@ -239,7 +256,17 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
           sortBy={sortBy}
           searchQuery={""} 
           filters={effectiveFilters}
-          ListHeaderComponent={<CategoriesSelectorBar />}
+          ListHeaderComponent={
+            <View style={Platform.OS === 'web' ? { zIndex: 9999, position: 'relative', overflow: 'visible' } : undefined}>
+              {isMobile && <CategoriesSelectorBar />}
+              <CategorySlider 
+                hideTitle={true} 
+                activeSubCategory={subCategory} 
+                onSelectSubCategory={setSubCategory} 
+                contentPadding={gridPadding}
+              />
+            </View>
+          }
           onClearFilters={handleClearAll}
           hasSidebar={false}
           onScroll={Animated.event(
@@ -321,8 +348,6 @@ const styles = StyleSheet.create({
   },
   categoriesSelectorContainer: {
     backgroundColor: "#1a1209",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(212, 175, 55, 0.08)",
     paddingVertical: 12,
     width: "100%",
   },
@@ -332,9 +357,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Platform.select({
       web: {
-        justifyContent: 'center',
         flexWrap: 'nowrap',
-        width: '100%',
       },
       default: {}
     })
@@ -342,8 +365,6 @@ const styles = StyleSheet.create({
   categoryBadge: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 6,
     backgroundColor: '#201409',
     ...Platform.select({
@@ -354,11 +375,10 @@ const styles = StyleSheet.create({
     })
   },
   activeCategoryBadge: {
-    borderColor: '#D4AF37',
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
   },
   categoryBadgeText: {
-    color: '#888',
+    color: 'rgba(212, 175, 55, 0.6)',
     fontSize: 12,
     fontWeight: 'bold',
     textTransform: 'uppercase',
@@ -369,7 +389,6 @@ const styles = StyleSheet.create({
     color: '#D4AF37',
   },
   hoverCategoryBadge: {
-    borderColor: 'rgba(212, 175, 55, 0.6)',
     backgroundColor: 'rgba(212, 175, 55, 0.08)',
   },
   hoverCategoryBadgeText: {

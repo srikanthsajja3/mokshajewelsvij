@@ -1,6 +1,8 @@
 -- RPC to delete all data associated with a user
 -- This is called from the ProfileScreen when a user deletes their account
 
+DROP FUNCTION IF EXISTS public.delete_user_data();
+
 CREATE OR REPLACE FUNCTION delete_user_data()
 RETURNS void AS $$
 DECLARE

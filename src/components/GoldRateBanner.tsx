@@ -1,9 +1,29 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
 import { useGoldRate } from '../contexts/GoldRateContext';
+
+const HoverRateItem = ({ purity, rateText }: { purity: string; rateText: string }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <View 
+      style={[
+        styles.rateItem,
+        hovered && styles.rateItemHovered
+      ]}
+      // @ts-ignore
+      onMouseEnter={() => setHovered(true)}
+      // @ts-ignore
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Text style={styles.purityText}>{purity}:</Text>
+      <Text style={styles.rateText}>{rateText}</Text>
+    </View>
+  );
+};
 
 const GoldRateBanner: React.FC = () => {
   const { rates, getLocalizedRate, isLoading } = useGoldRate();
+  const { width } = useWindowDimensions();
 
   if (isLoading) {
     return (
@@ -13,15 +33,20 @@ const GoldRateBanner: React.FC = () => {
     );
   }
 
+  const isDesktop = width >= 768;
+
   return (
     <View style={styles.banner}>
-      <View style={styles.tickerContainer}>
-        {rates.map((item, index) => (
-          <View key={item.purity} style={styles.rateItem}>
-            <Text style={styles.purityText}>{item.purity}:</Text>
-            <Text style={styles.rateText}>{getLocalizedRate(item.rate)}</Text>
-            {index < rates.length - 1 && <Text style={styles.separator}> | </Text>}
-          </View>
+      <View style={[
+        styles.tickerContainer,
+        { justifyContent: isDesktop ? 'space-evenly' : 'center' }
+      ]}>
+        {rates.map((item) => (
+          <HoverRateItem 
+            key={item.purity} 
+            purity={item.purity} 
+            rateText={getLocalizedRate(item.rate)} 
+          />
         ))}
       </View>
     </View>
@@ -31,9 +56,7 @@ const GoldRateBanner: React.FC = () => {
 const styles = StyleSheet.create({
   banner: {
     backgroundColor: '#1a1209',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212, 175, 55, 0.15)',
+    paddingVertical: 8,
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -41,33 +64,52 @@ const styles = StyleSheet.create({
   tickerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     flexWrap: 'wrap',
+    width: '100%',
+    maxWidth: 1200,
+    paddingHorizontal: 15,
   },
   rateItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    backgroundColor: 'rgba(212, 175, 55, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.15)',
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 15,
+    margin: 4,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+      }
+    }) as any,
+  },
+  rateItemHovered: {
+    borderColor: '#D4AF37',
+    backgroundColor: 'rgba(212, 175, 55, 0.08)',
+    ...Platform.select({
+      web: {
+        transform: 'translateY(-1px)',
+        boxShadow: '0 4px 10px rgba(212, 175, 55, 0.15)',
+      }
+    }) as any,
   },
   purityText: {
-    color: '#888',
+    color: 'rgba(212, 175, 55, 0.8)',
     fontSize: 10,
     fontWeight: 'bold',
     marginRight: 6,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   rateText: {
-    color: '#D4AF37',
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'TrajanPro',
-    letterSpacing: 1,
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
+    letterSpacing: 0.5,
   },
-  separator: {
-    color: 'rgba(212, 175, 55, 0.2)',
-    marginLeft: 12,
-    fontSize: 14,
-  }
 });
 
 export default GoldRateBanner;

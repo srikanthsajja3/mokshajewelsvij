@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Platform, ActivityIndicator, Dimensions, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Platform, ActivityIndicator, Dimensions, ScrollView, TextInput, KeyboardAvoidingView, StatusBar } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Product } from '../data/products';
 import JewelryModel from '../components/JewelryModel';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../../supabase';
 
 // AI Tracking Imports
 import * as tf from '@tensorflow/tfjs';
@@ -21,6 +24,8 @@ import { RootStackParamList } from '../navigation/types';
 // ARScene component to handle 3D rendering updates on Three.js useFrame loop natively (avoiding React re-renders)
 interface ARSceneProps {
   positionRef: React.MutableRefObject<[number, number, number]>;
+  rotationRef: React.MutableRefObject<[number, number, number]>;
+  autoScaleRef: React.MutableRefObject<number>;
   rightEarPosRef: React.MutableRefObject<[number, number, number] | null>;
   leftEarPosRef: React.MutableRefObject<[number, number, number] | null>;
   modelVisibleRef: React.MutableRefObject<boolean>;
@@ -28,10 +33,13 @@ interface ARSceneProps {
   selectedStyle: string;
   isHandJewelry: boolean;
   jewelryType: string;
+  imageUrl?: string;
 }
 
 const ARScene: React.FC<ARSceneProps> = ({
   positionRef,
+  rotationRef,
+  autoScaleRef,
   rightEarPosRef,
   leftEarPosRef,
   modelVisibleRef,
@@ -39,50 +47,23 @@ const ARScene: React.FC<ARSceneProps> = ({
   selectedStyle,
   isHandJewelry,
   jewelryType,
+  imageUrl,
 }) => {
   const mainGroupRef = useRef<any>(null);
-  const leftEarGroupRef = useRef<any>(null);
-  const rightEarGroupRef = useRef<any>(null);
 
   useFrame(() => {
     const visible = modelVisibleRef.current;
+    const rot = rotationRef.current;
+    const autoS = autoScaleRef.current;
 
-    if (isHandJewelry) {
-      if (mainGroupRef.current) {
-        mainGroupRef.current.visible = visible;
-        if (visible) {
-          const pos = positionRef.current;
-          mainGroupRef.current.position.set(pos[0], pos[1], pos[2]);
-          mainGroupRef.current.scale.set(scale, scale, scale);
-        }
-      }
-    } else if (jewelryType.includes('necklace')) {
-      if (mainGroupRef.current) {
-        mainGroupRef.current.visible = visible;
-        if (visible) {
-          const pos = positionRef.current;
-          mainGroupRef.current.position.set(pos[0], pos[1], pos[2]);
-          mainGroupRef.current.scale.set(scale * 1.5, scale * 1.5, scale * 1.5);
-        }
-      }
-    } else if (jewelryType.includes('earring')) {
-      if (rightEarGroupRef.current) {
-        const rightPos = rightEarPosRef.current;
-        const rightVisible = visible && rightPos !== null;
-        rightEarGroupRef.current.visible = rightVisible;
-        if (rightVisible && rightPos) {
-          rightEarGroupRef.current.position.set(rightPos[0], rightPos[1], rightPos[2]);
-          rightEarGroupRef.current.scale.set(scale * 0.4, scale * 0.4, scale * 0.4);
-        }
-      }
-      if (leftEarGroupRef.current) {
-        const leftPos = leftEarPosRef.current;
-        const leftVisible = visible && leftPos !== null;
-        leftEarGroupRef.current.visible = leftVisible;
-        if (leftVisible && leftPos) {
-          leftEarGroupRef.current.position.set(leftPos[0], leftPos[1], leftPos[2]);
-          leftEarGroupRef.current.scale.set(scale * 0.4, scale * 0.4, scale * 0.4);
-        }
+    // Always treat as necklace/neck placement
+    if (mainGroupRef.current) {
+      mainGroupRef.current.visible = visible;
+      if (visible) {
+        const pos = positionRef.current;
+        mainGroupRef.current.position.set(pos[0], pos[1], pos[2]);
+        mainGroupRef.current.rotation.set(rot[0], rot[1], rot[2]);
+        mainGroupRef.current.scale.set(scale * 1.5 * autoS, scale * 1.5 * autoS, scale * 1.5 * autoS);
       }
     }
   });
@@ -92,22 +73,9 @@ const ARScene: React.FC<ARSceneProps> = ({
       <ambientLight intensity={0.7} />
       <pointLight position={[10, 10, 10]} />
 
-      {(isHandJewelry || jewelryType.includes('necklace')) && (
-        <group ref={mainGroupRef}>
-          <JewelryModel type={selectedStyle} />
-        </group>
-      )}
-
-      {jewelryType.includes('earring') && (
-        <>
-          <group ref={rightEarGroupRef}>
-            <JewelryModel type={selectedStyle} />
-          </group>
-          <group ref={leftEarGroupRef}>
-            <JewelryModel type={selectedStyle} />
-          </group>
-        </>
-      )}
+      <group ref={mainGroupRef}>
+        <JewelryModel type={selectedStyle} imageUrl={imageUrl} />
+      </group>
     </>
   );
 };
@@ -117,9 +85,100 @@ const ARTryOnScreen: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'ARTryOn'>>();
   const { product } = route.params;
   
-  const jewelryType = (product.type || product.name || '').toLowerCase();
-  const isHandJewelry = jewelryType.includes('ring') || jewelryType.includes('bracelet');
-  const isFaceJewelry = jewelryType.includes('earring') || jewelryType.includes('necklace') || jewelryType.includes('pendant');
+  // Always use face/neck tracking (necklaces) for all products
+  const jewelryType = 'necklace';
+  const isHandJewelry = false;
+  const isFaceJewelry = true;
+
+  const { user } = useAuth();
+  
+  // Lead Form States
+  const [showLeadForm, setShowLeadForm] = useState<boolean | null>(null); // null means checking
+  const [leadName, setLeadName] = useState('');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
+  const [nameError, setNameError] = useState(false);
+  const [phoneError, setPhoneError] = useState(false);
+
+  // Check if lead details are already known (via logged-in user profile or local AsyncStorage)
+  useEffect(() => {
+    async function checkExistingDetails() {
+      try {
+        // 1. Check if authenticated user has a phone number
+        if (user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('full_name, phone_number')
+            .eq('id', user.id)
+            .single();
+
+          if (data && data.phone_number) {
+            setLeadName(data.full_name || '');
+            setLeadPhone(data.phone_number || '');
+            setShowLeadForm(false);
+            return;
+          }
+        }
+
+        // 2. Check local AsyncStorage for guest lead details
+        const storedName = await AsyncStorage.getItem('@ar_lead_name');
+        const storedPhone = await AsyncStorage.getItem('@ar_lead_phone');
+
+        if (storedName && storedPhone) {
+          setLeadName(storedName);
+          setLeadPhone(storedPhone);
+          setShowLeadForm(false);
+        } else {
+          setShowLeadForm(true);
+        }
+      } catch (err) {
+        console.warn('Error checking existing lead details:', err);
+        setShowLeadForm(true);
+      }
+    }
+
+    checkExistingDetails();
+  }, [user]);
+
+  const handleLeadSubmit = async () => {
+    const isNameInvalid = leadName.trim().length < 3;
+    const isPhoneInvalid = leadPhone.trim().length !== 10;
+
+    setNameError(isNameInvalid);
+    setPhoneError(isPhoneInvalid);
+
+    if (isNameInvalid || isPhoneInvalid) return;
+
+    setLeadSubmitting(true);
+    try {
+      // 1. Save to Supabase ar_leads table
+      const { error } = await supabase
+        .from('ar_leads')
+        .insert([{
+          full_name: leadName.trim(),
+          phone_number: leadPhone.trim(),
+          product_id: product.id,
+          product_name: product.name,
+        }]);
+
+      if (error) {
+        console.warn('Supabase lead insert error:', error.message);
+      }
+
+      // 2. Save locally so they don't have to fill it out again
+      await AsyncStorage.setItem('@ar_lead_name', leadName.trim());
+      await AsyncStorage.setItem('@ar_lead_phone', leadPhone.trim());
+
+      // 3. Hide the form and trigger tracking
+      setShowLeadForm(false);
+    } catch (err) {
+      console.error('Lead submit error:', err);
+      // Fallback: still let them try on even if network fails
+      setShowLeadForm(false);
+    } finally {
+      setLeadSubmitting(false);
+    }
+  };
 
   const onBack = () => navigation.goBack();
   const [permission, requestPermission] = useCameraPermissions();
@@ -129,6 +188,8 @@ const ARTryOnScreen: React.FC = () => {
   
   // Interactive Ref Coordinates for 60fps tracking without React re-renders
   const positionRef = useRef<[number, number, number]>([0, 0, 0]);
+  const rotationRef = useRef<[number, number, number]>([0, 0, 0]);
+  const autoScaleRef = useRef<number>(1);
   const rightEarPosRef = useRef<[number, number, number] | null>(null);
   const leftEarPosRef = useRef<[number, number, number] | null>(null);
   
@@ -178,6 +239,8 @@ const ARTryOnScreen: React.FC = () => {
 
   // Initialize AI Tracking
   useEffect(() => {
+    if (showLeadForm !== false) return; // Wait until lead details are verified
+    
     async function initTracking() {
       try {
         console.log("ARTryOn: Initializing TFJS...");
@@ -211,7 +274,7 @@ const ARTryOnScreen: React.FC = () => {
     }
 
     initTracking();
-  }, [isHandJewelry, isFaceJewelry]);
+  }, [isHandJewelry, isFaceJewelry, showLeadForm]);
 
   // Web Frame Processing Loop
   useEffect(() => {
@@ -240,7 +303,23 @@ const ARTryOnScreen: React.FC = () => {
             if (hands && hands.length > 0) {
               const keypoint = hands[0].keypoints.find(kp => kp.name === 'ring_finger_mcp') || hands[0].keypoints[9];
               if (keypoint) {
+                // 1. Position alignment
                 positionRef.current = [(keypoint.x / video.videoWidth) * 10 - 5, -(keypoint.y / video.videoHeight) * 10 + 5, 0];
+                
+                // 2. Hand auto-scaling based on hand bounding scale (distance from wrist to MCP)
+                const wrist = hands[0].keypoints[0];
+                const middleMcp = hands[0].keypoints[9];
+                const handSize = Math.sqrt((middleMcp.x - wrist.x)**2 + (middleMcp.y - wrist.y)**2);
+                const handFraction = handSize / video.videoWidth;
+                const baselineHandFraction = 0.2;
+                autoScaleRef.current = handFraction / baselineHandFraction;
+                
+                // 3. Hand roll rotation (Z-axis angle)
+                const dx = middleMcp.x - wrist.x;
+                const dy = middleMcp.y - wrist.y;
+                const handAngle = Math.atan2(dy, dx);
+                rotationRef.current = [0, 0, handAngle + Math.PI / 2];
+
                 updateVisibility(true);
                 updateDebugInfo('HAND OK');
               }
@@ -251,17 +330,34 @@ const ARTryOnScreen: React.FC = () => {
             const faces = await faceDetectorRef.current.estimateFaces(imageTensor, { flipHorizontal: true });
             if (faces && faces.length > 0) {
               const face = faces[0];
-              if (jewelryType.includes('necklace')) {
-                const chin = face.keypoints[152];
-                positionRef.current = [(chin.x / video.videoWidth) * 10 - 5, -(chin.y / video.videoHeight) * 10 + 3.5, 0];
-                updateVisibility(true);
-              } else if (jewelryType.includes('earring')) {
-                const rEar = face.keypoints[234];
-                const lEar = face.keypoints[454];
-                rightEarPosRef.current = [(rEar.x / video.videoWidth) * 10 - 5, -(rEar.y / video.videoHeight) * 10 + 5, 0];
-                leftEarPosRef.current = [(lEar.x / video.videoWidth) * 10 - 5, -(lEar.y / video.videoHeight) * 10 + 5, 0];
-                updateVisibility(true);
-              }
+              
+              // 1. Get landmarks (use nose instead of forehead for stability when close)
+              const chin = face.keypoints[152];
+              const nose = face.keypoints[1];
+              const rEar = face.keypoints[234];
+              const lEar = face.keypoints[454];
+
+              // 2. Face scale estimation based on nose-to-chin distance (immune to top/bottom cropping)
+              const noseToChin = Math.sqrt((chin.x - nose.x)**2 + (chin.y - nose.y)**2);
+              const faceScaleFraction = noseToChin / video.videoWidth;
+              const baselineScaleFraction = 0.12; // baseline ratio at normal distance
+              autoScaleRef.current = faceScaleFraction / baselineScaleFraction;
+
+              // 3. Head roll rotation
+              const dx = lEar.x - rEar.x;
+              const dy = lEar.y - rEar.y;
+              const rollAngle = Math.atan2(dy, dx);
+              rotationRef.current = [0, 0, rollAngle];
+
+              // 4. Set positions (always neck placement for all items)
+              const neckY = chin.y + noseToChin * 1.35; // shift down by 1.35x nose-to-chin distance
+              positionRef.current = [
+                (chin.x / video.videoWidth) * 10 - 5, 
+                -(neckY / video.videoHeight) * 10 + 5, 
+                0.5 // slightly forward
+              ];
+              
+              updateVisibility(true);
               updateDebugInfo('FACE OK');
             } else {
               updateVisibility(false);
@@ -302,7 +398,24 @@ const ARTryOnScreen: React.FC = () => {
           const hands = await handDetectorRef.current.estimateHands(imageTensor, { flipHorizontal: false });
           if (hands && hands.length > 0) {
             const kp = hands[0].keypoints.find(k => k.name === 'ring_finger_mcp') || hands[0].keypoints[9];
+            
+            // 1. Position alignment
             positionRef.current = [(kp.x / 152) * 10 - 5, -(kp.y / 200) * 10 + 5, 0];
+            
+            // 2. Hand auto-scaling (distance from wrist to MCP)
+            const wrist = hands[0].keypoints[0];
+            const middleMcp = hands[0].keypoints[9];
+            const handSize = Math.sqrt((middleMcp.x - wrist.x)**2 + (middleMcp.y - wrist.y)**2);
+            const handFraction = handSize / 152;
+            const baselineHandFraction = 0.2;
+            autoScaleRef.current = handFraction / baselineHandFraction;
+            
+            // 3. Hand roll rotation (Z-axis angle)
+            const dx = middleMcp.x - wrist.x;
+            const dy = middleMcp.y - wrist.y;
+            const handAngle = Math.atan2(dy, dx);
+            rotationRef.current = [0, 0, handAngle + Math.PI / 2];
+
             updateVisibility(true);
             updateDebugInfo('HAND OK');
           } else {
@@ -312,17 +425,34 @@ const ARTryOnScreen: React.FC = () => {
           const faces = await faceDetectorRef.current.estimateFaces(imageTensor, { flipHorizontal: false });
           if (faces && faces.length > 0) {
             const face = faces[0];
-            if (jewelryType.includes('necklace')) {
-              const chin = face.keypoints[152];
-              positionRef.current = [(chin.x / 152) * 10 - 5, -(chin.y / 200) * 10 + 3.5, 0];
-              updateVisibility(true);
-            } else if (jewelryType.includes('earring')) {
-              const rEar = face.keypoints[234];
-              const lEar = face.keypoints[454];
-              rightEarPosRef.current = [(rEar.x / 152) * 10 - 5, -(rEar.y / 200) * 10 + 5, 0];
-              leftEarPosRef.current = [(lEar.x / 152) * 10 - 5, -(lEar.y / 200) * 10 + 5, 0];
-              updateVisibility(true);
-            }
+            
+            // 1. Get landmarks (use nose instead of forehead for stability when close)
+            const chin = face.keypoints[152];
+            const nose = face.keypoints[1];
+            const rEar = face.keypoints[234];
+            const lEar = face.keypoints[454];
+
+            // 2. Face scale estimation based on nose-to-chin distance (immune to top/bottom cropping)
+            const noseToChin = Math.sqrt((chin.x - nose.x)**2 + (chin.y - nose.y)**2);
+            const faceScaleFraction = noseToChin / 152;
+            const baselineScaleFraction = 0.12; // baseline ratio at normal distance
+            autoScaleRef.current = faceScaleFraction / baselineScaleFraction;
+
+            // 3. Head roll rotation
+            const dx = lEar.x - rEar.x;
+            const dy = lEar.y - rEar.y;
+            const rollAngle = Math.atan2(dy, dx);
+            rotationRef.current = [0, 0, rollAngle];
+
+            // 4. Set positions (always neck placement for all items)
+            const neckY = chin.y + noseToChin * 1.35; // shift down by 1.35x nose-to-chin distance
+            positionRef.current = [
+              (chin.x / 152) * 10 - 5, 
+              -(neckY / 200) * 10 + 5, 
+              0.5 // slightly forward
+            ];
+            
+            updateVisibility(true);
             updateDebugInfo('FACE OK');
           } else {
             updateVisibility(false);
@@ -347,6 +477,90 @@ const ARTryOnScreen: React.FC = () => {
   const handleClose = () => {
     onBack();
   };
+
+  if (showLeadForm === null) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#D4AF37" />
+        <Text style={[styles.loadingText, { marginTop: 15 }]}>Checking details...</Text>
+      </View>
+    );
+  }
+
+  if (showLeadForm) {
+    return (
+      <View style={styles.leadContainer}>
+        <StatusBar barStyle="light-content" />
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={styles.leadWrapper}
+        >
+          <View style={styles.leadCard}>
+            <FontAwesome5 name="camera" size={32} color="#D4AF37" style={styles.leadIcon} />
+            <Text style={styles.leadTitle}>Virtual Try-On</Text>
+            <Text style={styles.leadSubtitle}>
+              Experience our luxury jewelry collections. Share your details to start the AR Try-On.
+            </Text>
+
+            <View style={styles.leadForm}>
+              <Text style={styles.leadLabel}>Full Name</Text>
+              <TextInput
+                style={styles.leadInput}
+                placeholder="Enter your name"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                value={leadName}
+                onChangeText={(t) => {
+                  setLeadName(t);
+                  setNameError(false);
+                }}
+              />
+              {nameError && (
+                <Text style={styles.leadErrorText}>Please enter your name (min 3 characters).</Text>
+              )}
+
+              <Text style={[styles.leadLabel, { marginTop: 15 }]}>Mobile Number</Text>
+              <TextInput
+                style={styles.leadInput}
+                placeholder="10-digit mobile number"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                keyboardType="phone-pad"
+                maxLength={10}
+                value={leadPhone}
+                onChangeText={(t) => {
+                  setLeadPhone(t.replace(/[^0-9]/g, ''));
+                  setPhoneError(false);
+                }}
+              />
+              {phoneError && (
+                <Text style={styles.leadErrorText}>Please enter a valid 10-digit number.</Text>
+              )}
+
+              <TouchableOpacity
+                style={[styles.leadSubmitBtn, leadSubmitting && styles.leadSubmitBtnDisabled]}
+                onPress={handleLeadSubmit}
+                disabled={leadSubmitting}
+                activeOpacity={0.8}
+              >
+                {leadSubmitting ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={styles.leadSubmitBtnText}>Start Virtual Try-On</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.leadCancelBtn} 
+                onPress={handleClose}
+                disabled={leadSubmitting}
+              >
+                <Text style={styles.leadCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    );
+  }
 
   if (!permission || !permission.granted) {
     return (
@@ -401,6 +615,8 @@ const ARTryOnScreen: React.FC = () => {
         >
           <ARScene
             positionRef={positionRef}
+            rotationRef={rotationRef}
+            autoScaleRef={autoScaleRef}
             rightEarPosRef={rightEarPosRef}
             leftEarPosRef={leftEarPosRef}
             modelVisibleRef={modelVisibleRef}
@@ -408,6 +624,7 @@ const ARTryOnScreen: React.FC = () => {
             selectedStyle={selectedStyle}
             isHandJewelry={isHandJewelry}
             jewelryType={jewelryType}
+            imageUrl={product.image}
           />
         </Canvas>
       </View>
@@ -676,6 +893,101 @@ const styles = StyleSheet.create({
   },
   activeOptionLabel: {
     color: '#000',
+  },
+  leadContainer: {
+    flex: 1,
+    backgroundColor: '#1a1209',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  leadWrapper: {
+    width: '100%',
+    maxWidth: 400,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+  },
+  leadCard: {
+    backgroundColor: '#291c0e',
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+      }
+    } as any)
+  },
+  leadIcon: {
+    marginBottom: 16,
+  },
+  leadTitle: {
+    fontFamily: 'TrajanPro',
+    fontSize: 24,
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  leadSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 24,
+    paddingHorizontal: 10,
+  },
+  leadForm: {
+    width: '100%',
+  },
+  leadLabel: {
+    color: '#D4AF37',
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  leadInput: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    color: '#fff',
+    fontSize: 14,
+  },
+  leadErrorText: {
+    color: '#FF5252',
+    fontSize: 11,
+    marginTop: 6,
+  },
+  leadSubmitBtn: {
+    backgroundColor: '#D4AF37',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  leadSubmitBtnDisabled: {
+    opacity: 0.6,
+  },
+  leadSubmitBtnText: {
+    color: '#000',
+    fontSize: 15,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  leadCancelBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  leadCancelBtnText: {
+    color: '#a8927e',
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
 });
 

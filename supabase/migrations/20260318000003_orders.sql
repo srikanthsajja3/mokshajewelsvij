@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   shipping_address TEXT NOT NULL,
   city TEXT NOT NULL,
   zip_code TEXT NOT NULL,
-  status TEXT DEFAULT 'paid' NOT NULL, -- e.g., 'pending', 'paid', 'shipped'
+  status TEXT DEFAULT 'pending' NOT NULL, -- e.g., 'pending', 'paid', 'shipped'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

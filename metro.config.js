@@ -12,11 +12,30 @@ config.resolver = {
   assetExts: [...resolver.assetExts, 'bin', 'glb', 'binarypb'],
   // Prioritize 'react-native' and 'browser' to avoid ESM issues (like import.meta) in dual-environment packages
   resolverMainFields: ['react-native', 'browser', 'main'],
-  extraNodeModules: {
-    ...resolver.extraNodeModules,
-    'react-native-fs': path.resolve(__dirname, 'src/utils/emptyModule.js'),
-    '@react-native-async-storage/async-storage': path.resolve(__dirname, 'src/utils/emptyModule.js'),
-    'stream': path.resolve(__dirname, 'src/utils/emptyModule.js'),
+  
+  resolveRequest: (context, moduleName, platform) => {
+    if (moduleName === 'react-native-fs') {
+      return {
+        filePath: path.resolve(__dirname, 'src/utils/emptyModule.js'),
+        type: 'sourceFile',
+      };
+    }
+    if (moduleName === 'stream') {
+      return {
+        filePath: path.resolve(__dirname, 'src/utils/emptyModule.js'),
+        type: 'sourceFile',
+      };
+    }
+    if (moduleName === '@react-native-async-storage/async-storage') {
+      if (platform === 'web') {
+        return {
+          filePath: path.resolve(__dirname, 'src/utils/asyncStorageMock.js'),
+          type: 'sourceFile',
+        };
+      }
+    }
+    // Chain to the default Metro resolver
+    return context.resolveRequest(context, moduleName, platform);
   },
 };
 

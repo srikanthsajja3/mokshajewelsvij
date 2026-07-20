@@ -29,6 +29,15 @@ interface AddProductScreenProps {
 
 const CATEGORIES = ["Gold", "Diamonds", "Polki", "Kundan"];
 
+const SUB_OPTIONS_MAP: Record<string, string[]> = {
+  "Necklace": ["Necklace Short/Medium", "Necklace Set"],
+  "Earrings": ["Studs", "Jumkies", "Fancy"],
+  "Lockets": ["Unisex"],
+  "Rings": ["Men", "Women"],
+  "Bracelet": ["Plain", "Stones"],
+  "Bangles": ["Plain", "Stones"],
+};
+
 const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'AddProduct'>>();
@@ -36,8 +45,8 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [internalVendorId, setInternalVendorId] = useState<string>(vendorId || (product as any)?.vendor_id || "");
-  const [verifyingProfile, setVerifyingProfile] = useState(!vendorId && !(product as any)?.vendor_id);
+  const [internalVendorId, setInternalVendorId] = useState<string>(vendorId || product?.vendorId || (product as any)?.vendor_id || "");
+  const [verifyingProfile, setVerifyingProfile] = useState(!vendorId && !product?.vendorId && !(product as any)?.vendor_id);
   
   useEffect(() => {
     const initProfile = async () => {
@@ -49,7 +58,7 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
       }
 
       // 2. Resolve final vendorId
-      const finalVendorId = vendorId || queryVendorId || (product as any)?.vendor_id;
+      const finalVendorId = vendorId || queryVendorId || product?.vendorId || (product as any)?.vendor_id;
 
       if (finalVendorId) {
         setInternalVendorId(finalVendorId);
@@ -115,6 +124,21 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
   const [matchingProductId, setMatchingProductId] = useState<string>((product as any)?.matchingProductId || "");
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [showMatchingPicker, setShowMatchingPicker] = useState(false);
+
+  const [selectedMainType, setSelectedMainType] = useState<string>(() => {
+    const initialType = product?.type || "Necklace";
+    const t = initialType.toLowerCase();
+    if (t.includes("necklace")) return "Necklace";
+    if (t.includes("earring") || t === "studs" || t === "jumkies" || t === "fancy") return "Earrings";
+    if (t.includes("locket") || t.includes("pendant") || t === "unisex") return "Lockets";
+    if (t.includes("ring")) return "Rings";
+    if (t.includes("bracelet")) return "Bracelet";
+    if (t.includes("bangle")) return "Bangles";
+    
+    const found = ["Necklace", "Earrings", "Lockets", "Rings", "Bracelet", "Bangles", "Haram", "Chain", "Vaddanam", "Tikka", "Watch", "Coins", "Bhajubandh", "Accessories"]
+      .find(mt => mt.toLowerCase() === t);
+    return found || "Accessories";
+  });
 
   useEffect(() => {
     const fetchAllProducts = async () => {
@@ -513,28 +537,99 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
                     placeholderTextColor="#666"
                   />
                 </View>
+              </View>              <Text style={[styles.sectionTitle, { marginTop: 20 }]}>CLASSIFICATION</Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>PRODUCT TYPE</Text>
+                <View style={styles.pickerContainer}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                    {["Necklace", "Earrings", "Lockets", "Rings", "Bracelet", "Bangles", "Haram", "Chain", "Vaddanam", "Tikka", "Watch", "Coins", "Bhajubandh", "Accessories"].map(mt => (
+                      <TouchableOpacity 
+                         key={mt} 
+                         style={[styles.pickerItem, selectedMainType === mt && styles.activePickerItem]}
+                         onPress={() => {
+                           setSelectedMainType(mt);
+                           if (mt === "Rings") {
+                             setType("Rings");
+                             setGender("Women");
+                           } else if (mt === "Lockets") {
+                             setType("Lockets");
+                             setGender("Unisex");
+                           } else if (mt === "Earrings") {
+                             setType("Studs");
+                           } else if (mt === "Necklace") {
+                             setType("Necklace Short/Medium");
+                           } else if (mt === "Bracelet" || mt === "Bangles") {
+                             setType("Plain");
+                           } else {
+                             setType(mt);
+                           }
+                         }}
+                      >
+                        <Text style={[styles.pickerText, selectedMainType === mt && styles.activePickerText]}>{mt}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
               </View>
 
-              <Text style={[styles.sectionTitle, { marginTop: 20 }]}>CLASSIFICATION</Text>
-              
+              {/* Sub-options for Product Type */}
+              {SUB_OPTIONS_MAP[selectedMainType] && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{selectedMainType.toUpperCase()} SUB-CATEGORY</Text>
+                  <View style={styles.pickerContainer}>
+                    {SUB_OPTIONS_MAP[selectedMainType].map(opt => {
+                      let isSel = false;
+                      if (selectedMainType === "Rings") {
+                        isSel = gender === opt;
+                      } else if (selectedMainType === "Lockets") {
+                        isSel = gender === opt;
+                      } else {
+                        isSel = type.toLowerCase() === opt.toLowerCase();
+                      }
+                      
+                      return (
+                        <TouchableOpacity 
+                          key={opt} 
+                          style={[styles.pickerItem, isSel && styles.activePickerItem]}
+                          onPress={() => {
+                            if (selectedMainType === "Rings") {
+                              setGender(opt);
+                              setType("Rings");
+                            } else if (selectedMainType === "Lockets") {
+                              setGender(opt);
+                              setType("Lockets");
+                            } else {
+                              setType(opt);
+                            }
+                          }}
+                        >
+                          <Text style={[styles.pickerText, isSel && styles.activePickerText]}>{opt}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
               <View style={styles.row}>
                 <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                  <Text style={styles.label}>TYPE</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    value={type} 
-                    onChangeText={setType} 
-                    placeholder="e.g. Drop, Stud, Hoop"
-                    placeholderTextColor="#666"
-                  />
-                </View>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.label}>COLLECTION</Text>
                   <TextInput 
                     style={styles.input} 
                     value={collection} 
                     onChangeText={setCollection} 
                     placeholder="e.g. Heritage, Royal"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.label}>OCCASION</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    value={occasion} 
+                    onChangeText={setOccasion} 
+                    placeholder="e.g. Anniversary, Wedding"
                     placeholderTextColor="#666"
                   />
                 </View>
@@ -556,26 +651,15 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
                   </View>
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.label}>OCCASION</Text>
+                  <Text style={styles.label}>DESIGN THEME</Text>
                   <TextInput 
                     style={styles.input} 
-                    value={occasion} 
-                    onChangeText={setOccasion} 
-                    placeholder="e.g. Anniversary, Wedding"
+                    value={designTheme} 
+                    onChangeText={setDesignTheme} 
+                    placeholder="e.g. Elevated Tradition"
                     placeholderTextColor="#666"
                   />
                 </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>DESIGN THEME</Text>
-                <TextInput 
-                  style={styles.input} 
-                  value={designTheme} 
-                  onChangeText={setDesignTheme} 
-                  placeholder="e.g. Elevated Tradition"
-                  placeholderTextColor="#666"
-                />
               </View>
 
               <Text style={[styles.sectionTitle, { marginTop: 20 }]}>GEMSTONE DETAILS</Text>

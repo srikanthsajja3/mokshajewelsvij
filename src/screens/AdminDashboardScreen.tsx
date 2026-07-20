@@ -55,7 +55,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
   const { isAdmin, user } = useAuth();
   const { countryCode } = useCountry();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'vendors' | 'orders' | 'banners'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'vendors' | 'orders' | 'banners' | 'settings'>('overview');
   
   const [stats, setStats] = useState<AdminStats>({
     totalSales: 0,
@@ -92,6 +92,11 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
   const [deleteBannerModal, setDeleteBannerModal] = useState(false);
   const [bannerIdToDelete, setBannerIdToDelete] = useState<string | null>(null);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  // Gold Rate Override States
+  const [customGoldRate, setCustomGoldRate] = useState<string>('');
+  const [isOverrideEnabled, setIsOverrideEnabled] = useState<boolean>(false);
+  const [savingGoldRate, setSavingGoldRate] = useState<boolean>(false);
 
   useEffect(() => {
     console.log("AdminDashboard: isAdmin check:", isAdmin, "User:", user?.email);
@@ -161,6 +166,27 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
         console.error("Admin: Error fetching banners:", err);
       }
 
+      // Fetch Gold Rate Settings
+      try {
+        const { data: goldData, error: gError } = await supabase
+          .from('gold_rates')
+          .select('*')
+          .eq('purity', '24K')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        if (gError) throw gError;
+        if (goldData && goldData.length > 0) {
+          const rateVal = parseFloat(goldData[0].rate_per_gram_usd);
+          setCustomGoldRate(rateVal > 0 ? rateVal.toString() : '');
+          setIsOverrideEnabled(rateVal > 0);
+        } else {
+          setCustomGoldRate('');
+          setIsOverrideEnabled(false);
+        }
+      } catch (err) {
+        console.error("Admin: Error fetching gold rates:", err);
+      }
+
       // 3. Store orders for the Orders tab
       setRecentOrders(orders || []);
 
@@ -168,6 +194,55 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
       console.error('Unexpected error in Admin fetch:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveGoldRate = async () => {
+    if (isOverrideEnabled && (!customGoldRate || parseFloat(customGoldRate) <= 0)) {
+      Alert.alert("Validation Error", "Please enter a valid positive gold rate value.");
+      return;
+    }
+
+    setSavingGoldRate(true);
+    try {
+      const rateVal = isOverrideEnabled ? parseFloat(customGoldRate) || 0 : 0;
+      
+      const { data: existing, error: fetchErr } = await supabase
+        .from('gold_rates')
+        .select('id')
+        .eq('purity', '24K')
+        .limit(1);
+
+      if (fetchErr) throw fetchErr;
+
+      let dbError;
+      if (existing && existing.length > 0) {
+        const { error } = await supabase
+          .from('gold_rates')
+          .update({ 
+            rate_per_gram_usd: rateVal,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing[0].id);
+        dbError = error;
+      } else {
+        const { error } = await supabase
+          .from('gold_rates')
+          .insert({
+            purity: '24K',
+            rate_per_gram_usd: rateVal,
+            updated_at: new Date().toISOString()
+          });
+        dbError = error;
+      }
+
+      if (dbError) throw dbError;
+      Alert.alert("Success", "Gold rate override updated successfully!");
+      fetchAdminData();
+    } catch (err: any) {
+      Alert.alert("Error saving gold rate", err.message);
+    } finally {
+      setSavingGoldRate(false);
     }
   };
 
@@ -433,6 +508,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
             >
               <Text style={[styles.tabText, activeTab === 'banners' && styles.activeTabText]}>Banners</Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'settings' && styles.activeTab]} 
+              onPress={() => setActiveTab('settings')}
+            >
+              <Text style={[styles.tabText, activeTab === 'settings' && styles.activeTabText]}>Settings</Text>
+            </TouchableOpacity>
           </View>
 
           {loading ? (
@@ -519,7 +600,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
                           <Text style={styles.invStock}>Stock: {item.stockQuantity || 0}</Text>
                           <Text style={styles.invCost}>Cost: {formatPrice(item.sourcingCost || 0, countryCode)}</Text>
                           <View style={styles.actionRow}>
-                             <TouchableOpacity onPress={() => navigation.navigate('AddProduct', { vendorId: (item as any).vendor_id || '', product: item })} style={styles.editAction}>
+                             <TouchableOpacity onPress={() => navigation.navigate('AddProduct', { vendorId: item.vendorId || '', product: item })} style={styles.editAction}>
                                 <Text style={styles.editActionText}>EDIT</Text>
                              </TouchableOpacity>
                              <TouchableOpacity 
@@ -684,6 +765,78 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
                         </View>
                       ))
                     )}
+                  </View>
+                </View>
+              ) : null}
+
+              {activeTab === 'settings' ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Global App Settings</Text>
+                  
+                  <View style={[styles.vendorCard, { flexDirection: 'column', alignItems: 'stretch', gap: 15, padding: 25, marginTop: 15, backgroundColor: '#3d2b1a' }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <View style={{ flex: 1, paddingRight: 15 }}>
+                        <Text style={[styles.vendorName, { fontSize: 16 }]}>Manual Gold Rate Override</Text>
+                        <Text style={[styles.vendorMeta, { marginTop: 4, color: '#aaa' }]}>
+                          Override live APIs and set a fixed price per gram for Gold (24K) in USD.
+                        </Text>
+                      </View>
+                      
+                      <TouchableOpacity 
+                        style={[
+                          styles.statusBadge, 
+                          { 
+                            backgroundColor: isOverrideEnabled ? '#D4AF37' : 'transparent',
+                            borderColor: '#D4AF37',
+                            paddingHorizontal: 16,
+                            paddingVertical: 8,
+                          }
+                        ]}
+                        onPress={() => setIsOverrideEnabled(!isOverrideEnabled)}
+                      >
+                        <Text style={[styles.statusText, { color: isOverrideEnabled ? '#000' : '#D4AF37', fontSize: 11 }]}>
+                          {isOverrideEnabled ? "ENABLED" : "DISABLED"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {isOverrideEnabled && (
+                      <View style={{ gap: 10, marginTop: 10 }}>
+                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>24K Gold Rate (USD per Gram)</Text>
+                        <TextInput 
+                          style={[styles.modalInput, { width: '100%', maxWidth: 300, backgroundColor: '#291c0e' }]} 
+                          keyboardType="numeric"
+                          placeholder="e.g. 129.50"
+                          placeholderTextColor="#666"
+                          value={customGoldRate}
+                          onChangeText={setCustomGoldRate}
+                        />
+                        <Text style={{ color: '#888', fontSize: 11, fontStyle: 'italic', marginTop: 4 }}>
+                          * 22K (91.67%) and 18K (75.00%) rates will be calculated automatically based on this 24K base rate.
+                        </Text>
+                      </View>
+                    )}
+
+                    <TouchableOpacity 
+                      style={[
+                        styles.uploadBtn, 
+                        { 
+                          marginTop: 15,
+                          alignSelf: 'flex-start',
+                          paddingHorizontal: 30,
+                          backgroundColor: '#D4AF37',
+                          opacity: savingGoldRate ? 0.7 : 1
+                        }
+                      ]} 
+                      onPress={handleSaveGoldRate}
+                      disabled={savingGoldRate}
+                    >
+                      {savingGoldRate ? (
+                        <ActivityIndicator color="#000" size="small" />
+                      ) : (
+                        <Text style={styles.uploadBtnText}>SAVE SETTINGS</Text>
+                      )}
+                    </TouchableOpacity>
                   </View>
                 </View>
               ) : null}

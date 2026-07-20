@@ -67,7 +67,7 @@
     "@testing-library/react-native": "^14.0.0",
     "@types/react": "~19.1.10",
     "react-test-renderer": "^19.1.0",
-    "supabase": "^2.81.3",
+    "supabase": "^2.109.0",
     "test-renderer": "^1.2.0",
     "typescript": "^5.3.3"
   },

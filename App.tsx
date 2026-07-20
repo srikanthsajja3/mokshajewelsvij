@@ -51,6 +51,7 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const { user, isLoading: authLoading, isRecovering } = useAuth();
   const [currentRoute, setCurrentRoute] = useState<string>("Home");
+  const [activeCategory, setActiveCategory] = useState<string>("");
 
   const [fontsLoaded] = useFonts({
     "TrajanPro": require("./assets/fonts/TrajanPro-Regular.ttf"),
@@ -113,8 +114,16 @@ function AppContent() {
         ref={navigationRef}
         linking={linking}
         onStateChange={() => {
-          const routeName = navigationRef.getCurrentRoute()?.name;
-          if (routeName) setCurrentRoute(routeName);
+          const current = navigationRef.getCurrentRoute();
+          const routeName = current?.name;
+          if (routeName) {
+            setCurrentRoute(routeName);
+            if (routeName === 'Category') {
+              setActiveCategory((current?.params as any)?.category || 'All');
+            } else {
+              setActiveCategory("");
+            }
+          }
         }}
       >
         {currentRoute !== "ARTryOn" && (
@@ -124,6 +133,7 @@ function AppContent() {
             onSearch={handleSearch}
             onPressMenu={() => setDrawerVisible(true)}
             isHome={currentRoute === "Home"}
+            activeCategory={activeCategory}
           />
         )}
         <AppNavigator />
