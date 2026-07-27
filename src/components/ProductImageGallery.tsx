@@ -409,7 +409,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
             onTouchStart={(e) => e.stopPropagation()}
             style={{
               position: 'absolute',
-              bottom: '36px',
+              bottom: '20%',
               left: '50%',
               transform: 'translateX(-50%)',
               zIndex: 2147483647,

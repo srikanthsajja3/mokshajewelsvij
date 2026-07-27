@@ -213,7 +213,7 @@ const Header: React.FC<HeaderProps> = ({
           style={styles.centerWrapper}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
-            {!isHome && (
+            {!isHome && !isMobile && (
               <TouchableOpacity 
                 style={[styles.actionItem, { marginRight: 8 }]} 
                 onPress={handleGoBack}

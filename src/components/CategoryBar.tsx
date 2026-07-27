@@ -62,6 +62,9 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
   };
 
   const pillFontSize = width < 360 ? 10 : (width < 768 ? 11 : 13);
+  const subPillFontSize = width < 380 ? 10 : (width < 768 ? 11 : 12);
+  const compactFontSize = width < 360 ? 9.5 : (width < 410 ? 10.5 : (width < 768 ? 11.5 : 13));
+  const compactPaddingVert = width < 380 ? 6 : 8;
   const pillPaddingVert = width < 360 ? 5 : (width < 768 ? 6 : 8);
   const pillGap = width < 360 ? 4 : (width < 768 ? 6 : 10);
 
@@ -186,27 +189,27 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
           </View>
         </View>
 
-        {/* Category Pills Row - Dynamically Fits Mobile & Desktop Display Width using Percentages */}
+        {/* Single Compact Tab Row Scaled to Fit 100% Screen Width */}
         <View style={[
-          styles.categoryPillsContainer, 
+          styles.singleRowCategoryContainer, 
           { paddingLeft: paddingHorz, paddingRight: paddingHorz }
         ]}>
           {CATEGORIES.map((cat) => (
             <TouchableOpacity 
               key={cat}
               style={[
-                styles.categoryPillItem, 
-                { paddingVertical: pillPaddingVert },
-                activeCategory === cat && styles.activeCategoryPillItem
+                styles.singleRowCategoryItem, 
+                { paddingVertical: compactPaddingVert },
+                activeCategory === cat && styles.activeSingleRowCategoryItem
               ]}
               onPress={() => onSelectCategory(cat)}
               activeOpacity={0.7}
             >
               <Text 
                 style={[
-                  styles.categoryPillText, 
-                  { fontSize: pillFontSize },
-                  activeCategory === cat && styles.activeCategoryPillText
+                  styles.singleRowCategoryText, 
+                  { fontSize: compactFontSize },
+                  activeCategory === cat && styles.activeSingleRowCategoryText
                 ]}
                 numberOfLines={1}
               >
@@ -226,10 +229,18 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
             {SUB_CATEGORIES.map((sub) => (
               <TouchableOpacity 
                 key={sub}
-                style={[styles.pill, activeSubCategory === sub && styles.activePill]}
+                style={[
+                  styles.pill, 
+                  { paddingHorizontal: width < 360 ? 10 : (width < 768 ? 12 : 16), paddingVertical: width < 360 ? 5 : 7 },
+                  activeSubCategory === sub && styles.activePill
+                ]}
                 onPress={() => onSelectSubCategory?.(sub)}
               >
-                <Text style={[styles.pillText, activeSubCategory === sub && styles.activePillText]}>
+                <Text style={[
+                  styles.pillText, 
+                  { fontSize: subPillFontSize },
+                  activeSubCategory === sub && styles.activePillText
+                ]}>
                   {sub}
                 </Text>
               </TouchableOpacity>
@@ -277,37 +288,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  categoryPillsContainer: {
+  singleRowCategoryContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-    gap: "1.5%" as any,
+    gap: 4,
     marginBottom: 10,
   },
-  categoryPillItem: {
+  singleRowCategoryItem: {
     flex: 1,
-    minWidth: "18%" as any,
-    paddingVertical: 6,
     paddingHorizontal: 2,
-    borderRadius: 8,
+    borderRadius: 6,
     backgroundColor: "#291c0e",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#4a3520",
   },
-  activeCategoryPillItem: {
+  activeSingleRowCategoryItem: {
     backgroundColor: "#D4AF37",
     borderColor: "#D4AF37",
   },
-  categoryPillText: {
+  singleRowCategoryText: {
     color: "#ccc",
-    fontSize: 12,
     fontWeight: "bold",
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
-  activeCategoryPillText: {
+  activeSingleRowCategoryText: {
     color: "#000",
     fontWeight: "bold",
   },

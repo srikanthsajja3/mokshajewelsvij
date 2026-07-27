@@ -354,8 +354,8 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
     <View style={[
       styles.container, 
       hideTitle && { 
-        paddingTop: 12,
-        paddingBottom: 22, 
+        paddingTop: width < 768 ? 4 : 8,
+        paddingBottom: width < 768 ? 6 : 14, 
         backgroundColor: "#1a1209",
         borderBottomWidth: 0
       }
@@ -379,12 +379,9 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={[
             styles.scrollContent,
-            contentPadding !== undefined && { paddingHorizontal: contentPadding },
             isCentered && { justifyContent: 'center' }
           ]}
-          style={Platform.OS === 'web' ? { overflow: 'hidden', zIndex: 50, position: 'relative', width: '100%', height: 125 } : undefined}
-          snapToInterval={120} // 105px circle container + 15px spacing
-          decelerationRate="fast"
+          style={Platform.OS === 'web' ? { overflowX: 'auto', overflowY: 'hidden', zIndex: 50, position: 'relative', width: '100%', minHeight: width < 380 ? 95 : (width < 768 ? 105 : 125) } as any : undefined}
           scrollEventThrottle={16}
           onScroll={(event) => {
             scrollX.current = event.nativeEvent.contentOffset.x;
@@ -402,11 +399,19 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
                              isOtherOptionActive ||
                              (cat.name === 'Lockets' && rawActive === 'lockets / pendents');
             const isHovered = hoveredCategory === cat.name;
+
+            const isSmallMobile = width < 380;
+            const itemWidth = isSmallMobile ? 75 : (width < 768 ? 85 : 105);
+            const circleSize = isSmallMobile ? 54 : (width < 768 ? 60 : 72);
+            const iconScale = isSmallMobile ? 0.75 : (width < 768 ? 0.85 : 1.0);
+            const labelFontSize = isSmallMobile ? 9.5 : (width < 768 ? 10.5 : 11);
+
             return (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.categoryItem,
+                  { width: itemWidth },
                   Platform.OS === 'web' && isHovered && { zIndex: 200 }
                 ]}
                 onPress={() => handleSelectCategory(cat.name)}
@@ -418,14 +423,21 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
               >
                 <View style={[
                   styles.circleFrame,
+                  { width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
                   isActive && styles.activeCircleFrame
                 ]}>
-                  {cat.renderSvg()}
+                  <View style={{ transform: [{ scale: iconScale }] }}>
+                    {cat.renderSvg()}
+                  </View>
                 </View>
-                <Text style={[
-                  styles.categoryLabel,
-                  isActive && styles.activeCategoryLabel
-                ]}>
+                <Text 
+                  style={[
+                    styles.categoryLabel,
+                    { fontSize: labelFontSize },
+                    isActive && styles.activeCategoryLabel
+                  ]}
+                  numberOfLines={2}
+                >
                   {cat.label}
                 </Text>
               </TouchableOpacity>
@@ -524,7 +536,7 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 25,
+    paddingVertical: 10,
     backgroundColor: "#1e1308",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(212, 175, 55, 0.15)",
@@ -541,10 +553,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "TrajanPro",
-    fontSize: 18,
+    fontSize: 16,
     color: "#D4AF37",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 10,
     letterSpacing: 2,
   },
   sliderWrapper: {
@@ -562,9 +574,9 @@ const styles = StyleSheet.create({
     }) as any
   },
   scrollContent: {
-    paddingHorizontal: Platform.OS === 'web' ? 40 : 15,
-    gap: 15,
-    paddingBottom: 5,
+    paddingHorizontal: 0,
+    gap: 8,
+    paddingBottom: 2,
     flexGrow: 1,
   },
   categoryItem: {
