@@ -13,8 +13,13 @@ const LOCAL_SLIDER_IMAGES = [
 const ImageScroller = () => {
   const { width } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [banners, setBanners] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [banners, setBanners] = useState<any[]>(LOCAL_SLIDER_IMAGES.map(img => ({
+    id: img.id,
+    image_url: img.source,
+    alt_text: img.alt,
+    isLocal: true
+  })));
+  const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   
   const scrollerHeight = width > 1400 ? 600 : (width > 768 ? 450 : 250);
@@ -33,25 +38,9 @@ const ImageScroller = () => {
             alt_text: item.alt_text || '',
             isLocal: false
           })));
-        } else {
-          // Fallback to local images
-          setBanners(LOCAL_SLIDER_IMAGES.map(img => ({
-            id: img.id,
-            image_url: img.source,
-            alt_text: img.alt,
-            isLocal: true
-          })));
         }
       } catch (err) {
         console.warn("Failed to fetch banners:", err);
-        setBanners(LOCAL_SLIDER_IMAGES.map(img => ({
-          id: img.id,
-          image_url: img.source,
-          alt_text: img.alt,
-          isLocal: true
-        })));
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -99,14 +88,15 @@ const ImageScroller = () => {
         onMomentumScrollEnd={handleManualScroll}
         scrollEventThrottle={16}
       >
-        {banners.map((img) => (
+        {banners.map((img, idx) => (
           <View key={img.id} style={[styles.imageWrapper, { width }]}>
             <Image 
               source={img.isLocal ? img.image_url : { uri: img.image_url }} 
               style={[styles.image, { height: scrollerHeight }]} 
               accessibilityLabel={img.alt_text}
               contentFit="cover"
-              transition={300}
+              priority={idx === 0 ? "high" : "normal"}
+              cachePolicy="memory-disk"
             />
           </View>
         ))}
