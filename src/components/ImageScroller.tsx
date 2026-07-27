@@ -97,6 +97,9 @@ const ImageScroller = () => {
               contentFit="cover"
               priority={idx === 0 ? "high" : "normal"}
               cachePolicy="memory-disk"
+              // @ts-ignore - Web performance props
+              fetchPriority={idx === 0 ? "high" : "auto"}
+              decoding="async"
             />
           </View>
         ))}
