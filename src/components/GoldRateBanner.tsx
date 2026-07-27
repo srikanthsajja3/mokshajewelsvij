@@ -56,7 +56,7 @@ const GoldRateBanner: React.FC = () => {
 const styles = StyleSheet.create({
   banner: {
     backgroundColor: '#1a1209',
-    paddingVertical: 8,
+    paddingVertical: 6,
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -64,21 +64,24 @@ const styles = StyleSheet.create({
   tickerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    flexWrap: 'nowrap',
     width: '100%',
     maxWidth: 1200,
-    paddingHorizontal: 15,
+    paddingHorizontal: 6,
   },
   rateItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
     backgroundColor: 'rgba(212, 175, 55, 0.04)',
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.15)',
     borderRadius: 20,
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    margin: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    marginHorizontal: 2,
     ...Platform.select({
       web: {
         transition: 'all 0.2s ease',
@@ -97,18 +100,18 @@ const styles = StyleSheet.create({
   },
   purityText: {
     color: 'rgba(212, 175, 55, 0.8)',
-    fontSize: 10,
+    fontSize: Platform.OS === 'web' ? 10 : 9,
     fontWeight: 'bold',
-    marginRight: 6,
+    marginRight: 3,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   rateText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: Platform.OS === 'web' ? 10.5 : 9.5,
     fontWeight: '600',
     fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
 });
 

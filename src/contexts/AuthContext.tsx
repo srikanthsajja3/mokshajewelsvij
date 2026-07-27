@@ -91,6 +91,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         Alert.alert('Authentication Error', errorDesc);
         return;
       }
+      if (queryParams?.code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(queryParams.code as string);
+        if (error) {
+          Alert.alert('Authentication Error', error.message);
+        } else if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          fetchUserRole(data.session.user.id);
+        }
+        return;
+      }
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         setSession(data.session);
