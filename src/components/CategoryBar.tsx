@@ -61,6 +61,10 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
     setShowCategoryOptions(false);
   };
 
+  const pillFontSize = width < 360 ? 10 : (width < 768 ? 11 : 13);
+  const pillPaddingVert = width < 360 ? 5 : (width < 768 ? 6 : 8);
+  const pillGap = width < 360 ? 4 : (width < 768 ? 6 : 10);
+
   return (
     <View style={styles.container}>
       <View style={styles.innerContainer}>
@@ -182,12 +186,42 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
           </View>
         </View>
 
+        {/* Category Pills Row - Dynamically Fits Mobile & Desktop Display Width using Percentages */}
+        <View style={[
+          styles.categoryPillsContainer, 
+          { paddingLeft: paddingHorz, paddingRight: paddingHorz }
+        ]}>
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity 
+              key={cat}
+              style={[
+                styles.categoryPillItem, 
+                { paddingVertical: pillPaddingVert },
+                activeCategory === cat && styles.activeCategoryPillItem
+              ]}
+              onPress={() => onSelectCategory(cat)}
+              activeOpacity={0.7}
+            >
+              <Text 
+                style={[
+                  styles.categoryPillText, 
+                  { fontSize: pillFontSize },
+                  activeCategory === cat && styles.activeCategoryPillText
+                ]}
+                numberOfLines={1}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* Scrollable Sub-Category Pills */}
         <View style={styles.subCategoryRow}>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[styles.pillScrollContent, { paddingLeft: paddingHorz, paddingRight: paddingHorz, minWidth: '100%', justifyContent: isMobile ? 'flex-start' : 'space-between' }]}
+            contentContainerStyle={[styles.pillScrollContent, { paddingLeft: paddingHorz, paddingRight: paddingHorz }]}
           >
             {SUB_CATEGORIES.map((sub) => (
               <TouchableOpacity 
@@ -242,6 +276,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  categoryPillsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: "1.5%" as any,
+    marginBottom: 10,
+  },
+  categoryPillItem: {
+    flex: 1,
+    minWidth: "18%" as any,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    borderRadius: 8,
+    backgroundColor: "#291c0e",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#4a3520",
+  },
+  activeCategoryPillItem: {
+    backgroundColor: "#D4AF37",
+    borderColor: "#D4AF37",
+  },
+  categoryPillText: {
+    color: "#ccc",
+    fontSize: 12,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
+  },
+  activeCategoryPillText: {
+    color: "#000",
+    fontWeight: "bold",
   },
   subCategoryRow: {
     zIndex: 1,
