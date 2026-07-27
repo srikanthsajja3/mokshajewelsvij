@@ -187,7 +187,7 @@ const CategoryBar: React.FC<CategoryBarProps> = ({
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[styles.pillScrollContent, { paddingLeft: paddingHorz, paddingRight: paddingHorz }]}
+            contentContainerStyle={[styles.pillScrollContent, { paddingLeft: paddingHorz, paddingRight: paddingHorz, minWidth: '100%', justifyContent: isMobile ? 'flex-start' : 'space-between' }]}
           >
             {SUB_CATEGORIES.map((sub) => (
               <TouchableOpacity 
@@ -252,15 +252,18 @@ const styles = StyleSheet.create({
     })
   },
   pillScrollContent: {
-    gap: 10,
+    gap: 8,
+    alignItems: 'center',
   },
   pill: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: "#291c0e",
     borderWidth: 1,
     borderColor: "#4a3520",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activePill: {
     backgroundColor: "rgba(212, 175, 55, 0.15)",
