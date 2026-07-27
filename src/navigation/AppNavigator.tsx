@@ -4,15 +4,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 
 import HomeScreen from '../screens/HomeScreen';
-import CategoryScreen from '../screens/CategoryScreen';
-import ProductDetailsScreen from '../screens/ProductDetailsScreen';
-import CartScreen from '../screens/CartScreen';
-import CheckoutScreen from '../screens/CheckoutScreen';
-import OrdersScreen from '../screens/OrdersScreen';
-import WishlistScreen from '../screens/WishlistScreen';
-import ProfileScreen from '../screens/ProfileScreen';
 
-// Lazy-loaded heavy modules (TensorFlow, Three.js, Admin/Vendor dashboards) to optimize initial JavaScript bundle size
+// Lazy-load secondary screens to optimize Home Screen initial bundle size and load speed
+const CategoryScreen = lazy(() => import('../screens/CategoryScreen'));
+const ProductDetailsScreen = lazy(() => import('../screens/ProductDetailsScreen'));
+const CartScreen = lazy(() => import('../screens/CartScreen'));
+const CheckoutScreen = lazy(() => import('../screens/CheckoutScreen'));
+const OrdersScreen = lazy(() => import('../screens/OrdersScreen'));
+const WishlistScreen = lazy(() => import('../screens/WishlistScreen'));
+const ProfileScreen = lazy(() => import('../screens/ProfileScreen'));
 const AdminDashboardScreen = lazy(() => import('../screens/AdminDashboardScreen'));
 const VendorDashboardScreen = lazy(() => import('../screens/VendorDashboardScreen'));
 const AddProductScreen = lazy(() => import('../screens/AddProductScreen'));
@@ -42,13 +42,13 @@ export const AppNavigator = () => {
       }}
     >
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Category" component={CategoryScreen} />
-      <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
-      <Stack.Screen name="Cart" component={CartScreen} />
-      <Stack.Screen name="Checkout" component={CheckoutScreen} />
-      <Stack.Screen name="Orders" component={OrdersScreen} />
-      <Stack.Screen name="Wishlist" component={WishlistScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Category" component={LazyScreen(CategoryScreen)} />
+      <Stack.Screen name="ProductDetails" component={LazyScreen(ProductDetailsScreen)} />
+      <Stack.Screen name="Cart" component={LazyScreen(CartScreen)} />
+      <Stack.Screen name="Checkout" component={LazyScreen(CheckoutScreen)} />
+      <Stack.Screen name="Orders" component={LazyScreen(OrdersScreen)} />
+      <Stack.Screen name="Wishlist" component={LazyScreen(WishlistScreen)} />
+      <Stack.Screen name="Profile" component={LazyScreen(ProfileScreen)} />
       <Stack.Screen name="AdminDashboard" component={LazyScreen(AdminDashboardScreen)} />
       <Stack.Screen name="VendorDashboard" component={LazyScreen(VendorDashboardScreen)} />
       <Stack.Screen name="AddProduct" component={LazyScreen(AddProductScreen)} />
