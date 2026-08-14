@@ -39,35 +39,6 @@ const CATEGORIES = [
     )
   },
   {
-    name: "Haram",
-    label: "Haram",
-    renderSvg: () => (
-      <Svg width={44} height={44} viewBox="0 0 100 100" fill="none">
-        <Path d="M25,20 C32,60 68,60 75,20" stroke="#D4AF37" strokeWidth="3" />
-        <Path d="M18,20 C28,85 72,85 82,20" stroke="#D4AF37" strokeWidth="4.5" strokeLinecap="round" />
-        <Path d="M40,65 L60,65 L64,75 L50,88 L36,75 Z" fill="#D4AF37" stroke="#D4AF37" strokeWidth="2" />
-        <Circle cx="50" cy="73" r="3.5" fill="#291c0e" />
-        <Circle cx="50" cy="92" r="2.5" fill="#D4AF37" />
-        <Circle cx="44" cy="85" r="2" fill="#D4AF37" />
-        <Circle cx="56" cy="85" r="2" fill="#D4AF37" />
-      </Svg>
-    )
-  },
-  {
-    name: "Chain",
-    label: "Chain",
-    renderSvg: () => (
-      <Svg width={44} height={44} viewBox="0 0 100 100" fill="none">
-        <Path d="M15,85 L25,75 M22,78 L32,68 M29,71 L39,61 M36,64 L46,54 M43,57 L53,47 M50,50 L60,40 M57,43 L67,33 M64,36 L74,26 M71,29 L81,19" stroke="#D4AF37" strokeWidth="5.5" strokeLinecap="round" />
-        <Path d="M18,82 A6,4 45 1 0 25,75 A6,4 45 1 0 18,82 Z" stroke="#291c0e" strokeWidth="1.5" />
-        <Path d="M32,68 A6,4 45 1 0 39,61 A6,4 45 1 0 32,68 Z" stroke="#291c0e" strokeWidth="1.5" />
-        <Path d="M46,54 A6,4 45 1 0 53,47 A6,4 45 1 0 46,54 Z" stroke="#291c0e" strokeWidth="1.5" />
-        <Path d="M60,40 A6,4 45 1 0 67,33 A6,4 45 1 0 60,40 Z" stroke="#291c0e" strokeWidth="1.5" />
-        <Path d="M74,26 A6,4 45 1 0 81,19 A6,4 45 1 0 74,26 Z" stroke="#291c0e" strokeWidth="1.5" />
-      </Svg>
-    )
-  },
-  {
     name: "Earrings",
     label: "Earrings",
     renderSvg: () => (
@@ -121,20 +92,6 @@ const CATEGORIES = [
     )
   },
   {
-    name: "Mangalsutra",
-    label: "Mangalsutra Chains",
-    renderSvg: () => (
-      <Svg width={44} height={44} viewBox="0 0 100 100" fill="none">
-        <Path d="M20,25 C30,60 70,60 80,25" stroke="#D4AF37" strokeWidth="3" />
-        <Path d="M20,25 C30,60 70,60 80,25" stroke="#000" strokeWidth="4" strokeDasharray="3,10" strokeLinecap="round" />
-        <Circle cx="44" cy="55" r="6" fill="#D4AF37" stroke="#000" strokeWidth="1" />
-        <Circle cx="56" cy="55" r="6" fill="#D4AF37" stroke="#000" strokeWidth="1" />
-        <Circle cx="44" cy="65" r="2.2" fill="#D4AF37" />
-        <Circle cx="56" cy="65" r="2.2" fill="#D4AF37" />
-      </Svg>
-    )
-  },
-  {
     name: "Bracelet",
     label: "Bracelet",
     renderSvg: () => (
@@ -149,21 +106,19 @@ const CATEGORIES = [
     )
   },
   {
-    name: "Vaddanam",
-    label: "Vaddanam",
+    name: "Bangles",
+    label: "Bangles",
     renderSvg: () => (
       <Svg width={44} height={44} viewBox="0 0 100 100" fill="none">
-        <Path d="M10,40 C35,28 65,28 90,40" stroke="#D4AF37" strokeWidth="5.5" strokeLinecap="round" />
-        <Path d="M15,45 C35,36 65,36 85,45" stroke="#D4AF37" strokeWidth="2.5" strokeDasharray="3,5" />
-        <Path d="M40,32 L60,32 L65,48 L50,62 L35,48 Z" fill="#D4AF37" />
-        <Circle cx="50" cy="42" r="3" fill="#B22222" />
-        <Path d="M50,62 L48,70 L50,74 L52,70 Z" fill="#D4AF37" />
-        <Path d="M42,54 L40,62 L42,66 Z" fill="#D4AF37" />
-        <Path d="M58,54 L56,62 L58,66 Z" fill="#D4AF37" />
+        <Ellipse cx="40" cy="55" rx="20" ry="10" stroke="#D4AF37" strokeWidth="3" transform="rotate(-15 40 55)" />
+        <Ellipse cx="50" cy="48" rx="20" ry="10" stroke="#D4AF37" strokeWidth="4.5" transform="rotate(-15 50 48)" />
+        <Ellipse cx="60" cy="41" rx="20" ry="10" stroke="#D4AF37" strokeWidth="3" transform="rotate(-15 60 41)" strokeDasharray="4,2" />
+        <Circle cx="50" cy="38" r="2.5" fill="#fff" />
+        <Circle cx="38" cy="45" r="2" fill="#B22222" />
+        <Circle cx="62" cy="51" r="2" fill="#B22222" />
       </Svg>
     )
   },
-
   {
     name: "Other",
     label: "Other",
@@ -180,21 +135,6 @@ const CATEGORIES = [
         <Circle cx="61" cy="61" r="3" fill="#D4AF37" />
         <Circle cx="39" cy="61" r="3" fill="#D4AF37" />
         <Circle cx="61" cy="39" r="3" fill="#D4AF37" />
-      </Svg>
-    )
-  },
-
-  {
-    name: "Bangles",
-    label: "Bangles",
-    renderSvg: () => (
-      <Svg width={44} height={44} viewBox="0 0 100 100" fill="none">
-        <Ellipse cx="40" cy="55" rx="20" ry="10" stroke="#D4AF37" strokeWidth="3" transform="rotate(-15 40 55)" />
-        <Ellipse cx="50" cy="48" rx="20" ry="10" stroke="#D4AF37" strokeWidth="4.5" transform="rotate(-15 50 48)" />
-        <Ellipse cx="60" cy="41" rx="20" ry="10" stroke="#D4AF37" strokeWidth="3" transform="rotate(-15 60 41)" strokeDasharray="4,2" />
-        <Circle cx="50" cy="38" r="2.5" fill="#fff" />
-        <Circle cx="38" cy="45" r="2" fill="#B22222" />
-        <Circle cx="62" cy="51" r="2" fill="#B22222" />
       </Svg>
     )
   }
@@ -354,8 +294,8 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
     <View style={[
       styles.container, 
       hideTitle && { 
-        paddingTop: width < 768 ? 4 : 8,
-        paddingBottom: width < 768 ? 6 : 14, 
+        paddingTop: width < 768 ? 2 : 4,
+        paddingBottom: width < 768 ? 2 : 4, 
         backgroundColor: "#1a1209",
         borderBottomWidth: 0
       }
@@ -363,16 +303,6 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
       {!hideTitle && <Text style={styles.title}>Browse By Category</Text>}
       
       <View style={styles.sliderWrapper}>
-        {Platform.OS === 'web' && width >= 768 && (
-          <TouchableOpacity 
-            style={[styles.arrowButton, styles.arrowLeft, hideTitle && { top: '50%', marginTop: -16 }]} 
-            onPress={scrollLeft}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.arrowText}>‹</Text>
-          </TouchableOpacity>
-        )}
-
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -381,7 +311,7 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
             styles.scrollContent,
             isCentered && { justifyContent: 'center' }
           ]}
-          style={Platform.OS === 'web' ? { overflowX: 'auto', overflowY: 'hidden', zIndex: 50, position: 'relative', width: '100%', minHeight: width < 380 ? 95 : (width < 768 ? 105 : 125) } as any : undefined}
+          style={Platform.OS === 'web' ? { overflowX: 'auto', overflowY: 'hidden', zIndex: 50, position: 'relative', width: '100%', minHeight: width < 380 ? 65 : (width < 768 ? 75 : 85) } as any : undefined}
           scrollEventThrottle={16}
           onScroll={(event) => {
             scrollX.current = event.nativeEvent.contentOffset.x;
@@ -401,10 +331,10 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
             const isHovered = hoveredCategory === cat.name;
 
             const isSmallMobile = width < 380;
-            const itemWidth = isSmallMobile ? 75 : (width < 768 ? 85 : 105);
-            const circleSize = isSmallMobile ? 54 : (width < 768 ? 60 : 72);
-            const iconScale = isSmallMobile ? 0.75 : (width < 768 ? 0.85 : 1.0);
-            const labelFontSize = isSmallMobile ? 9.5 : (width < 768 ? 10.5 : 11);
+            const itemWidth = isSmallMobile ? 62 : (width < 768 ? 70 : 85);
+            const circleSize = isSmallMobile ? 38 : (width < 768 ? 44 : 52);
+            const iconScale = isSmallMobile ? 0.55 : (width < 768 ? 0.65 : 0.75);
+            const labelFontSize = isSmallMobile ? 8.5 : (width < 768 ? 9.5 : 10);
 
             return (
               <TouchableOpacity
@@ -444,16 +374,6 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({
             );
           })}
         </ScrollView>
-
-        {Platform.OS === 'web' && width >= 768 && (
-          <TouchableOpacity 
-            style={[styles.arrowButton, styles.arrowRight, hideTitle && { top: '50%', marginTop: -16 }]} 
-            onPress={scrollRight}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.arrowText}>›</Text>
-          </TouchableOpacity>
-        )}
         {/* Hover Dropdown Rendered Outside ScrollView */}
         {Platform.OS === 'web' && hoveredCategory && CATEGORY_OPTIONS[hoveredCategory] && (
           <View 
@@ -576,11 +496,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 0,
     gap: 8,
-    paddingBottom: 2,
+    paddingVertical: 8,
+    alignItems: 'center',
     flexGrow: 1,
   },
   categoryItem: {
     alignItems: "center",
+    justifyContent: "center",
     width: 105,
     position: "relative",
     zIndex: 10,
@@ -650,8 +572,7 @@ const styles = StyleSheet.create({
         cursor: "pointer",
         ":hover": {
           borderColor: "#D4AF37",
-          transform: "translateY(-3px)",
-          boxShadow: "0 6px 20px rgba(212,175,55,0.25)",
+          boxShadow: "0 0 15px rgba(212,175,55,0.4)",
         }
       },
       default: {

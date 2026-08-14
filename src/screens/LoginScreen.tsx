@@ -30,6 +30,23 @@ interface LoginScreenProps {
   initialIsUpdatingPassword?: boolean;
 }
 
+const FormWrapper: React.FC<{ children: React.ReactNode; onSubmit?: () => void }> = ({ children, onSubmit }) => {
+  if (Platform.OS === 'web') {
+    return (
+      <form 
+        onSubmit={(e) => { 
+          e.preventDefault(); 
+          if (onSubmit) onSubmit(); 
+        }}
+        style={{ width: '100%', display: 'flex', flexDirection: 'column' }}
+      >
+        {children}
+      </form>
+    );
+  }
+  return <View style={{ width: '100%' }}>{children}</View>;
+};
+
 const LoginScreen: React.FC<LoginScreenProps> = ({ 
   visible,
   onLoginSuccess, 
@@ -253,72 +270,83 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 </View>
               ) : null}
 
-              {!isUpdatingPassword && (
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Email Address</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    placeholderTextColor="#666"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
-                </View>
-              )}
-
-              {!isResetting && (
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>{isUpdatingPassword ? 'New Password' : 'Password'}</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={isUpdatingPassword ? "Enter new password" : "Enter your password"}
-                    placeholderTextColor="#666"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                  />
-                </View>
-              )}
-
-              {!isRegistering && !isResetting && !isUpdatingPassword && (
-                <TouchableOpacity 
-                  style={styles.forgotButton}
-                  onPress={() => setIsResetting(true)}
-                >
-                  <Text style={styles.forgotButtonText}>Forgot Password?</Text>
-                </TouchableOpacity>
-              )}
-
-              {showCodeEntry && isResetting && (
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Verification Code</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="6-digit code"
-                    placeholderTextColor="#666"
-                    value={otpCode}
-                    onChangeText={setOtpCode}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                  />
-                </View>
-              )}
-
-              <TouchableOpacity 
-                style={styles.authButton}
-                onPress={isUpdatingPassword ? handleUpdatePassword : showCodeEntry ? handleVerifyCode : isResetting ? handleReset : handleAuth}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#000" />
-                ) : (
-                  <Text style={styles.authButtonText}>
-                    {isUpdatingPassword ? 'Update Password' : showCodeEntry ? 'Verify Code' : isResetting ? 'Send Link' : isRegistering ? 'Sign Up' : 'Sign In'}
-                  </Text>
+              <FormWrapper onSubmit={isUpdatingPassword ? handleUpdatePassword : showCodeEntry ? handleVerifyCode : isResetting ? handleReset : handleAuth}>
+                {!isUpdatingPassword && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Email Address</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your email"
+                      placeholderTextColor="#666"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      multiline={false}
+                      accessibilityLabel="Email Address"
+                      aria-label="Email Address"
+                    />
+                  </View>
                 )}
-              </TouchableOpacity>
+
+                {!isResetting && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>{isUpdatingPassword ? 'New Password' : 'Password'}</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={isUpdatingPassword ? "Enter new password" : "Enter your password"}
+                      placeholderTextColor="#666"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      multiline={false}
+                      accessibilityLabel="Password"
+                      aria-label="Password"
+                    />
+                  </View>
+                )}
+
+                {!isRegistering && !isResetting && !isUpdatingPassword && (
+                  <TouchableOpacity 
+                    style={styles.forgotButton}
+                    onPress={() => setIsResetting(true)}
+                  >
+                    <Text style={styles.forgotButtonText}>Forgot Password?</Text>
+                  </TouchableOpacity>
+                )}
+
+                {showCodeEntry && isResetting && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Verification Code</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="6-digit code"
+                      placeholderTextColor="#666"
+                      value={otpCode}
+                      onChangeText={setOtpCode}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      multiline={false}
+                      accessibilityLabel="Verification Code"
+                      aria-label="Verification Code"
+                    />
+                  </View>
+                )}
+
+                <TouchableOpacity 
+                  style={styles.authButton}
+                  onPress={isUpdatingPassword ? handleUpdatePassword : showCodeEntry ? handleVerifyCode : isResetting ? handleReset : handleAuth}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#000" />
+                  ) : (
+                    <Text style={styles.authButtonText}>
+                      {isUpdatingPassword ? 'Update Password' : showCodeEntry ? 'Verify Code' : isResetting ? 'Send Link' : isRegistering ? 'Sign Up' : 'Sign In'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </FormWrapper>
 
               {!isResetting && !isUpdatingPassword && (
                 <>

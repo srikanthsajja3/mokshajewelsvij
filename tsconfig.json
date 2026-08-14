@@ -1,7 +1,12 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "jsx": "react-jsx",
+    "skipLibCheck": true
   },
-  "exclude": ["node_modules", "supabase/functions"]
+  "include": ["src/**/*", "App.tsx", "index.ts", "supabase.ts", "metro.config.js", "babel.config.js"],
+  "exclude": ["node_modules", "dist", "coverage", ".expo", "android", "web", "supabase/functions"]
 }
+
+

@@ -36,6 +36,7 @@ const SUB_OPTIONS_MAP: Record<string, string[]> = {
   "Rings": ["Men", "Women"],
   "Bracelet": ["Plain", "Stones"],
   "Bangles": ["Plain", "Stones"],
+  "Other": ["Coins", "Bhajubandh / Vanki", "Watch", "Tikka / Matti"],
 };
 
 const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
@@ -543,7 +544,7 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
                 <Text style={styles.label}>PRODUCT TYPE</Text>
                 <View style={styles.pickerContainer}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-                    {["Necklace", "Earrings", "Lockets", "Rings", "Bracelet", "Bangles", "Haram", "Chain", "Vaddanam", "Tikka", "Watch", "Coins", "Bhajubandh", "Accessories"].map(mt => (
+                    {["Necklace", "Earrings", "Lockets", "Rings", "Bracelet", "Bangles", "Other"].map(mt => (
                       <TouchableOpacity 
                          key={mt} 
                          style={[styles.pickerItem, selectedMainType === mt && styles.activePickerItem]}
@@ -561,6 +562,8 @@ const AddProductScreen: React.FC<AddProductScreenProps> = ({ scrollY }) => {
                              setType("Necklace Short/Medium");
                            } else if (mt === "Bracelet" || mt === "Bangles") {
                              setType("Plain");
+                           } else if (mt === "Other") {
+                             setType("Coins");
                            } else {
                              setType(mt);
                            }

@@ -57,15 +57,21 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         try {
           const { data: dbRates, error: dbError } = await supabase
             .from('gold_rates')
-            .select('rate_per_gram_usd')
+            .select('rate_per_gram_usd, updated_at')
             .eq('purity', '24K')
             .order('updated_at', { ascending: false })
             .limit(1);
 
-          if (!dbError && dbRates && dbRates.length > 0) {
-            const customRate = parseFloat(dbRates[0].rate_per_gram_usd);
-            if (customRate > 0) {
-              setBaseRate(customRate);
+          if (dbError) {
+            console.warn("GoldRateContext: Supabase SELECT error (check RLS SELECT policy):", dbError.message);
+          } else if (dbRates && dbRates.length > 0) {
+            const rawRate = parseFloat(dbRates[0].rate_per_gram_usd);
+            console.log("GoldRateContext: Found rate in Supabase:", rawRate);
+            if (rawRate > 0) {
+              // Smart Auto-detection: If rawRate > 1000, admin entered rate in INR per gram (e.g. 14362 or 7500).
+              // Convert to base USD per gram using INR exchange rate (83).
+              const usdRate = rawRate > 1000 ? rawRate / 83 : rawRate;
+              setBaseRate(usdRate);
               setIsLoading(false);
               return;
             }
@@ -132,9 +138,31 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     fetchGoldRate();
+
+    // Subscribe to Supabase Realtime changes for gold_rates table if supported
+    let goldRateChannel: any = null;
+    if (typeof supabase.channel === 'function') {
+      goldRateChannel = supabase
+        .channel('gold_rates_realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'gold_rates' },
+          (payload) => {
+            console.log("GoldRateContext: Realtime gold rate change detected:", payload);
+            fetchGoldRate();
+          }
+        )
+        .subscribe();
+    }
+
     // Refresh every 30 minutes to stay within free tier limits
     const interval = setInterval(fetchGoldRate, 1800000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (goldRateChannel && typeof supabase.removeChannel === 'function') {
+        supabase.removeChannel(goldRateChannel);
+      }
+    };
   }, []);
 
   const rates = useMemo((): GoldRate[] => [

@@ -66,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({
   const { user, isAdmin, isVendor } = useAuth();
   const { cartCount } = useCart();
   const { countryCode } = useCountry();
-  const { setLoginVisible } = useUI();
+  const { setLoginVisible, setSearchQuery } = useUI();
   const [searchVisible, setSearchVisible] = useState(false);
   const searchAnim = React.useRef(new Animated.Value(0)).current;
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -77,7 +77,10 @@ const Header: React.FC<HeaderProps> = ({
   const isMobile = width < 1024; // Align with CategoryBar's width breakpoint for desktop tabs
 
 
-  const navigateToHome = () => navigation.navigate('Home');
+  const navigateToHome = () => {
+    setSearchQuery("");
+    navigation.navigate('Home');
+  };
   const navigateToLogin = () => setLoginVisible(true);
   const navigateToCart = () => navigation.navigate('Cart');
   
@@ -258,7 +261,10 @@ const Header: React.FC<HeaderProps> = ({
                   key={cat}
                   label={cat}
                   isActive={activeCategory === cat}
-                  onPress={() => navigation.navigate('Category', { category: cat, subCategory: 'All Items' })}
+                  onPress={() => {
+                    setSearchQuery("");
+                    navigation.navigate('Category', { category: cat, subCategory: 'All Items' });
+                  }}
                 />
               ))}
             </View>
@@ -348,40 +354,29 @@ const Header: React.FC<HeaderProps> = ({
             <FontAwesome5 name="search" size={14} color="#888" style={{ marginRight: 10 }} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search masterpieces, collections, codes..."
-              placeholderTextColor="#666"
+              placeholder="Search by SKU, code (e.g. DPNT6), name, or gemstone..."
+              placeholderTextColor="#888"
               value={searchQuery}
-              onChangeText={onSearch}
+              onChangeText={(txt) => {
+                onSearch(txt);
+              }}
+              onSubmitEditing={() => {
+                if (searchQuery.trim().length > 0) {
+                  navigation.navigate('Category', { category: 'All' });
+                }
+              }}
+              returnKeyType="search"
               autoFocus={searchVisible}
               clearButtonMode="while-editing"
-              onBlur={() => {
-                setTimeout(() => {
-                  setSearchVisible(currentVisible => {
-                    if (currentVisible) {
-                      Animated.spring(searchAnim, {
-                        toValue: 0,
-                        useNativeDriver: false,
-                        friction: 8,
-                        tension: 40
-                      }).start();
-                      return false;
-                    }
-                    return currentVisible;
-                  });
-                }, 250);
-              }}
+              multiline={false}
+              accessibilityLabel="Search masterpieces"
+              aria-label="Search masterpieces"
             />
-            <TouchableOpacity style={{ padding: 4, marginRight: 6 }} onPress={() => Alert.alert("Voice Search", "Voice recognition starts...")}>
-              <FontAwesome5 name="microphone" size={14} color="#D4AF37" />
-            </TouchableOpacity>
-            <TouchableOpacity style={{ padding: 4, marginRight: 6 }} onPress={() => Alert.alert("Visual Search", "Image search camera opens...")}>
-              <FontAwesome5 name="camera" size={14} color="#D4AF37" />
-            </TouchableOpacity>
-            {searchQuery.length > 0 ? (
-              <TouchableOpacity onPress={() => onSearch("")} style={{ marginRight: 12 }}>
-                <FontAwesome5 name="times-circle" size={16} color="#888" />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => onSearch("")} style={{ padding: 4, marginRight: 6 }}>
+                <FontAwesome5 name="times-circle" size={16} color="#D4AF37" />
               </TouchableOpacity>
-            ) : null}
+            )}
             <TouchableOpacity onPress={toggleSearch} style={{ padding: 4 }}>
               <FontAwesome5 name="times" size={16} color="#D4AF37" />
             </TouchableOpacity>

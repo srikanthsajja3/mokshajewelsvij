@@ -9,6 +9,7 @@ import Footer from "../components/Footer";
 import OptimizedImage from "../components/OptimizedImage";
 import ProductImageGallery from "../components/ProductImageGallery";
 import { StoreAvailabilityModal } from "../components/StoreAvailabilityModal";
+import { PriceBreakupModal } from "../components/PriceBreakupModal";
 import { supabase } from "../../supabase";
 import { Product, fetchProductsFromSupabase } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
@@ -23,6 +24,7 @@ import { RootStackParamList } from "../navigation/types";
 import { useUI } from "../contexts/UIContext";
 import { useGoldRate } from "../contexts/GoldRateContext";
 import { fetchProductById } from "../data/products";
+import { calculateApkEstimate } from "../utils/apkEstimationEngine";
 
 interface ProductDetailsScreenProps {
   scrollY?: Animated.Value;
@@ -33,7 +35,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const route = useRoute<RouteProp<RootStackParamList, 'ProductDetails'>>();
   const [product, setProduct] = useState<Product | null>(route.params?.product || null);
   const [fetchingProduct, setFetchingProduct] = useState(!route.params?.product && !!route.params?.id);
-  const { setLoginVisible, scrollY: globalScrollY } = useUI();
+  const { setLoginVisible, setSearchQuery, scrollY: globalScrollY } = useUI();
 
   const localScrollY = useRef(new Animated.Value(0)).current;
   const scrollY = scrollYProp || globalScrollY || localScrollY;
@@ -64,7 +66,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const onBack = () => navigation.goBack();
   const onSelectProduct = (newProduct: Product) => navigation.navigate('ProductDetails', { id: newProduct.id });
   
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { countryCode } = useCountry();
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -148,19 +150,26 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
   const dynamicPriceInfo = useMemo(() => {
     if (!product || !selectedPurity) return null;
+
+    const est = calculateApkEstimate({
+      productCode: product.productCode || product.sku || product.name,
+      sku: product.sku || product.productCode,
+      name: product.name,
+      netWt: product.goldWeight || product.netWeight || 0,
+      grossWt: product.grossWeight || product.goldWeight || 0,
+      purity: selectedPurity,
+      wastagePct: product.wastage !== undefined ? product.wastage : 22,
+      labourRateOverride: product.labourRate && product.labourRate > 0 ? product.labourRate : undefined,
+      labourAmtOverride: product.labourAmt && product.labourAmt > 0 ? product.labourAmt : undefined,
+      stones: product.stonesInDetail || []
+    });
+
+    const metalCost = est.goldValue / 83;
+    const vaMaking = (est.labourCharges + est.certCharges) / 83;
+    const stoneBeads = est.totalStoneValue / 83;
+    const tax = est.gstAmount / 83;
     
-    const cleanedPurity = selectedPurity.replace(/\s+/g, "").toUpperCase();
-    const targetRateObj = rates.find(r => r.purity.replace(/\s+/g, "").toUpperCase() === cleanedPurity || r.purity.replace(/\s+/g, "").toUpperCase() === cleanedPurity.replace("KT", "K"));
-    
-    // Fallback gold rates if fetch failed or loading
-    const baseRatePerGram = targetRateObj ? targetRateObj.rate : (cleanedPurity.startsWith("18") ? 75 * 0.75 : 75 * 0.9167);
-    
-    const metalCost = product.goldWeight * baseRatePerGram;
-    const vaMaking = product.priceBreakup?.vaMaking || 0;
-    const stoneBeads = product.priceBreakup?.stoneBeads || 0;
-    const tax = product.priceBreakup?.tax || 0;
-    
-    let total = metalCost + vaMaking + stoneBeads + tax;
+    let total = est.totalEstimateUSD;
     if (addGiftWrapping) {
       total += 10.00; // Gift wrap fee
     }
@@ -170,9 +179,10 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
       vaMaking,
       stoneBeads,
       tax,
-      total
+      total,
+      rawEst: est
     };
-  }, [product, selectedPurity, rates, addGiftWrapping]);
+  }, [product, selectedPurity, addGiftWrapping]);
 
   const handlePriceAlertToggle = () => {
     setPriceAlertSubscribed(prev => !prev);
@@ -211,14 +221,11 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
   const thumbnailWidth = 64;
   const thumbnailSpacing = 12;
+  const maxWindowHeightConstraint = isLargeScreen ? Math.min(height - 140, 520) : Math.min(width - 32, 420);
   const mainImageWidth = isLargeScreen 
-    ? (width * 0.5 - 40) - (allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0)
-    : (width - 40);
+    ? Math.min((width * 0.45 - 40) - (allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0), maxWindowHeightConstraint)
+    : Math.min(width - 32, maxWindowHeightConstraint);
 
-  const isARSupported = useMemo(() => {
-    return !!product && !!product.image;
-  }, [product]);
-  
   const contentStyle: ViewStyle = isLargeScreen 
     ? { width: "100%", alignSelf: "flex-start", flexDirection: "row" as const } 
     : { width: "100%" };
@@ -320,17 +327,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   useEffect(() => {
     // Scroll to top when product changes
     scrollRef.current?.scrollTo({ y: 0, animated: true });
-    setIsSuiteModalVisible(false);
   }, [product?.id]);
-
-  useEffect(() => {
-    if (suiteItems && suiteItems.length > 0) {
-      const timer = setTimeout(() => {
-        setIsSuiteModalVisible(true);
-      }, 7000); // 7 seconds delay
-      return () => clearTimeout(timer);
-    }
-  }, [suiteItems]);
 
   const handleSubmitReview = async () => {
     if (!user) {
@@ -406,7 +403,10 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const toggleSection = (id: string) => {
     setActiveSection(activeSection === id ? null : id);
   };
-  const navigateToCategory = (cat: string) => navigation.navigate('Category', { category: cat });
+  const navigateToCategory = (cat: string) => {
+    setSearchQuery("");
+    navigation.navigate('Category', { category: cat });
+  };
 
   const AccordionSection = ({ 
     id, 
@@ -497,18 +497,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                 marginLeft: isLargeScreen && allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0,
                 width: mainImageWidth,
               }]}>
-                {isARSupported && (
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.arButton]} 
-                    onPress={() => navigation.navigate('ARTryOn', { product })}
-                  >
-                    <View style={styles.arButtonContent}>
-                      <FontAwesome5 name="camera" size={16} color="#291c0e" style={{ marginRight: 10 }} />
-                      <Text style={styles.actionButtonText}>Virtual Try-On (AR)</Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
-
                 <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
                   <Text style={styles.actionButtonText}>Buy Now</Text>
                 </TouchableOpacity>
@@ -524,35 +512,13 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
               <Text style={styles.productName}>{product.name}</Text>
               <Text style={styles.productCode}>Product Code: {product.productCode}</Text>
               
-              {/* Dynamic Price Display, Split Payments, and Price Drop Alert */}
+              {/* Dynamic Price Display */}
               <View style={styles.priceContainer}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.price}>
                     {formatPrice(dynamicPriceInfo?.total || product.price, countryCode)}
                   </Text>
-                  <View style={styles.splitPaymentContainer}>
-                    <FontAwesome5 name="credit-card" size={10} color="#D4AF37" style={{ marginRight: 6 }} />
-                    <Text style={styles.splitPaymentText}>
-                      Or 3 splits of <Text style={styles.splitPaymentHighlight}>{formatPrice((dynamicPriceInfo?.total || product.price) / 3, countryCode)}/mo</Text>
-                    </Text>
-                  </View>
                 </View>
-                
-                <TouchableOpacity 
-                  style={[styles.priceAlertBtn, priceAlertSubscribed && styles.priceAlertBtnActive]} 
-                  onPress={handlePriceAlertToggle}
-                >
-                  <FontAwesome5 
-                    name="bell" 
-                    size={12} 
-                    color={priceAlertSubscribed ? "#291c0e" : "#D4AF37"} 
-                    solid={priceAlertSubscribed}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={[styles.priceAlertText, priceAlertSubscribed && styles.priceAlertActiveText]}>
-                    {priceAlertSubscribed ? "Alert On" : "Price Alert"}
-                  </Text>
-                </TouchableOpacity>
               </View>
               
               <View style={styles.divider} />
@@ -602,28 +568,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                   </View>
                 )}
 
-                {/* 3. Engraving Preview */}
-                {(jewelryType.includes('ring') || jewelryType.includes('pendant') || jewelryType.includes('necklace')) && (
-                  <View style={styles.configSection}>
-                    <Text style={styles.configTitle}>Custom Engraving (Free)</Text>
-                    <TextInput
-                      style={styles.engravingInput}
-                      placeholder="Type initials or a message to engrave..."
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      maxLength={15}
-                      value={engravingText}
-                      onChangeText={setEngravingText}
-                    />
-                    {engravingText.length > 0 && (
-                      <View style={styles.engravingPreview}>
-                        <Text style={styles.engravingPreviewLabel}>Laser Engraving Preview:</Text>
-                        <View style={styles.ringPreviewBand}>
-                          <Text style={styles.ringPreviewText}>{engravingText}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                )}
+
               </View>
 
               <View style={styles.divider} />
@@ -685,143 +630,192 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                   </View>
                 </AccordionSection>
 
-                {(product.gemstoneType || product.gemstoneWeight) ? (
+                {(product.stonesInDetail?.length || product.daiWeight || product.clrStoneWeight || product.gemstoneType || product.gemstoneWeight) ? (
                   <AccordionSection id="stone" title="Stone Details">
                     <View style={styles.specTable}>
-                      {product.gemstoneType ? (
+                      {product.daiWeight ? (
+                        <View style={styles.specTableRow}>
+                          <Text style={styles.specTableLabel}>Diamond Carat</Text>
+                          <Text style={styles.specTableValue}>{product.daiWeight.toFixed(3)} ct</Text>
+                        </View>
+                      ) : null}
+                      {product.clrStoneWeight ? (
+                        <View style={styles.specTableRow}>
+                          <Text style={styles.specTableLabel}>Color Stone Weight</Text>
+                          <Text style={styles.specTableValue}>{product.clrStoneWeight.toFixed(3)} ct</Text>
+                        </View>
+                      ) : null}
+                      {product.gemstoneType && (!product.stonesInDetail || product.stonesInDetail.length === 0) ? (
                         <View style={styles.specTableRow}>
                           <Text style={styles.specTableLabel}>Gemstone Type</Text>
                           <Text style={styles.specTableValue}>{product.gemstoneType}</Text>
                         </View>
                       ) : null}
-                      {product.gemstoneWeight ? (
-                        <View style={styles.specTableRow}>
-                          <Text style={styles.specTableLabel}>Gemstone Weight</Text>
-                          <Text style={styles.specTableValue}>{(product.gemstoneWeight || 0).toFixed(3)}</Text>
-                        </View>
-                      ) : null}
                     </View>
+
+                    {product.stonesInDetail && product.stonesInDetail.length > 0 && (
+                      <View style={{ marginTop: 12 }}>
+                        <Text style={{ color: '#D4AF37', fontSize: 13, fontWeight: 'bold', marginBottom: 8 }}>
+                          Detailed Stone Breakdown:
+                        </Text>
+                        <View style={styles.bhimaInlineTable}>
+                          <View style={styles.bhimaTableHeader}>
+                            <Text style={[styles.bhimaTh, { flex: 2 }]}>Stone Name</Text>
+                            <Text style={[styles.bhimaTh, { flex: 1.5, textAlign: 'right' }]}>Weight</Text>
+                            <Text style={[styles.bhimaTh, { flex: 1.5, textAlign: 'right' }]}>Rate (₹)</Text>
+                            <Text style={[styles.bhimaTh, { flex: 2, textAlign: 'right' }]}>Total (₹)</Text>
+                          </View>
+                          {product.stonesInDetail.map((st, sIdx) => {
+                            const wt = parseFloat(st.weight?.toString() || st.pcs?.toString() || '0') || 0;
+                            const rate = parseFloat(st.rate?.toString() || '0') || 0;
+                            const tot = wt * rate;
+                            return (
+                              <View key={sIdx} style={styles.bhimaTableRow}>
+                                <Text style={[styles.bhimaTd, { flex: 2, color: '#fff', fontWeight: '600' }]}>
+                                  {st.name}
+                                </Text>
+                                <Text style={[styles.bhimaTd, { flex: 1.5, textAlign: 'right' }]}>
+                                  {wt} ct
+                                </Text>
+                                <Text style={[styles.bhimaTd, { flex: 1.5, textAlign: 'right', color: '#ccc' }]}>
+                                  {rate > 0 ? `₹${rate.toLocaleString('en-IN')}` : '-'}
+                                </Text>
+                                <Text style={[styles.bhimaTd, { flex: 2, textAlign: 'right', color: '#D4AF37', fontWeight: 'bold' }]}>
+                                  {tot > 0 ? `₹${Math.round(tot).toLocaleString('en-IN')}` : '-'}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    )}
                   </AccordionSection>
                 ) : null}
 
                 <AccordionSection id="price" title="Price Breakup">
-                  {/* Visual Stacked Bar Chart */}
-                  <View style={styles.priceChartContainer}>
-                    <View style={styles.chartStack}>
-                      <View style={[styles.chartBar, { flex: Math.max(1, dynamicPriceInfo?.metalCost || 0), backgroundColor: '#D4AF37' }]} />
-                      <View style={[styles.chartBar, { flex: Math.max(1, dynamicPriceInfo?.vaMaking || 0), backgroundColor: '#4a3520' }]} />
-                      <View style={[styles.chartBar, { flex: Math.max(1, dynamicPriceInfo?.stoneBeads || 0), backgroundColor: '#ffffff' }]} />
-                      <View style={[styles.chartBar, { flex: Math.max(1, dynamicPriceInfo?.tax || 0), backgroundColor: '#777777' }]} />
+                  {/* Metal Details Table */}
+                  <View style={styles.bhimaInlineTable}>
+                    <View style={styles.bhimaTableHeader}>
+                      <Text style={[styles.bhimaTh, { flex: 2 }]}>Component</Text>
+                      <Text style={[styles.bhimaTh, { flex: 1.5, textAlign: 'right' }]}>Rate</Text>
+                      <Text style={[styles.bhimaTh, { flex: 1.2, textAlign: 'right' }]}>Weight</Text>
+                      <Text style={[styles.bhimaTh, { flex: 2, textAlign: 'right' }]}>Value</Text>
                     </View>
-                    <View style={styles.chartLegend}>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#D4AF37' }]} />
-                        <Text style={styles.legendText}>Gold: {formatPrice(dynamicPriceInfo?.metalCost || 0, countryCode)}</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#4a3520' }]} />
-                        <Text style={styles.legendText}>Making: {formatPrice(dynamicPriceInfo?.vaMaking || 0, countryCode)}</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#ffffff' }]} />
-                        <Text style={styles.legendText}>Stones: {formatPrice(dynamicPriceInfo?.stoneBeads || 0, countryCode)}</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#777777' }]} />
-                        <Text style={styles.legendText}>Tax: {formatPrice(dynamicPriceInfo?.tax || 0, countryCode)}</Text>
-                      </View>
+
+                    <View style={styles.bhimaTableRow}>
+                      <Text style={[styles.bhimaTd, { flex: 2, color: '#fff', fontWeight: '600' }]}>
+                        Gold {selectedPurity}
+                      </Text>
+                      <Text style={[styles.bhimaTd, { flex: 1.5, textAlign: 'right' }]}>
+                        {formatPrice((dynamicPriceInfo?.metalCost || 0) / (product.goldWeight || 1), countryCode)}
+                      </Text>
+                      <Text style={[styles.bhimaTd, { flex: 1.2, textAlign: 'right' }]}>
+                        {(product.goldWeight || 0).toFixed(2)} g
+                      </Text>
+                      <Text style={[styles.bhimaTd, { flex: 2, textAlign: 'right', color: '#D4AF37', fontWeight: 'bold' }]}>
+                        {formatPrice(dynamicPriceInfo?.metalCost || 0, countryCode)}
+                      </Text>
                     </View>
+
+                    <View style={styles.bhimaTableRow}>
+                      <Text style={[styles.bhimaTd, { flex: 2, color: '#fff', fontWeight: '600' }]}>
+                        Making Charges
+                      </Text>
+                      <Text style={[styles.bhimaTd, { flex: 1.5, textAlign: 'right', color: '#888' }]}>-</Text>
+                      <Text style={[styles.bhimaTd, { flex: 1.2, textAlign: 'right', color: '#888' }]}>-</Text>
+                      <Text style={[styles.bhimaTd, { flex: 2, textAlign: 'right', color: '#fff', fontWeight: '600' }]}>
+                        {formatPrice(dynamicPriceInfo?.vaMaking || 0, countryCode)}
+                      </Text>
+                    </View>
+
+                    {product.stonesInDetail && product.stonesInDetail.length > 0 ? (
+                      product.stonesInDetail.map((st, sIdx) => {
+                        const wt = parseFloat(st.weight?.toString() || st.pcs?.toString() || '0') || 0;
+                        const rate = parseFloat(st.rate?.toString() || '0') || 0;
+                        const totINR = wt * rate;
+                        const totUSD = countryCode === 'IN' ? totINR / 83 : totINR;
+                        return (
+                          <View key={sIdx} style={styles.bhimaTableRow}>
+                            <Text style={[styles.bhimaTd, { flex: 2, color: '#fff', fontWeight: '600' }]}>
+                              {st.name}
+                            </Text>
+                            <Text style={[styles.bhimaTd, { flex: 1.5, textAlign: 'right', color: '#ccc' }]}>
+                              {rate > 0 ? (countryCode === 'IN' ? `₹${rate.toLocaleString('en-IN')}` : `$${rate}`) : '-'}
+                            </Text>
+                            <Text style={[styles.bhimaTd, { flex: 1.2, textAlign: 'right' }]}>
+                              {wt} ct
+                            </Text>
+                            <Text style={[styles.bhimaTd, { flex: 2, textAlign: 'right', color: '#D4AF37', fontWeight: 'bold' }]}>
+                              {formatPrice(totUSD, countryCode)}
+                            </Text>
+                          </View>
+                        );
+                      })
+                    ) : (dynamicPriceInfo?.stoneBeads || 0) > 0 ? (
+                      <View style={styles.bhimaTableRow}>
+                        <Text style={[styles.bhimaTd, { flex: 2, color: '#fff', fontWeight: '600' }]}>
+                          Gemstones / Stones
+                        </Text>
+                        <Text style={[styles.bhimaTd, { flex: 1.5, textAlign: 'right', color: '#888' }]}>-</Text>
+                        <Text style={[styles.bhimaTd, { flex: 1.2, textAlign: 'right', color: '#888' }]}>
+                          {product.gemstoneWeight ? `${(product.gemstoneWeight * 0.2).toFixed(2)} g` : '-'}
+                        </Text>
+                        <Text style={[styles.bhimaTd, { flex: 2, textAlign: 'right', color: '#fff', fontWeight: '600' }]}>
+                          {formatPrice(dynamicPriceInfo?.stoneBeads || 0, countryCode)}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
 
-                  <View style={[styles.divider, { marginVertical: 15 }]} />
+                  <View style={[styles.divider, { marginVertical: 12 }]} />
 
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Metal Cost ({selectedPurity})</Text>
-                    <Text style={styles.priceValue}>{formatPrice(dynamicPriceInfo?.metalCost || 0, countryCode)}</Text>
-                  </View>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>VA & Making Charges</Text>
-                    <Text style={styles.priceValue}>{formatPrice(dynamicPriceInfo?.vaMaking || 0, countryCode)}</Text>
-                  </View>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Gemstones & Beads</Text>
-                    <Text style={styles.priceValue}>{formatPrice(dynamicPriceInfo?.stoneBeads || 0, countryCode)}</Text>
-                  </View>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Tax & GST (3%)</Text>
-                    <Text style={styles.priceValue}>{formatPrice(dynamicPriceInfo?.tax || 0, countryCode)}</Text>
-                  </View>
-                  {addGiftWrapping && (
-                    <View style={styles.priceRow}>
-                      <Text style={styles.priceLabel}>Luxury Wrapping Fee</Text>
-                      <Text style={styles.priceValue}>{formatPrice(10.00, countryCode)}</Text>
+                  {/* Summary Rows */}
+                  <View style={styles.bhimaSummaryBox}>
+                    <View style={styles.bhimaSummaryRow}>
+                      <Text style={styles.bhimaSummaryLabel}>Subtotal</Text>
+                      <Text style={styles.bhimaSummaryValue}>
+                        {formatPrice((dynamicPriceInfo?.metalCost || 0) + (dynamicPriceInfo?.vaMaking || 0) + (dynamicPriceInfo?.stoneBeads || 0), countryCode)}
+                      </Text>
                     </View>
-                  )}
-                  <View style={[styles.priceRow, styles.totalRow]}>
-                    <Text style={styles.totalLabel}>Total Price</Text>
-                    <Text style={styles.totalValue}>{formatPrice(dynamicPriceInfo?.total || product.price, countryCode)}</Text>
+
+                    <View style={styles.bhimaSummaryRow}>
+                      <Text style={styles.bhimaSummaryLabel}>GST (3%)</Text>
+                      <Text style={styles.bhimaSummaryValue}>
+                        {formatPrice(dynamicPriceInfo?.tax || 0, countryCode)}
+                      </Text>
+                    </View>
+
+                    {addGiftWrapping && (
+                      <View style={styles.bhimaSummaryRow}>
+                        <Text style={styles.bhimaSummaryLabel}>Luxury Packaging</Text>
+                        <Text style={styles.bhimaSummaryValue}>{formatPrice(10.00, countryCode)}</Text>
+                      </View>
+                    )}
+
+                    <View style={styles.bhimaSummaryRow}>
+                      <Text style={styles.bhimaSummaryLabel}>Product total</Text>
+                      <Text style={styles.bhimaSummaryValue}>
+                        {formatPrice(dynamicPriceInfo?.total || product.price, countryCode)}
+                      </Text>
+                    </View>
+
+                    <View style={[styles.bhimaSummaryRow, styles.bhimaGrandTotalRow]}>
+                      <Text style={styles.bhimaGrandTotalLabel}>Grand total</Text>
+                      <Text style={styles.bhimaGrandTotalValue}>
+                        {formatPrice(dynamicPriceInfo?.total || product.price, countryCode)}
+                      </Text>
+                    </View>
                   </View>
                 </AccordionSection>
               </View>
 
               <View style={styles.divider} />
 
-              {/* Check Store Availability */}
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.storeCheckButton]} 
-                onPress={() => setIsStoreCheckVisible(true)}
-              >
-                <FontAwesome5 name="store" size={14} color="#D4AF37" style={{ marginRight: 10 }} />
-                <Text style={styles.storeCheckButtonText}>Check Store Availability</Text>
-              </TouchableOpacity>
-
               <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={handleWishlistToggle}>
                 <Text style={styles.secondaryButtonText}>
                   {isInWishlist(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                 </Text>
               </TouchableOpacity>
-
-              {/* Gifting & Collaboration Card */}
-              <View style={styles.giftCard}>
-                <TouchableOpacity 
-                  style={styles.giftCardHeader} 
-                  onPress={() => setGiftOptionsExpanded(!giftOptionsExpanded)}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <FontAwesome5 name="gift" size={14} color="#D4AF37" style={{ marginRight: 8 }} />
-                    <Text style={styles.giftCardTitle}>Luxury Gift Packaging & Card (+ $10.00)</Text>
-                  </View>
-                  <FontAwesome5 
-                    name={giftOptionsExpanded ? "chevron-up" : "chevron-down"} 
-                    size={10} 
-                    color="#D4AF37" 
-                  />
-                </TouchableOpacity>
-                {giftOptionsExpanded && (
-                  <View style={styles.giftCardContent}>
-                    <TouchableOpacity 
-                      style={styles.giftCheckboxRow}
-                      onPress={() => setAddGiftWrapping(!addGiftWrapping)}
-                    >
-                      <View style={[styles.customCheckbox, addGiftWrapping && styles.customCheckboxChecked]}>
-                        {addGiftWrapping && <FontAwesome5 name="check" size={8} color="#291c0e" />}
-                      </View>
-                      <Text style={styles.giftCheckboxText}>Add Premium Velvet Box & Gift Wrap</Text>
-                    </TouchableOpacity>
-                    
-                    <Text style={styles.giftMsgLabel}>Add Handwritten Note (Optional):</Text>
-                    <TextInput
-                      style={styles.giftMsgInput}
-                      placeholder="E.g. With love, today and always..."
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      multiline
-                      numberOfLines={2}
-                      value={giftMessage}
-                      onChangeText={setGiftMessage}
-                    />
-                  </View>
-                )}
-              </View>
 
               {/* Engagement Controls */}
               <View style={styles.engagementRow}>
@@ -830,81 +824,68 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                   <Text style={styles.engagementBtnText}>Share Registry</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={[styles.engagementBtn, styles.whatsappConsultBtn]} onPress={handleWhatsAppConsultation}>
-                  <FontAwesome5 name="whatsapp" size={12} color="#25D366" style={{ marginRight: 6 }} />
-                  <Text style={[styles.engagementBtnText, { color: '#25D366' }]}>Live Jeweler</Text>
-                </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          {/* Reviews Section */}
-          <View style={styles.reviewsSection}>
-            <Text style={styles.sectionTitle}>Community Reviews</Text>
-            
-            {hasPurchased ? (
-              <View style={styles.reviewForm}>
-                <Text style={styles.formLabel}>Share your experience</Text>
-                <View style={styles.ratingRow}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <TouchableOpacity key={star} onPress={() => setUserReview({ ...userReview, rating: star })}>
-                      <FontAwesome5 
-                        name="star" 
-                        solid={star <= userReview.rating} 
-                        size={20} 
-                        color={star <= userReview.rating ? "#D4AF37" : "#4a3520"} 
-                        style={{ marginRight: 10 }}
-                      />
-                    </TouchableOpacity>
-                  ))}
+          {/* Complete the Suite / Look Section (Inline) */}
+          {suiteItems && suiteItems.length > 0 ? (
+            <View style={styles.suiteInlineSection}>
+              <View style={styles.suiteInlineHeader}>
+                <FontAwesome5 name="gem" size={18} color="#D4AF37" style={{ marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.suiteInlineTitle}>{suiteText.title}</Text>
+                  <Text style={styles.suiteInlineSubtitle}>{suiteText.subtitle}</Text>
                 </View>
-                <TextInput
-                  style={styles.reviewInput}
-                  placeholder="Write your review here..."
-                  placeholderTextColor="#666"
-                  multiline
-                  value={userReview.comment}
-                  onChangeText={(text) => setUserReview({ ...userReview, comment: text })}
-                />
-                <TouchableOpacity 
-                  style={[styles.submitBtn, submittingReview && { opacity: 0.7 }]} 
-                  onPress={handleSubmitReview}
-                  disabled={submittingReview}
-                >
-                  {submittingReview ? <ActivityIndicator size="small" color="#000" /> : <Text style={styles.submitBtnText}>Post Review</Text>}
-                </TouchableOpacity>
               </View>
-            ) : null}
 
-            <View style={styles.reviewsList}>
-              {reviews.length === 0 ? (
-                <Text style={styles.emptyReviews}>Be the first to review this masterpiece.</Text>
-              ) : (
-                reviews.map((rev) => (
-                  <View key={rev.id} style={styles.reviewCard}>
-                    <View style={styles.reviewHeader}>
-                      <Text style={styles.reviewerName}>{rev.profiles?.full_name || "Anonymous"}</Text>
-                      <View style={styles.starsRow}>
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <FontAwesome5 
-                            key={s} 
-                            name="star" 
-                            solid={s <= rev.rating} 
-                            size={10} 
-                            color={s <= rev.rating ? "#D4AF37" : "#4a3520"} 
-                          />
-                        ))}
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.suiteInlineScrollContent}
+              >
+                {suiteItems.map((item) => (
+                  <View key={item.id} style={styles.suiteInlineCard}>
+                    <TouchableOpacity onPress={() => onSelectProduct(item)} activeOpacity={0.8}>
+                      <OptimizedImage url={item.image} style={styles.suiteInlineImage} shouldLoad={true} />
+                    </TouchableOpacity>
+                    <View style={styles.suiteInlineCardInfo}>
+                      <View>
+                        <Text style={styles.suiteInlineItemName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.suiteInlineItemMeta}>
+                          {item.grossWeight ? `${item.grossWeight.toFixed(2)}g` : ''} {item.purity || ''} {item.metalColor || ''}
+                        </Text>
+                        <Text style={styles.suiteInlineItemPrice}>{formatPrice(item.price, countryCode)}</Text>
+                      </View>
+                      
+                      <View style={styles.suiteInlineCardActions}>
+                        <TouchableOpacity 
+                          style={styles.suiteInlineAddBtn}
+                          onPress={() => {
+                            addToCart(item);
+                            setShowAddedMsg(true);
+                            setTimeout(() => setShowAddedMsg(false), 3000);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <FontAwesome5 name="shopping-bag" size={11} color="#291c0e" style={{ marginRight: 6 }} />
+                          <Text style={styles.suiteInlineAddBtnText}>Add Matching Piece</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                          style={styles.suiteInlineDetailsBtn}
+                          onPress={() => onSelectProduct(item)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.suiteInlineDetailsBtnText}>View Details</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
-                    <Text style={styles.reviewComment}>{rev.comment}</Text>
-                    <Text style={styles.reviewDate}>{new Date(rev.created_at).toLocaleDateString()}</Text>
                   </View>
-                ))
-              )}
+                ))}
+              </ScrollView>
             </View>
-          </View>
-
-
+          ) : null}
 
           {/* Recommendations Section */}
           {recommendations.length > 0 ? (
@@ -1074,83 +1055,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
         />
       )}
 
-      {/* Complete the Look / Suite Recommendations Bottom Right Popup with Blur */}
-      {isSuiteModalVisible && suiteItems.length > 0 && (
-        <Modal
-          visible={isSuiteModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setIsSuiteModalVisible(false)}
-        >
-          <View style={styles.blurModalContainer}>
-            {/* Fullscreen Blur backdrop */}
-            {Platform.OS === 'web' ? (
-              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(10px)' } as any]} />
-            ) : (
-              <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFillObject} />
-            )}
-            
-            {/* Tap outside to close */}
-            <TouchableOpacity 
-              style={StyleSheet.absoluteFillObject} 
-              activeOpacity={1} 
-              onPress={() => setIsSuiteModalVisible(false)} 
-            />
-
-            {/* Bottom Right Card Wrapper */}
-            <View style={styles.bottomRightPopupWrapper}>
-              <View style={styles.bottomRightPopupCard}>
-                <View style={styles.bottomRightPopupHeader}>
-                  <View style={styles.bottomPopupTitleRow}>
-                    <FontAwesome5 name="gem" size={12} color="#D4AF37" style={{ marginRight: 8 }} />
-                    <Text style={styles.bottomRightPopupTitle}>{suiteText.title}</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setIsSuiteModalVisible(false)} style={styles.bottomPopupCloseBtn}>
-                    <FontAwesome5 name="times" size={14} color="#D4AF37" />
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.bottomRightPopupBody}>
-                  <OptimizedImage url={suiteItems[0].image} style={styles.bottomRightPopupImage} shouldLoad={true} />
-                  
-                  <View style={styles.bottomRightPopupInfo}>
-                    <Text style={styles.bottomRightPopupName}>{suiteItems[0].name}</Text>
-                    <Text style={styles.bottomRightPopupMeta}>
-                      {suiteItems[0].grossWeight.toFixed(2)}g | {suiteItems[0].purity} {suiteItems[0].metalColor}
-                    </Text>
-                    <Text style={styles.bottomRightPopupPrice}>{formatPrice(suiteItems[0].price, countryCode)}</Text>
-                  </View>
-                  
-                  <View style={styles.bottomRightPopupActions}>
-                    <TouchableOpacity 
-                      style={styles.bottomRightPopupAddBtn}
-                      onPress={() => {
-                        addToCart(suiteItems[0]);
-                        setIsSuiteModalVisible(false);
-                        Alert.alert("Added Matching Piece", `${suiteItems[0].name} has been added to your bag.`);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.bottomRightPopupAddBtnText}>Add Matching Piece</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={styles.bottomRightPopupDetailsBtn}
-                      onPress={() => {
-                        setIsSuiteModalVisible(false);
-                        onSelectProduct(suiteItems[0]);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.bottomRightPopupDetailsBtnText}>View Details</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
     </View>
   );
 };
@@ -2364,6 +2268,174 @@ const styles = StyleSheet.create({
   },
   bottomPopupCloseBtn: {
     padding: 2,
+  },
+  bhimaInlineTable: {
+    backgroundColor: '#382614',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    overflow: 'hidden',
+    marginTop: 5,
+  },
+  bhimaTableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#4a3520',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#5c432a',
+  },
+  bhimaTh: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bhimaTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  bhimaTd: {
+    color: '#ddd',
+    fontSize: 13,
+  },
+  bhimaSummaryBox: {
+    backgroundColor: '#382614',
+    borderRadius: 8,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+  },
+  bhimaSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  bhimaSummaryLabel: {
+    color: '#aaa',
+    fontSize: 13,
+  },
+  bhimaSummaryValue: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bhimaGrandTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#D4AF37',
+    marginTop: 8,
+    paddingTop: 10,
+  },
+  bhimaGrandTotalLabel: {
+    color: '#D4AF37',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  bhimaGrandTotalValue: {
+    color: '#D4AF37',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  suiteInlineSection: {
+    marginTop: 25,
+    marginBottom: 20,
+    backgroundColor: '#382614',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+  },
+  suiteInlineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  suiteInlineTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#D4AF37',
+    fontFamily: Platform.OS === 'ios' ? 'TrajanPro' : 'serif',
+  },
+  suiteInlineSubtitle: {
+    fontSize: 13,
+    color: '#aaa',
+    marginTop: 2,
+  },
+  suiteInlineScrollContent: {
+    paddingVertical: 4,
+    gap: 16,
+  },
+  suiteInlineCard: {
+    width: 250,
+    backgroundColor: '#291c0e',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    overflow: 'hidden',
+    flexDirection: 'column',
+    marginRight: 14,
+  },
+  suiteInlineImage: {
+    width: '100%',
+    height: 170,
+    backgroundColor: '#20160b',
+  },
+  suiteInlineCardInfo: {
+    padding: 14,
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  suiteInlineItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  suiteInlineItemMeta: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 6,
+  },
+  suiteInlineItemPrice: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#D4AF37',
+    marginBottom: 12,
+  },
+  suiteInlineCardActions: {
+    gap: 8,
+  },
+  suiteInlineAddBtn: {
+    backgroundColor: '#D4AF37',
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suiteInlineAddBtnText: {
+    color: '#291c0e',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  suiteInlineDetailsBtn: {
+    backgroundColor: 'transparent',
+    paddingVertical: 7,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  suiteInlineDetailsBtnText: {
+    color: '#D4AF37',
+    fontSize: 12,
   },
 });
 

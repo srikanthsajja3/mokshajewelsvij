@@ -47,8 +47,7 @@ const linking = {
 };
 
 function AppContent() {
-  const { drawerVisible, setDrawerVisible, loginVisible, setLoginVisible, scrollY } = useUI();
-  const [searchQuery, setSearchQuery] = useState("");
+  const { drawerVisible, setDrawerVisible, loginVisible, setLoginVisible, scrollY, searchQuery, setSearchQuery } = useUI();
   const { user, isLoading: authLoading, isRecovering } = useAuth();
   const [currentRoute, setCurrentRoute] = useState<string>("Home");
   const [activeCategory, setActiveCategory] = useState<string>("");

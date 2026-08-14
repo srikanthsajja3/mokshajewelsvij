@@ -12,6 +12,5 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   VendorDashboard: undefined;
   AddProduct: { vendorId: string; product?: Product | null };
-  ARTryOn: { product: Product };
   Login: undefined;
 };

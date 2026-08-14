@@ -16,7 +16,6 @@ const ProfileScreen = lazy(() => import('../screens/ProfileScreen'));
 const AdminDashboardScreen = lazy(() => import('../screens/AdminDashboardScreen'));
 const VendorDashboardScreen = lazy(() => import('../screens/VendorDashboardScreen'));
 const AddProductScreen = lazy(() => import('../screens/AddProductScreen'));
-const ARTryOnScreen = lazy(() => import('../screens/ARTryOnScreen'));
 
 const FallbackLoader = () => (
   <View style={{ flex: 1, backgroundColor: '#291c0e', justifyContent: 'center', alignItems: 'center' }}>
@@ -24,9 +23,64 @@ const FallbackLoader = () => (
   </View>
 );
 
-const LazyScreen = (Component: React.ComponentType<any>) => (props: any) => (
+// Create stable, top-level screen wrappers so React Navigation never unmounts/re-mounts screens on re-renders
+const CategoryScreenWrapper = (props: any) => (
   <Suspense fallback={<FallbackLoader />}>
-    <Component {...props} />
+    <CategoryScreen {...props} />
+  </Suspense>
+);
+
+const ProductDetailsScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <ProductDetailsScreen {...props} />
+  </Suspense>
+);
+
+const CartScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <CartScreen {...props} />
+  </Suspense>
+);
+
+const CheckoutScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <CheckoutScreen {...props} />
+  </Suspense>
+);
+
+const OrdersScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <OrdersScreen {...props} />
+  </Suspense>
+);
+
+const WishlistScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <WishlistScreen {...props} />
+  </Suspense>
+);
+
+const ProfileScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <ProfileScreen {...props} />
+  </Suspense>
+);
+
+const AdminDashboardScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <AdminDashboardScreen {...props} />
+  </Suspense>
+);
+
+const VendorDashboardScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <VendorDashboardScreen {...props} />
+  </Suspense>
+);
+
+const AddProductScreenWrapper = (props: any) => (
+  <Suspense fallback={<FallbackLoader />}>
+    <AddProductScreen {...props} />
   </Suspense>
 );
 
@@ -42,17 +96,16 @@ export const AppNavigator = () => {
       }}
     >
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Category" component={LazyScreen(CategoryScreen)} />
-      <Stack.Screen name="ProductDetails" component={LazyScreen(ProductDetailsScreen)} />
-      <Stack.Screen name="Cart" component={LazyScreen(CartScreen)} />
-      <Stack.Screen name="Checkout" component={LazyScreen(CheckoutScreen)} />
-      <Stack.Screen name="Orders" component={LazyScreen(OrdersScreen)} />
-      <Stack.Screen name="Wishlist" component={LazyScreen(WishlistScreen)} />
-      <Stack.Screen name="Profile" component={LazyScreen(ProfileScreen)} />
-      <Stack.Screen name="AdminDashboard" component={LazyScreen(AdminDashboardScreen)} />
-      <Stack.Screen name="VendorDashboard" component={LazyScreen(VendorDashboardScreen)} />
-      <Stack.Screen name="AddProduct" component={LazyScreen(AddProductScreen)} />
-      <Stack.Screen name="ARTryOn" component={LazyScreen(ARTryOnScreen)} />
+      <Stack.Screen name="Category" component={CategoryScreenWrapper} />
+      <Stack.Screen name="ProductDetails" component={ProductDetailsScreenWrapper} />
+      <Stack.Screen name="Cart" component={CartScreenWrapper} />
+      <Stack.Screen name="Checkout" component={CheckoutScreenWrapper} />
+      <Stack.Screen name="Orders" component={OrdersScreenWrapper} />
+      <Stack.Screen name="Wishlist" component={WishlistScreenWrapper} />
+      <Stack.Screen name="Profile" component={ProfileScreenWrapper} />
+      <Stack.Screen name="AdminDashboard" component={AdminDashboardScreenWrapper} />
+      <Stack.Screen name="VendorDashboard" component={VendorDashboardScreenWrapper} />
+      <Stack.Screen name="AddProduct" component={AddProductScreenWrapper} />
     </Stack.Navigator>
   );
 };

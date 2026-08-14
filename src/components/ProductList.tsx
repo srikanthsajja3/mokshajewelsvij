@@ -18,11 +18,12 @@ interface ProductListProps {
   searchQuery?: string;
   onPressLogin?: () => void;
   filters?: ProductFilters;
-  ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
+  ListHeaderComponent?: ((count: number) => React.ReactElement | null) | React.ComponentType<any> | React.ReactElement | null;
   onScroll?: (event: any) => void;
   stickyHeaderIndices?: number[];
   onClearFilters?: () => void;
   hasSidebar?: boolean;
+  userColumns?: number;
 }
 
 const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, handleWishlistToggle, isInWishlist, formatPrice, countryCode, addedToCartId, handleAddToCart, index, shouldLoad }: any) => {
@@ -62,10 +63,6 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
     ]).start();
     handleAddToCart(item);
   };
-
-  const showAR = useMemo(() => {
-    return !!item && !!item.image;
-  }, [item]);
 
   return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY }], width: itemWidth }}>
@@ -119,49 +116,10 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
               {isInWishlist ? "♥" : "♡"}
             </Text>
           </TouchableOpacity>
-          {showAR && (
-            <TouchableOpacity 
-              style={styles.arBadge}
-              onPress={(e) => {
-                e.stopPropagation();
-                navigation.navigate('ARTryOn', { product: item });
-              }}
-              activeOpacity={0.8}
-            >
-              <FontAwesome5 name="camera" size={8} color="#000" />
-              <Text style={styles.arBadgeText}>TRY ON</Text>
-            </TouchableOpacity>
-          )}
         </View>
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.productCodeBadge}>{item.productCode || item.sku}</Text>
           <Text style={styles.productPrice}>{formatPrice(item.price, countryCode)}</Text>
-          
-          <TouchableOpacity 
-            style={[
-              styles.addToCartBtnCompact,
-              addedToCartId === item.id && styles.addToCartBtnCompactSuccess
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onPressAddToCart();
-            }}
-            activeOpacity={0.8}
-          >
-            <FontAwesome5 
-              name={addedToCartId === item.id ? "check" : "shopping-bag"} 
-              size={10} 
-              color={addedToCartId === item.id ? "#291c0e" : "#D4AF37"} 
-            />
-            <Text 
-              style={[
-                styles.addToCartBtnCompactText,
-                addedToCartId === item.id && styles.addToCartBtnCompactTextSuccess
-              ]}
-            >
-              {addedToCartId === item.id ? "Added" : "Add to Cart"}
-            </Text>
-          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -186,7 +144,8 @@ const ProductList: React.FC<ProductListProps> = ({
   onScroll: onScrollProp,
   stickyHeaderIndices,
   onClearFilters,
-  hasSidebar = false
+  hasSidebar = false,
+  userColumns
 }) => {
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
@@ -210,9 +169,15 @@ const ProductList: React.FC<ProductListProps> = ({
     }, 2000);
   };
 
+  const wishlistKey = useMemo(() => wishlist.join(','), [wishlist]);
+
   useEffect(() => {
+    let isMounted = true;
     const loadProducts = async () => {
-      setLoading(true);
+      // Only set loading indicator if we don't already have products loaded
+      if (products.length === 0) {
+        setLoading(true);
+      }
       setError(null);
       try {
         let data: Product[] = [];
@@ -222,27 +187,41 @@ const ProductList: React.FC<ProductListProps> = ({
         } else {
           data = await fetchProductsFromSupabase(category);
         }
-        setProducts(data);
+        if (isMounted) {
+          setProducts(data);
+        }
       } catch (err) {
         console.error("Error loading products:", err);
-        setError("Failed to connect to the gallery.");
+        if (isMounted) setError("Failed to connect to the gallery.");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     loadProducts();
-  }, [category, wishlist]);
+    return () => {
+      isMounted = false;
+    };
+  }, [category, category === "Wishlist" ? wishlistKey : null]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(query) || 
-        p.productCode.toLowerCase().includes(query)
-      );
+    if (searchQuery && searchQuery.trim().length > 0) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(p => {
+        const nameMatch = p.name?.toLowerCase().includes(q);
+        const codeMatch = p.productCode?.toLowerCase().includes(q);
+        const skuMatch = p.sku?.toLowerCase().includes(q);
+        const barcodeMatch = p.barcode?.toLowerCase().includes(q);
+        const huidMatch = p.huid?.toLowerCase().includes(q);
+        const catMatch = p.category?.toLowerCase().includes(q);
+        const typeMatch = p.type?.toLowerCase().includes(q);
+        const purityMatch = p.purity?.toLowerCase().includes(q);
+        const gemMatch = p.gemstoneType?.toLowerCase().includes(q);
+        const stonesMatch = p.stonesInDetail?.some(st => st.name?.toLowerCase().includes(q));
+        return nameMatch || codeMatch || skuMatch || barcodeMatch || huidMatch || catMatch || typeMatch || purityMatch || gemMatch || stonesMatch;
+      });
     }
 
     if (filters.subCategory) {
@@ -329,9 +308,9 @@ const ProductList: React.FC<ProductListProps> = ({
   const containerWidth = Platform.OS === 'web' ? Math.min(gridWidth, 2500) : gridWidth;
   const availableWidth = containerWidth - (padding * 2);
 
-  // Dynamically calculate columns based on target compact card width (~180px on Web, ~140px on Mobile)
+  // Dynamically calculate columns based on user selection or target compact card width
   const targetCardWidth = Platform.OS === 'web' ? 180 : 140;
-  let numColumns = Math.floor((availableWidth + spacing) / (targetCardWidth + spacing));
+  let numColumns = userColumns || Math.floor((availableWidth + spacing) / (targetCardWidth + spacing));
   numColumns = Math.max(2, numColumns); // Minimum 2 columns
 
   const itemWidth = (availableWidth - (spacing * (numColumns - 1))) / numColumns;
@@ -376,7 +355,9 @@ const ProductList: React.FC<ProductListProps> = ({
               position: 'relative',
               overflow: 'visible'
             }}>
-              {React.isValidElement(ListHeaderComponent)
+              {typeof ListHeaderComponent === 'function' && !React.isValidElement(ListHeaderComponent)
+                ? (ListHeaderComponent as any)(filteredAndSortedProducts.length)
+                : React.isValidElement(ListHeaderComponent)
                 ? ListHeaderComponent
                 : React.createElement(ListHeaderComponent as any)}
             </View>
@@ -565,6 +546,14 @@ const styles = StyleSheet.create({
     padding: Platform.OS === 'web' ? 12 : 8,
     paddingTop: 10,
     alignItems: "flex-start",
+  },
+  productCodeBadge: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 11,
+    fontFamily: "TrajanPro",
+    fontWeight: "600",
+    letterSpacing: 1,
+    marginBottom: 4,
   },
   productName: {
     color: "#fff",

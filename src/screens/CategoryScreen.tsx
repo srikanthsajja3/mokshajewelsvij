@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import { SortOption } from "../components/CategoryBar";
 import ProductList from "../components/ProductList";
 import CategorySlider from "../components/CategorySlider";
+import CollectionToolbar from "../components/CollectionToolbar";
 import FilterModal from "../components/FilterModal";
 import Footer from "../components/Footer";
 import { Product, ProductFilters } from "../data/products";
@@ -23,7 +24,7 @@ const CATEGORIES = ["All", "Gold", "Diamonds", "Polki", "Kundan"];
 const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Category'>>();
-  const { scrollY: globalScrollY } = useUI();
+  const { scrollY: globalScrollY, searchQuery, setSearchQuery } = useUI();
   const category = route.params?.category || "All";
   const [subCategory, setSubCategory] = useState(route.params?.subCategory || "All Items");
   const { width } = useWindowDimensions();
@@ -55,60 +56,10 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
     ? (width > 1400 ? 30 : 15)
     : (width < 380 ? 8 : 12);
 
-  const CategoriesSelectorBar = () => {
-    return (
-      <View style={styles.categoriesSelectorContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.categoriesScrollContent, 
-            { paddingHorizontal: paddingHorz },
-            Platform.OS === 'web' && {
-              justifyContent: width >= 600 ? 'center' : 'flex-start',
-              minWidth: '100%',
-            }
-          ]}
-        >
-          {CATEGORIES.map((cat) => {
-            const isActive = category === cat;
-            const isHovered = hoveredCategory === cat;
-            return (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryBadge, 
-                  isActive && styles.activeCategoryBadge,
-                  Platform.OS === 'web' && isHovered && styles.hoverCategoryBadge
-                ]}
-                onPress={() => onSelectCategory(cat)}
-                activeOpacity={0.7}
-                // @ts-ignore
-                onMouseEnter={() => setHoveredCategory(cat)}
-                // @ts-ignore
-                onMouseLeave={() => setHoveredCategory(null)}
-              >
-                <Text style={[
-                  styles.categoryBadgeText, 
-                  isActive && styles.activeCategoryBadgeText,
-                  Platform.OS === 'web' && isHovered && styles.hoverCategoryBadgeText
-                ]}>
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-    );
+  const onSelectProduct = (product: Product) => {
+    setSearchQuery("");
+    navigation.navigate('ProductDetails', { id: product.id });
   };
-
-  const onSelectCategory = (cat: string) => {
-    navigation.navigate('Category', { category: cat });
-    setSubCategory("All Items"); // Reset sub-category when main category changes
-  };
-  
-  const onSelectProduct = (product: Product) => navigation.navigate('ProductDetails', { id: product.id });
 
   const effectiveFilters = {
     ...filters,
@@ -215,6 +166,8 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
     });
   }
 
+  const [userColumns, setUserColumns] = useState<number>(4);
+
   return (
     <View style={styles.container}>
       <View style={styles.staticHeaderContainer}>
@@ -234,7 +187,7 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
                   activeOpacity={0.7}
                 >
                   <Text style={styles.filterChipText}>{chip.label}</Text>
-                  <FontAwesome5 name="times" size={10} color="#D4AF37" style={styles.filterChipClose} />
+                  <FontAwesome5 name="times" size={9} color="#D4AF37" style={styles.filterChipClose} />
                 </TouchableOpacity>
               ))}
               <TouchableOpacity 
@@ -254,19 +207,28 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
           category={category} 
           onSelectProduct={onSelectProduct} 
           sortBy={sortBy}
-          searchQuery={""} 
+          searchQuery={searchQuery} 
           filters={effectiveFilters}
-          ListHeaderComponent={
+          userColumns={userColumns}
+          ListHeaderComponent={(count: number) => (
             <View style={Platform.OS === 'web' ? { zIndex: 9999, position: 'relative', overflow: 'visible' } : undefined}>
-              {isMobile && <CategoriesSelectorBar />}
               <CategorySlider 
                 hideTitle={true} 
                 activeSubCategory={subCategory} 
                 onSelectSubCategory={setSubCategory} 
                 contentPadding={gridPadding}
               />
+              <CollectionToolbar
+                productCount={count}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                onPressFilter={() => setIsFilterVisible(true)}
+                activeFilterCount={activeFilterCount}
+                currentColumns={userColumns || 4}
+                onColumnsChange={setUserColumns}
+              />
             </View>
-          }
+          )}
           onClearFilters={handleClearAll}
           hasSidebar={false}
           onScroll={Animated.event(
@@ -304,15 +266,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#150e06',
     borderBottomWidth: 1,
     borderColor: '#3d2b1a',
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   activeFiltersScroll: {
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   activeFiltersText: {
     color: '#888',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
     textTransform: 'uppercase',
     marginRight: 4,
@@ -323,36 +285,38 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(212, 175, 55, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.25)',
-    borderRadius: 15,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    gap: 6,
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    gap: 4,
   },
   filterChipText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
   },
   filterChipClose: {
     marginLeft: 2,
   },
   clearAllFiltersBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   clearAllFiltersText: {
     color: '#D4AF37',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
     textDecorationLine: 'underline',
   },
   categoriesSelectorContainer: {
     backgroundColor: "#1a1209",
-    paddingVertical: 12,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 175, 55, 0.1)',
     width: "100%",
   },
   categoriesScrollContent: {
-    gap: 8,
+    gap: 6,
     flexDirection: 'row',
     alignItems: 'center',
     ...Platform.select({
@@ -363,9 +327,9 @@ const styles = StyleSheet.create({
     })
   },
   categoryBadge: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 4,
     backgroundColor: '#201409',
     ...Platform.select({
       web: {
@@ -376,10 +340,12 @@ const styles = StyleSheet.create({
   },
   activeCategoryBadge: {
     backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
   },
   categoryBadgeText: {
     color: 'rgba(212, 175, 55, 0.6)',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,

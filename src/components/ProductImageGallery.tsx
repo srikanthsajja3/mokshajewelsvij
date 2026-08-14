@@ -164,7 +164,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
     <View style={styles.container}>
       <View style={{ flexDirection: isLargeScreen ? "row" : "column" }}>
         {isLargeScreen && allImages.length > 1 && (
-          <View style={styles.thumbnailColumn}>
+          <View style={[styles.thumbnailColumn, { maxHeight: mainImageWidth }]}>
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.thumbnailScrollContent}

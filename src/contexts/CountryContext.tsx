@@ -24,19 +24,19 @@ export const CountryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const response = await fetch('https://ipapi.co/json/');
       
       // Check if response is ok and is JSON
-      if (response.ok) {
+      if (response && response.ok) {
         const data = await response.json();
-        if (data.country_code) {
+        if (data && data.country_code) {
           console.log("IP detection successful:", data.country_code);
           return data.country_code;
         }
       }
       
       // Fallback provider if ipapi fails or rate limits
-      const fallbackResponse = await fetch('http://ip-api.com/json/');
-      if (fallbackResponse.ok) {
+      const fallbackResponse = await fetch('https://ip-api.com/json/');
+      if (fallbackResponse && fallbackResponse.ok) {
         const data = await fallbackResponse.json();
-        if (data.countryCode) {
+        if (data && data.countryCode) {
           console.log("Fallback IP detection successful:", data.countryCode);
           return data.countryCode;
         }

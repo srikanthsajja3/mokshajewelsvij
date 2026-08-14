@@ -1,13 +1,11 @@
 import React, { useRef } from "react";
-import { StyleSheet, View, useWindowDimensions, Text, TouchableOpacity, Animated, Platform } from "react-native";
+import { StyleSheet, View, useWindowDimensions, Text, TouchableOpacity, Animated } from "react-native";
 import { FontAwesome5 } from '@expo/vector-icons';
-import Header from "../components/Header";
 import ImageScroller from "../components/ImageScroller";
 import Footer from "../components/Footer";
 
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
-
 import { useUI } from "../contexts/UIContext";
 
 interface HomeScreenProps {
@@ -17,15 +15,15 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ scrollY: scrollYProp }) => {
   const { width } = useWindowDimensions();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { scrollY: globalScrollY } = useUI();
+  const { scrollY: globalScrollY, setSearchQuery } = useUI();
   
   const localScrollY = useRef(new Animated.Value(0)).current;
   const scrollY = scrollYProp || globalScrollY || localScrollY;
 
-  const navigateToCategory = (cat: string) => navigation.navigate('Category', { category: cat });
-  const navigateToProduct = (product: any) => navigation.navigate('ProductDetails', { id: product.id });
-  
-  const isMobile = width < 768;
+  const navigateToCategory = (cat: string) => {
+    setSearchQuery("");
+    navigation.navigate('Category', { category: cat });
+  };
 
   return (
     <View style={styles.container}>
@@ -35,14 +33,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ scrollY: scrollYProp }) => {
           { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
-        stickyHeaderIndices={[1]} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.contentWrapper}>
           <ImageScroller />
-          
+
           <View style={styles.mainArea}>
+            {/* Featured Section Banner */}
             <View style={styles.featuredSection}>
               <Text style={styles.sectionTitle} accessibilityRole="header">Crafted for Eternity</Text>
               <Text style={styles.sectionSubtitle}>Discover our latest masterpieces handcrafted with passion.</Text>
@@ -113,7 +111,7 @@ const styles = StyleSheet.create({
   featuredSection: {
     alignItems: "center",
     paddingHorizontal: 20,
-    marginBottom: 60,
+    marginBottom: 40,
   },
   sectionTitle: {
     fontFamily: "TrajanPro",
@@ -156,7 +154,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-start",
-    flexWrap: "nowrap", // Ensure they stay in one line
+    flexWrap: "nowrap",
     paddingHorizontal: 10,
   },
   pillarItem: {

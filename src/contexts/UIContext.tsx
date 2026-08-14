@@ -7,6 +7,8 @@ interface UIContextType {
   drawerVisible: boolean;
   setDrawerVisible: (visible: boolean) => void;
   scrollY: Animated.Value;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -14,10 +16,19 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [loginVisible, setLoginVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const scrollY = useRef(new Animated.Value(0)).current;
 
   return (
-    <UIContext.Provider value={{ loginVisible, setLoginVisible, drawerVisible, setDrawerVisible, scrollY }}>
+    <UIContext.Provider value={{ 
+      loginVisible, 
+      setLoginVisible, 
+      drawerVisible, 
+      setDrawerVisible, 
+      scrollY,
+      searchQuery,
+      setSearchQuery 
+    }}>
       {children}
     </UIContext.Provider>
   );

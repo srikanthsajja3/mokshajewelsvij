@@ -11,8 +11,12 @@ import {
   Image,
   Alert,
   TextInput,
-  Animated
+  Animated,
+  Modal,
+  SafeAreaView
 } from 'react-native';
+import Papa from 'papaparse';
+import * as DocumentPicker from 'expo-document-picker';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -66,6 +70,18 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [inventory, setInventory] = useState<Product[]>([]);
+  const [inventorySearchQuery, setInventorySearchQuery] = useState<string>('');
+
+  const filteredInventory = inventory.filter(item => {
+    if (!inventorySearchQuery.trim()) return true;
+    const query = inventorySearchQuery.toLowerCase().trim();
+    return (
+      (item.name && item.name.toLowerCase().includes(query)) ||
+      (item.productCode && item.productCode.toLowerCase().includes(query)) ||
+      (item.category && item.category.toLowerCase().includes(query)) ||
+      (item.type && item.type.toLowerCase().includes(query))
+    );
+  });
 
   // Modal States
   const [deleteProductModal, setDeleteProductModal] = useState(false);
@@ -97,6 +113,217 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
   const [customGoldRate, setCustomGoldRate] = useState<string>('');
   const [isOverrideEnabled, setIsOverrideEnabled] = useState<boolean>(false);
   const [savingGoldRate, setSavingGoldRate] = useState<boolean>(false);
+
+  // Bulk Import States
+  const [isBulkImportVisible, setIsBulkImportVisible] = useState<boolean>(false);
+  const [bulkCsvText, setBulkCsvText] = useState<string>('');
+  const [parsedImportItems, setParsedImportItems] = useState<any[]>([]);
+  const [bulkImporting, setBulkImporting] = useState<boolean>(false);
+  const [importStatusMsg, setImportStatusMsg] = useState<string>('');
+
+  const handleDownloadSampleCsv = () => {
+    const sampleCsv = `name,category_name,product_code,gross_weight,gold_weight,purity,metal_color,base_price_usd,type,stock_quantity,image_url
+Royal Ruby Necklace,Gold,MJ-100201,15.5,12.0,22K,Yellow Gold,2500,Necklace,5,https://tnvdmftovccgfrllaffq.supabase.co/storage/v1/object/public/products/logo.jpg
+Heritage Gold Ring,Gold,MJ-100202,6.2,5.5,22K,Yellow Gold,850,Rings,10,https://tnvdmftovccgfrllaffq.supabase.co/storage/v1/object/public/products/logo.jpg
+Classic Gold Bangles,Gold,MJ-100203,24.0,22.5,22K,Yellow Gold,3200,Bangles,8,https://tnvdmftovccgfrllaffq.supabase.co/storage/v1/object/public/products/logo.jpg`;
+
+    setBulkCsvText(sampleCsv);
+    handleParseCsvText(sampleCsv);
+
+    if (Platform.OS === 'web') {
+      const blob = new Blob([sampleCsv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'moksha_products_sample.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      Alert.alert("Sample CSV Generated", "Sample CSV text has been populated in the input field.");
+    }
+  };
+
+  const handleFilePick = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'application/json', 'text/comma-separated-values', 'text/plain'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        if (Platform.OS === 'web' && (file as any).file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const content = e.target?.result as string;
+            setBulkCsvText(content);
+            handleParseCsvText(content);
+          };
+          reader.readAsText((file as any).file);
+        } else if (file.uri) {
+          const res = await fetch(file.uri);
+          const text = await res.text();
+          setBulkCsvText(text);
+          handleParseCsvText(text);
+        }
+      }
+    } catch (err: any) {
+      Alert.alert("File Error", err?.message || "Could not read file.");
+    }
+  };
+
+  const handleParseCsvText = (text: string) => {
+    setImportStatusMsg('');
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setParsedImportItems([]);
+      return;
+    }
+
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        const arr = Array.isArray(parsed) ? parsed : [parsed];
+        setParsedImportItems(arr);
+        setImportStatusMsg(`Parsed ${arr.length} JSON products ready for import.`);
+      } catch (err: any) {
+        setImportStatusMsg(`JSON Error: ${err.message}`);
+      }
+    } else {
+      Papa.parse(trimmed, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.data && results.data.length > 0) {
+            setParsedImportItems(results.data);
+            setImportStatusMsg(`Parsed ${results.data.length} CSV rows ready for import.`);
+          } else {
+            setImportStatusMsg('No valid rows found in CSV.');
+          }
+        },
+        error: (err: any) => {
+          setImportStatusMsg(`CSV Parsing Error: ${err.message}`);
+        }
+      });
+    }
+  };
+
+  const handleExecuteBulkImport = async () => {
+    if (!parsedImportItems || parsedImportItems.length === 0) {
+      Alert.alert("No Items", "Please pick or paste a CSV/JSON file first.");
+      return;
+    }
+
+    const defaultVendorId = vendors[0]?.id;
+    if (!defaultVendorId) {
+      Alert.alert("Vendor Required", "Please ensure at least one vendor exists in the system before bulk importing products.");
+      return;
+    }
+
+    setBulkImporting(true);
+    setImportStatusMsg('Importing products into database...');
+
+    try {
+      // Detect if dataset is inventory APK schema (contains gross_wt, sku, label_no, dai_wt, net_wt, etc.)
+      const isApkSchema = parsedImportItems.some(i => i.gross_wt !== undefined || i.sku !== undefined || i.label_no !== undefined || i.net_wt !== undefined);
+
+      if (isApkSchema) {
+        // 1. Prepare items table payload
+        const itemsToInsert = parsedImportItems.map((item, idx) => ({
+          name: item.name || `Inventory Item ${idx + 1}`,
+          sku: item.sku || item.label_no || item.product_code || `SKU-${Date.now()}-${idx + 1}`,
+          label_no: item.label_no || item.sku || undefined,
+          purity: item.purity ? `${item.purity}K` : '18K',
+          gross_wt: parseFloat(item.gross_wt || item.gross_weight || "0"),
+          net_wt: parseFloat(item.net_wt || item.gold_weight || "0"),
+          dai_wt: parseFloat(item.dai_wt || "0"),
+          dai_pcs: parseInt(item.dai_pcs || "0"),
+          clr_stone_wt: parseFloat(item.clr_stone_wt || "0"),
+          clr_stone_pcs: parseInt(item.clr_stone_pcs || "0"),
+          wastage: parseFloat(item.wastage || "0"),
+          labour_rate: parseFloat(item.labour_rate || "0"),
+          labour_amt: parseFloat(item.labour_amt || "0"),
+          doc_no: item.doc_no || undefined,
+          size: item.size || undefined,
+          huid: item.huid || undefined,
+          cost_price: parseFloat(item.cost_price || item.base_price_usd || "0"),
+          dia_purchase_amt: parseFloat(item.dia_purchase_amt || "0"),
+          stone_purchase_amt: parseFloat(item.stone_purchase_amt || "0"),
+          supplier_name: item.supplier_name || undefined,
+          stones_in_detail: typeof item.stones_in_detail === 'string' ? item.stones_in_detail : JSON.stringify(item.stones_in_detail || []),
+          image_url: item.image_url || item.thumbnail_url || (Array.isArray(item.image_urls) ? item.image_urls[0] : undefined),
+          quantity: parseInt(item.quantity || "1"),
+          pcs: parseInt(item.pcs || "1"),
+          unit: item.unit || 'pcs',
+          location: item.location || undefined,
+          barcode: item.barcode || item.sku || `BAR-${Date.now()}-${idx + 1}`
+        }));
+
+        const { error: itemsErr } = await supabase.from('items').insert(itemsToInsert);
+        if (itemsErr) {
+          console.warn("Notice: Inserting to 'items' table failed/bypassed, syncing to 'products' table:", itemsErr.message);
+        }
+      }
+
+      // 2. Also map to products table to ensure storefront & cart/order compatibility
+      const recordsToInsert = parsedImportItems.map((item, idx) => {
+        const grossW = parseFloat(item.gross_weight || item.gross_wt || "10.0");
+        const goldW = parseFloat(item.gold_weight || item.net_wt || item.gross_wt || "8.0");
+        const basePrice = parseFloat(item.base_price_usd || item.price || item.cost_price || item.prc_amount || "1000");
+        
+        let galleryArr: string[] = [];
+        if (Array.isArray(item.image_urls)) {
+          galleryArr = item.image_urls;
+        } else if (typeof item.image_urls === 'string') {
+          try { galleryArr = JSON.parse(item.image_urls); } catch (e) { galleryArr = []; }
+        }
+        if (galleryArr.length === 0 && item.image_url) {
+          galleryArr = [item.image_url];
+        }
+
+        return {
+          name: item.name || item.title || `Imported Item ${idx + 1}`,
+          category_name: item.category_name || item.category || "Gold",
+          product_code: item.product_code || item.sku || item.barcode || item.label_no || `MJ-${Date.now().toString().slice(-5)}-${idx + 1}`,
+          gross_weight: isNaN(grossW) ? 10.0 : grossW,
+          gold_weight: isNaN(goldW) ? 8.0 : goldW,
+          purity: item.purity ? (item.purity.includes('K') ? item.purity : `${item.purity} KT`) : "22 KT",
+          metal_color: item.metal_color || item.metalColor || "Yellow Gold",
+          base_price_usd: isNaN(basePrice) || basePrice <= 0 ? 1000 : basePrice,
+          metal_price_usd: (isNaN(basePrice) || basePrice <= 0 ? 1000 : basePrice) * 0.85,
+          va_making_usd: parseFloat(item.labour_amt || item.labour_rate || "0") || (isNaN(basePrice) ? 0 : basePrice * 0.12),
+          stone_beads_usd: parseFloat(item.dia_purchase_amt || item.stone_purchase_amt || "0"),
+          tax_usd: isNaN(basePrice) ? 0 : basePrice * 0.03,
+          vendor_id: item.vendor_id || item.vendorId || defaultVendorId,
+          type: item.type || (item.name && item.name.toLowerCase().includes('bangle') ? 'Bangles' : item.name && item.name.toLowerCase().includes('pendant') ? 'Lockets' : 'Necklace'),
+          stock_quantity: parseInt(item.stock_quantity || item.quantity || item.pcs || "10"),
+          sourcing_cost: parseFloat(item.sourcing_cost || item.cost_price || "0"),
+          gallery_urls: galleryArr,
+          image_url: item.image_url || item.thumbnail_url || (galleryArr.length > 0 ? galleryArr[0] : "https://tnvdmftovccgfrllaffq.supabase.co/storage/v1/object/public/products/logo.jpg")
+        };
+      });
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert(recordsToInsert)
+        .select();
+
+      if (error) throw error;
+
+      Alert.alert("Bulk Import Successful!", `Successfully imported ${recordsToInsert.length} products to database.`);
+      setIsBulkImportVisible(false);
+      setBulkCsvText('');
+      setParsedImportItems([]);
+      fetchAdminData();
+    } catch (err: any) {
+      console.error("Bulk Import Error:", err);
+      Alert.alert("Bulk Import Failed", err.message || "Failed to import products.");
+      setImportStatusMsg(`Import Error: ${err.message}`);
+    } finally {
+      setBulkImporting(false);
+    }
+  };
 
   useEffect(() => {
     console.log("AdminDashboard: isAdmin check:", isAdmin, "User:", user?.email);
@@ -215,32 +442,37 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
 
       if (fetchErr) throw fetchErr;
 
-      let dbError;
-      if (existing && existing.length > 0) {
-        const { error } = await supabase
-          .from('gold_rates')
-          .update({ 
-            rate_per_gram_usd: rateVal,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing[0].id);
-        dbError = error;
-      } else {
-        const { error } = await supabase
-          .from('gold_rates')
-          .insert({
-            purity: '24K',
-            rate_per_gram_usd: rateVal,
-            updated_at: new Date().toISOString()
-          });
-        dbError = error;
+      const recordToSave: any = {
+        purity: '24K',
+        rate_per_gram_usd: rateVal,
+        updated_at: new Date().toISOString()
+      };
+
+      if (existing && existing.length > 0 && existing[0].id) {
+        recordToSave.id = existing[0].id;
       }
 
-      if (dbError) throw dbError;
+      const { error: dbError } = await supabase
+        .from('gold_rates')
+        .upsert(recordToSave);
+
+      if (dbError) {
+        console.error("Supabase gold_rates update error:", dbError);
+        const isTriggerError = dbError.code === '21000' || dbError.message?.includes('WHERE clause');
+        Alert.alert(
+          isTriggerError ? "Supabase Trigger Error (21000)" : "Supabase Database Error",
+          isTriggerError
+            ? "A database trigger on 'gold_rates' in your Supabase DB is executing an UPDATE without a WHERE clause.\n\nPlease run the updated setup_gold_rates_policies.sql script in your Supabase SQL Editor to clean up faulty triggers."
+            : `Failed to update gold rate (${dbError.message || dbError.code || 'HTTP 400'}).\n\nEnsure that:\n1. You are logged in as an Admin user.\n2. Row Level Security (RLS) UPDATE/INSERT policies on table 'gold_rates' are enabled for admin.`
+        );
+        return;
+      }
       Alert.alert("Success", "Gold rate override updated successfully!");
       fetchAdminData();
     } catch (err: any) {
-      Alert.alert("Error saving gold rate", err.message);
+      console.error("Error saving gold rate:", err);
+      const errMsg = err?.message || "Failed to save gold rate.";
+      Alert.alert("Error saving gold rate", errMsg);
     } finally {
       setSavingGoldRate(false);
     }
@@ -574,49 +806,88 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
               {activeTab === 'inventory' ? (
                 <View style={styles.section}>
                   <View style={styles.rowBetween}>
-                    <Text style={styles.sectionTitle}>Product Inventory</Text>
-                    <TouchableOpacity 
-                      style={styles.addBtn} 
-                      onPress={() => {
-                        if (vendors.length > 0) {
-                          navigation.navigate('AddProduct', { vendorId: vendors[0].id });
-                        } else {
-                          Alert.alert("Action Required", "Please create a vendor first.");
-                        }
-                      }}
-                    >
-                      <Text style={styles.addBtnText}>+ NEW ITEM</Text>
-                    </TouchableOpacity>
+                    <Text style={styles.sectionTitle}>
+                      Product Inventory ({filteredInventory.length}{inventorySearchQuery ? ` of ${inventory.length}` : ''})
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity 
+                        style={styles.bulkImportHeaderBtn} 
+                        onPress={() => setIsBulkImportVisible(true)}
+                      >
+                        <Text style={styles.bulkImportHeaderBtnText}>📥 BULK IMPORT</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.addBtn} 
+                        onPress={() => {
+                          if (vendors.length > 0) {
+                            navigation.navigate('AddProduct', { vendorId: vendors[0].id });
+                          } else {
+                            Alert.alert("Action Required", "Please create a vendor first.");
+                          }
+                        }}
+                      >
+                        <Text style={styles.addBtnText}>+ NEW ITEM</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={styles.inventoryList}>
-                    {inventory.map(item => (
-                      <View key={item.id} style={styles.inventoryCard}>
-                        <OptimizedImage url={item.image} style={styles.invThumb} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.invName}>{item.name}</Text>
-                          <Text style={styles.invCode}>{item.productCode}</Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={styles.invStock}>Stock: {item.stockQuantity || 0}</Text>
-                          <Text style={styles.invCost}>Cost: {formatPrice(item.sourcingCost || 0, countryCode)}</Text>
-                          <View style={styles.actionRow}>
-                             <TouchableOpacity onPress={() => navigation.navigate('AddProduct', { vendorId: item.vendorId || '', product: item })} style={styles.editAction}>
-                                <Text style={styles.editActionText}>EDIT</Text>
-                             </TouchableOpacity>
-                             <TouchableOpacity 
-                                onPress={() => {
-                                  setProductIdToDelete(item.id);
-                                  setDeleteProductModal(true);
-                                }} 
-                                style={styles.deleteAction}
-                              >
-                                <Text style={styles.deleteActionText}>DELETE</Text>
-                             </TouchableOpacity>
+
+                  {/* Inventory Search Input */}
+                  <View style={styles.searchBarContainer}>
+                    <Text style={styles.searchIconText}>🔍</Text>
+                    <TextInput
+                      style={styles.searchInputField}
+                      placeholder="Search inventory by product name, code (MJ-...), category..."
+                      placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                      value={inventorySearchQuery}
+                      onChangeText={setInventorySearchQuery}
+                      clearButtonMode="while-editing"
+                    />
+                    {inventorySearchQuery ? (
+                      <TouchableOpacity onPress={() => setInventorySearchQuery('')} style={styles.clearSearchBtn}>
+                        <Text style={styles.clearSearchText}>✕ CLEAR</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+
+                  {filteredInventory.length === 0 ? (
+                    <View style={styles.noResultsBox}>
+                      <Text style={styles.noResultsTitle}>No products matching "{inventorySearchQuery}"</Text>
+                      <Text style={styles.noResultsSubtitle}>Try searching with a different product name or product code.</Text>
+                      <TouchableOpacity onPress={() => setInventorySearchQuery('')} style={styles.resetSearchBtn}>
+                        <Text style={styles.resetSearchBtnText}>Reset Inventory Search</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.inventoryList}>
+                      {filteredInventory.map(item => (
+                        <View key={item.id} style={styles.inventoryCard}>
+                          <OptimizedImage url={item.image} style={styles.invThumb} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.invName}>{item.name}</Text>
+                            <Text style={styles.invCode}>{item.productCode}</Text>
+                          </View>
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={styles.invStock}>Stock: {item.stockQuantity || 0}</Text>
+                            <Text style={styles.invCost}>Cost: {formatPrice(item.sourcingCost || 0, countryCode)}</Text>
+                            <View style={styles.actionRow}>
+                               <TouchableOpacity onPress={() => navigation.navigate('AddProduct', { vendorId: item.vendorId || '', product: item })} style={styles.editAction}>
+                                  <Text style={styles.editActionText}>EDIT</Text>
+                               </TouchableOpacity>
+                               <TouchableOpacity 
+                                  onPress={() => {
+                                    setProductIdToDelete(item.id);
+                                    setDeleteProductModal(true);
+                                  }} 
+                                  style={styles.deleteAction}
+                                >
+                                  <Text style={styles.deleteActionText}>DELETE</Text>
+                               </TouchableOpacity>
+                            </View>
                           </View>
                         </View>
-                      </View>
-                    ))}
-                  </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               ) : null}
 
@@ -778,7 +1049,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
                       <View style={{ flex: 1, paddingRight: 15 }}>
                         <Text style={[styles.vendorName, { fontSize: 16 }]}>Manual Gold Rate Override</Text>
                         <Text style={[styles.vendorMeta, { marginTop: 4, color: '#aaa' }]}>
-                          Override live APIs and set a fixed price per gram for Gold (24K) in USD.
+                          Override live APIs and set a fixed price per gram for Gold (24K) in INR (₹) or USD ($).
                         </Text>
                       </View>
                       
@@ -802,14 +1073,17 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
 
                     {isOverrideEnabled && (
                       <View style={{ gap: 10, marginTop: 10 }}>
-                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>24K Gold Rate (USD per Gram)</Text>
+                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>24K Gold Rate (INR ₹ or USD $ per Gram)</Text>
                         <TextInput 
                           style={[styles.modalInput, { width: '100%', maxWidth: 300, backgroundColor: '#291c0e' }]} 
                           keyboardType="numeric"
-                          placeholder="e.g. 129.50"
+                          placeholder="e.g. 14362 (INR) or 173 (USD)"
                           placeholderTextColor="#666"
                           value={customGoldRate}
                           onChangeText={setCustomGoldRate}
+                          multiline={false}
+                          accessibilityLabel="24K Gold Rate"
+                          aria-label="24K Gold Rate"
                         />
                         <Text style={{ color: '#888', fontSize: 11, fontStyle: 'italic', marginTop: 4 }}>
                           * 22K (91.67%) and 18K (75.00%) rates will be calculated automatically based on this 24K base rate.
@@ -981,6 +1255,99 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ scrollY }) 
         onCancel={() => setDeleteBannerModal(false)}
         isDestructive={true}
       />
+
+      {/* Bulk Import Products Modal */}
+      <Modal
+        visible={isBulkImportVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsBulkImportVisible(false)}
+      >
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxWidth: 640, width: '92%' }]}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Bulk Product Import</Text>
+              <TouchableOpacity onPress={() => setIsBulkImportVisible(false)}>
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ paddingVertical: 10 }} showsVerticalScrollIndicator={false}>
+              <Text style={styles.bulkModalSubText}>
+                Upload a CSV or JSON file containing product records, or paste raw CSV text below.
+              </Text>
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 10, marginVertical: 12 }}>
+                <TouchableOpacity style={styles.sampleCsvBtn} onPress={handleFilePick}>
+                  <Text style={styles.sampleCsvBtnText}>📁 Pick CSV / JSON File</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.sampleCsvBtn} onPress={handleDownloadSampleCsv}>
+                  <Text style={styles.sampleCsvBtnText}>⬇ Download Template</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Raw CSV Text Input */}
+              <Text style={styles.label}>PASTE CSV OR JSON TEXT</Text>
+              <TextInput
+                style={styles.csvTextArea}
+                multiline
+                numberOfLines={6}
+                placeholder="name,category_name,product_code,gross_weight,gold_weight,purity,metal_color,base_price_usd,type,stock_quantity,image_url..."
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                value={bulkCsvText}
+                onChangeText={(t) => {
+                  setBulkCsvText(t);
+                  handleParseCsvText(t);
+                }}
+              />
+
+              {importStatusMsg ? (
+                <Text style={styles.statusMsgText}>{importStatusMsg}</Text>
+              ) : null}
+
+              {/* Parsed Items Preview */}
+              {parsedImportItems.length > 0 && (
+                <View style={styles.previewContainer}>
+                  <Text style={styles.previewHeader}>Parsed Preview ({parsedImportItems.length} Items):</Text>
+                  {parsedImportItems.slice(0, 4).map((item, idx) => (
+                    <View key={idx} style={styles.previewRow}>
+                      <Text style={styles.previewName} numberOfLines={1}>
+                        {idx + 1}. {item.name || item.title || 'Item'} ({item.product_code || item.productCode || 'NO-CODE'})
+                      </Text>
+                      <Text style={styles.previewPrice}>
+                        {formatPrice(parseFloat(item.base_price_usd || item.price || "0"), countryCode)}
+                      </Text>
+                    </View>
+                  ))}
+                  {parsedImportItems.length > 4 && (
+                    <Text style={styles.previewMoreText}>
+                      ...and {parsedImportItems.length - 4} more items ready.
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                style={[styles.saveBtn, (bulkImporting || parsedImportItems.length === 0) && { opacity: 0.6 }]}
+                onPress={handleExecuteBulkImport}
+                disabled={bulkImporting || parsedImportItems.length === 0}
+              >
+                {bulkImporting ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={styles.saveBtnText}>
+                    {parsedImportItems.length > 0 
+                      ? `IMPORT ${parsedImportItems.length} PRODUCTS` 
+                      : 'PARSE CSV / JSON TO START'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 };
@@ -1050,7 +1417,7 @@ const styles = StyleSheet.create({
   },
   dashboard: {
     padding: 20,
-    maxWidth: 1200,
+    maxWidth: 1400,
     alignSelf: 'center',
     width: '100%',
   },
@@ -1091,6 +1458,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 40,
+    width: '100%',
   },
   sectionTitle: {
     fontFamily: 'TrajanPro',
@@ -1160,14 +1528,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   inventoryList: {
-    gap: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    width: '100%',
   },
   inventoryCard: {
     flexDirection: 'row',
     backgroundColor: '#3d2b1a',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    minWidth: Platform.OS === 'web' ? 380 : '100%',
+    flex: 1,
     gap: 15,
   },
   invThumb: {
@@ -1393,6 +1767,213 @@ const styles = StyleSheet.create({
   uploadBtnText: {
     color: '#000',
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  bulkImportHeaderBtn: {
+    backgroundColor: '#D4AF37',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bulkImportHeaderBtnText: {
+    color: '#291c0e',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  bulkModalSubText: {
+    color: '#aaa',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  sampleCsvBtn: {
+    flex: 1,
+    backgroundColor: '#3d2b1a',
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  sampleCsvBtnText: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  csvTextArea: {
+    backgroundColor: '#291c0e',
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    borderRadius: 6,
+    padding: 12,
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: Platform.OS === 'web' ? 'monospace' : 'monospace',
+    minHeight: 110,
+    textAlignVertical: 'top',
+    marginTop: 6,
+  },
+  statusMsgText: {
+    color: '#D4AF37',
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  previewContainer: {
+    marginTop: 12,
+    backgroundColor: '#291c0e',
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    borderRadius: 6,
+    padding: 10,
+  },
+  previewHeader: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  previewName: {
+    color: '#ccc',
+    fontSize: 12,
+    flex: 1,
+    marginRight: 10,
+  },
+  previewPrice: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  previewMoreText: {
+    color: '#888',
+    fontSize: 11,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    backgroundColor: '#3d2b1a',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    padding: 20,
+    width: '100%',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#4a3520',
+    paddingBottom: 12,
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontFamily: 'TrajanPro',
+    fontSize: 18,
+    color: '#D4AF37',
+    fontWeight: 'bold',
+  },
+  label: {
+    color: '#888',
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  saveBtn: {
+    backgroundColor: '#D4AF37',
+    paddingVertical: 14,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  saveBtnText: {
+    color: '#291c0e',
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3d2b1a',
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    marginBottom: 20,
+  },
+  searchIconText: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+  searchInputField: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 14,
+    paddingVertical: 10,
+  },
+  clearSearchBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  clearSearchText: {
+    color: '#D4AF37',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  noResultsBox: {
+    padding: 40,
+    backgroundColor: '#3d2b1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4a3520',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noResultsTitle: {
+    color: '#D4AF37',
+    fontSize: 16,
+    fontFamily: 'TrajanPro',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noResultsSubtitle: {
+    color: '#aaa',
+    fontSize: 13,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  resetSearchBtn: {
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 4,
+  },
+  resetSearchBtnText: {
+    color: '#D4AF37',
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });

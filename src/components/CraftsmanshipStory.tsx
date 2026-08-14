@@ -43,6 +43,7 @@ const CraftsmanshipStory = () => {
           <Image 
             source={{ uri: 'https://images.unsplash.com/photo-1573408302185-9127fe589333?auto=format&fit=crop&q=80&w=800' }} 
             style={styles.mainImage} 
+            resizeMode="cover"
           />
           <View style={styles.imageOverlay} />
         </View>
@@ -116,7 +117,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 400,
     borderRadius: 4,
-    resizeMode: 'cover',
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
