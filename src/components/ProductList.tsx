@@ -303,14 +303,16 @@ const ProductList: React.FC<ProductListProps> = ({
 
   const gridWidth = width - (hasSidebar ? 284 : 0);
 
-  const spacing = Platform.OS === 'web' ? 16 : 12;
-  const padding = gridWidth > 1200 ? gridWidth * 0.02 : 12;
+  const isMobile = width < 768;
+  const spacing = isMobile ? 10 : (Platform.OS === 'web' ? 16 : 12);
+  const padding = isMobile ? 10 : (gridWidth > 1200 ? gridWidth * 0.02 : 12);
   const containerWidth = Platform.OS === 'web' ? Math.min(gridWidth, 2500) : gridWidth;
   const availableWidth = containerWidth - (padding * 2);
 
   // Dynamically calculate columns based on user selection or target compact card width
+  // In mobile view (<768px), enforce exactly 2 columns for optimal responsive display
   const targetCardWidth = Platform.OS === 'web' ? 180 : 140;
-  let numColumns = userColumns || Math.floor((availableWidth + spacing) / (targetCardWidth + spacing));
+  let numColumns = isMobile ? 2 : (userColumns || Math.floor((availableWidth + spacing) / (targetCardWidth + spacing)));
   numColumns = Math.max(2, numColumns); // Minimum 2 columns
 
   const itemWidth = (availableWidth - (spacing * (numColumns - 1))) / numColumns;

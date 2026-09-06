@@ -3,6 +3,8 @@
  * Replicates the exact calculation rules from Moksha Jewels Inventory APK (EstimationScreen.tsx)
  */
 
+import { supabase } from '../../supabase';
+
 export interface MasterRates {
   gold_24kt: number;
   gold_22kt: number;
@@ -71,7 +73,6 @@ export interface EstimationInput {
   labourRateOverride?: number;
   labourAmtOverride?: number;
   stones?: StoneItem[];
-  purchaseCost?: number; // Cost Price
 }
 
 export interface EstimationResult {
@@ -96,169 +97,56 @@ export interface EstimationResult {
   gstAmount: number;
   totalEstimate: number; // INR
   totalEstimateUSD: number;
-  // Admin Profit Analysis
-  purchaseCost?: number;
-  estimatedProfit?: number;
-  profitMarginPct?: number;
-  isLoss?: boolean;
 }
 
-export function calculateApkEstimate(
-  input: EstimationInput,
-  masterRates: MasterRates = DEFAULT_MASTER_RATES
-): EstimationResult {
-  const code = (input.productCode || input.sku || input.name || '').trim().toUpperCase();
-  const purity = (input.purity || '22K').toUpperCase();
-
-  // 1. Gold Rate Selection
-  let goldRate = masterRates.gold_22kt;
-  if (purity.includes('24')) {
-    goldRate = masterRates.gold_24kt;
-  } else if (purity.includes('18')) {
-    goldRate = masterRates.gold_18kt;
-  }
-
-  // 2. Billing Weight & Gold Value
-  const netWt = Math.max(0, input.netWt || 0);
-  const wastagePct = input.wastagePct !== undefined ? input.wastagePct : masterRates.default_wastage_pct;
-  const billingWeight = netWt * (1 + wastagePct / 100);
-  const goldValue = Math.round(billingWeight * goldRate * 100) / 100;
-
-  // 3. Stone Rates & Calculations
-  const isDiamondProduct = code.startsWith('D');
-  let totalStoneValue = 0;
-  let totalDiamondCarats = 0;
-
-  const processedStones = (input.stones || []).map((st) => {
-    const name = (st.name || 'Stone').toUpperCase();
-    const wt = parseFloat(st.weight?.toString() || '0') || 0;
-    const pcs = parseInt(st.pcs?.toString() || '0') || 1;
-    let baseRate = parseFloat(st.rate?.toString() || '0') || 0;
-
-    // Fallback rate if 0
-    if (baseRate === 0) {
-      if (name.includes('DIAMOND') || name.includes('VVS') || name.includes('EF') || name.includes('RD')) {
-        baseRate = masterRates.diamond_rd_rate;
-      } else if (name.includes('PEAR')) {
-        baseRate = masterRates.diamond_pear_rate;
-      } else if (name.includes('STB') || name.includes('BAGUETTE')) {
-        baseRate = masterRates.diamond_stb_rate;
-      } else if (name.includes('BEAD') || name.includes('PEARL') || name.includes('BLACKBEAD')) {
-        baseRate = masterRates.default_beads_rate;
-      } else {
-        baseRate = masterRates.stone_rate;
-      }
-    }
-
-    // Emerald & Ruby Discount Rule for non-diamond products
-    let discount = 0;
-    if (!isDiamondProduct && (name.includes('EMERALD') || name.includes('RUBY'))) {
-      discount = masterRates.emerald_ruby_discount;
-    }
-
-    const finalRate = Math.max(0, baseRate - discount);
-    const amount = wt > 0 ? Math.round(wt * finalRate) : Math.round(pcs * finalRate);
-
-    // Track total diamond carats for certification charges
-    if (name.includes('DIAMOND') || name.includes('VVS') || name.includes('EF') || name.includes('RD') || name.includes('SHAPE')) {
-      totalDiamondCarats += wt;
-    }
-
-    totalStoneValue += amount;
-
-    return {
-      name: st.name,
-      weight: wt,
-      pcs,
-      baseRate,
-      discount,
-      finalRate,
-      amount,
-    };
-  });
-
-  // 4. Diamond Certification Charges
-  let certCharges = 0;
-  if (totalDiamondCarats > 0) {
-    certCharges = Math.max(
-      totalDiamondCarats * masterRates.cert_rate_per_ct,
-      masterRates.cert_rate_per_ct
-    );
-  }
-
-  // 5. Labour / Making Charges
-  let labourCharges = 0;
-  let labourType: 'Tier Override' | 'Fixed Override' | 'Weight Based' = 'Weight Based';
-
-  if (input.labourAmtOverride && input.labourAmtOverride > 0) {
-    labourCharges = input.labourAmtOverride;
-    labourType = 'Fixed Override';
-  } else if (code.startsWith('D')) {
-    // Special D Tier Overrides
-    if (netWt <= masterRates.special_d_tier1_weight) {
-      labourCharges = masterRates.special_d_tier1_labor; // ₹10,000
-      labourType = 'Tier Override';
-    } else if (netWt < masterRates.special_d_tier2_weight) {
-      labourCharges = masterRates.special_d_tier2_labor; // ₹12,000
-      labourType = 'Tier Override';
-    } else {
-      const rate = input.labourRateOverride || masterRates.default_labor_diamond;
-      labourCharges = Math.round(netWt * rate);
-      labourType = 'Weight Based';
-    }
-  } else if (code.startsWith('G')) {
-    // Special G Tier Overrides
-    if (netWt < 5.0) {
-      labourCharges = 4000;
-      labourType = 'Tier Override';
-    } else if (netWt <= 8.0) {
-      labourCharges = 8000;
-      labourType = 'Tier Override';
-    } else {
-      const rate = input.labourRateOverride || masterRates.default_labor_regular;
-      labourCharges = Math.round(netWt * rate);
-      labourType = 'Weight Based';
-    }
-  } else {
-    const rate = input.labourRateOverride || masterRates.default_labor_regular;
-    labourCharges = Math.round(netWt * rate);
-    labourType = 'Weight Based';
-  }
-
-  // 6. Subtotal & GST Grand Total
-  const subTotal = goldValue + totalStoneValue + labourCharges + certCharges;
-  const gstAmount = Math.round(subTotal * (masterRates.tax_gst_pct / 100));
-  const totalEstimate = subTotal + gstAmount;
-  const totalEstimateUSD = Math.round((totalEstimate / 83) * 100) / 100;
-
-  // 7. Admin Profit / Loss Analysis
-  let estimatedProfit: number | undefined = undefined;
-  let profitMarginPct: number | undefined = undefined;
-  let isLoss: boolean | undefined = undefined;
-
-  if (input.purchaseCost && input.purchaseCost > 0) {
-    estimatedProfit = totalEstimate - input.purchaseCost;
-    profitMarginPct = Math.round((estimatedProfit / input.purchaseCost) * 10000) / 100;
-    isLoss = estimatedProfit < 0;
-  }
-
+export function calculateApkEstimate(): EstimationResult {
+  console.warn(
+    'calculateApkEstimate: Client-side calculation is disabled. Use `fetchServerApkEstimate` to get server-authoritative calculations from Supabase RPC.'
+  );
   return {
-    goldRate,
-    billingWeight,
-    goldValue,
-    stoneItems: processedStones,
-    totalStoneValue,
-    totalDiamondCarats,
-    certCharges,
-    labourCharges,
-    labourType,
-    subTotal,
-    gstAmount,
-    totalEstimate,
-    totalEstimateUSD,
-    purchaseCost: input.purchaseCost,
-    estimatedProfit,
-    profitMarginPct,
-    isLoss,
+    goldRate: 0,
+    billingWeight: 0,
+    goldValue: 0,
+    stoneItems: [],
+    totalStoneValue: 0,
+    totalDiamondCarats: 0,
+    certCharges: 0,
+    labourCharges: 0,
+    labourType: 'Weight Based',
+    subTotal: 0,
+    gstAmount: 0,
+    totalEstimate: 0,
+    totalEstimateUSD: 0,
   };
 }
+
+/**
+ * Server-Authoritative Calculation Engine
+ * Fetches authoritative price estimate from Supabase RPC backend (`calculate_product_estimate_json`).
+ * Zero business/financial math takes place on the client side.
+ */
+export async function fetchServerApkEstimate(
+  input: EstimationInput
+): Promise<EstimationResult> {
+  try {
+    const { data, error } = await supabase.rpc('calculate_product_estimate_json', {
+      p_input: input,
+    });
+
+    if (error) {
+      console.error('fetchServerApkEstimate: Server RPC error:', error.message);
+      throw new Error(`Server calculation failed: ${error.message}`);
+    }
+
+    if (data && typeof data === 'object') {
+      return data as EstimationResult;
+    }
+  } catch (err) {
+    console.error('fetchServerApkEstimate: Failed to connect to server RPC:', err);
+    throw err;
+  }
+
+  throw new Error('Server calculation returned empty response');
+}
+
+

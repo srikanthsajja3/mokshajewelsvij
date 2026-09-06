@@ -8,14 +8,15 @@ import {
   ScrollView,
   SafeAreaView,
   useWindowDimensions,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Product } from '../data/products';
 import { useCountry } from '../contexts/CountryContext';
 import { useGoldRate } from '../contexts/GoldRateContext';
 import { formatPrice } from '../utils/currency';
-import { calculateApkEstimate } from '../utils/apkEstimationEngine';
+import { calculateApkEstimate, fetchServerApkEstimate, EstimationResult } from '../utils/apkEstimationEngine';
 
 interface PriceBreakupModalProps {
   visible: boolean;
@@ -35,6 +36,31 @@ export const PriceBreakupModal: React.FC<PriceBreakupModalProps> = ({
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
   const { rates } = useGoldRate();
+  const [serverEst, setServerEst] = React.useState<EstimationResult | null>(null);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    if (!product || !visible) return;
+
+    fetchServerApkEstimate({
+      productCode: product.productCode || product.sku || product.name,
+      sku: product.sku || product.productCode,
+      name: product.name,
+      netWt: product.goldWeight || product.netWeight || 0,
+      grossWt: product.grossWeight || product.goldWeight || 0,
+      purity: selectedPurity || product.purity || '22K',
+      wastagePct: product.wastage !== undefined ? product.wastage : 22,
+      labourRateOverride: product.labourRate && product.labourRate > 0 ? product.labourRate : undefined,
+      labourAmtOverride: product.labourAmt && product.labourAmt > 0 ? product.labourAmt : undefined,
+      stones: product.stonesInDetail || []
+    }).then(res => {
+      if (isMounted && res) {
+        setServerEst(res);
+      }
+    });
+
+    return () => { isMounted = false; };
+  }, [product, selectedPurity, visible]);
 
   if (!product) return null;
 
@@ -58,29 +84,45 @@ export const PriceBreakupModal: React.FC<PriceBreakupModalProps> = ({
     ? 75 * 0.75
     : 75 * 0.9167;
 
-  const est = useMemo(() => {
-    return calculateApkEstimate({
-      productCode: product.productCode || product.sku || product.name,
-      sku: product.sku || product.productCode,
-      name: product.name,
-      netWt: product.goldWeight || product.netWeight || 0,
-      grossWt: product.grossWeight || product.goldWeight || 0,
-      purity: selectedPurity || product.purity || '22K',
-      wastagePct: product.wastage !== undefined ? product.wastage : 22,
-      labourRateOverride: product.labourRate && product.labourRate > 0 ? product.labourRate : undefined,
-      labourAmtOverride: product.labourAmt && product.labourAmt > 0 ? product.labourAmt : undefined,
-      stones: product.stonesInDetail || []
-    });
-  }, [product, selectedPurity]);
+  const fallbackEst: EstimationResult = useMemo(() => {
+    const grossWeight = product?.grossWeight || product?.goldWeight || 0;
+    const netWeight = product?.goldWeight || product?.netWeight || 0;
+    const wastage = product?.wastage !== undefined ? product.wastage : 22;
+    const billingWeight = netWeight * (1 + wastage / 100);
+    const pb = product?.priceBreakup;
+    const metalValUSD = pb?.metal || ((product?.price || 0) * 0.85);
+    const labourValUSD = pb?.vaMaking || ((product?.price || 0) * 0.12);
+    const stoneValUSD = pb?.stoneBeads || 0;
+    const gstValUSD = pb?.tax || ((product?.price || 0) * 0.03);
+    const totalUSD = (product?.price || 0);
+
+    return {
+      goldRate: billingWeight > 0 ? Math.round((metalValUSD * 83) / billingWeight) : 11398,
+      billingWeight,
+      goldValue: Math.round(metalValUSD * 83),
+      stoneItems: [],
+      totalStoneValue: Math.round(stoneValUSD * 83),
+      totalDiamondCarats: product?.daiWeight || 0,
+      certCharges: 0,
+      labourCharges: Math.round(labourValUSD * 83),
+      labourType: 'Weight Based',
+      subTotal: Math.round((metalValUSD + labourValUSD + stoneValUSD) * 83),
+      gstAmount: Math.round(gstValUSD * 83),
+      totalEstimate: Math.round(totalUSD * 83),
+      totalEstimateUSD: totalUSD
+    };
+  }, [product]);
+
+  const est = serverEst || fallbackEst;
 
   const grossWeight = product.grossWeight || product.goldWeight || 0;
   const netWeight = product.goldWeight || product.netWeight || 0;
   const wastage = product.wastage !== undefined ? product.wastage : 22;
 
-  const subtotal = countryCode === 'IN' ? est.subTotal : est.subTotal / 83;
-  const gstTax = countryCode === 'IN' ? est.gstAmount : est.gstAmount / 83;
+  const subtotal = est ? (countryCode === 'IN' ? est.subTotal : est.subTotal / 83) : 0;
+  const gstTax = est ? (countryCode === 'IN' ? est.gstAmount : est.gstAmount / 83) : 0;
   const giftFee = addGiftWrapping ? (countryCode === 'IN' ? 830 : 10.0) : 0;
-  const grandTotal = countryCode === 'IN' ? est.totalEstimate + giftFee : est.totalEstimateUSD + giftFee;
+  const grandTotal = est ? (countryCode === 'IN' ? est.totalEstimate + giftFee : est.totalEstimateUSD + giftFee) : 0;
 
   const fmt = (val: number) => countryCode === 'IN' ? `₹${Math.round(val).toLocaleString('en-IN')}` : formatPrice(val, countryCode);
 
@@ -95,7 +137,10 @@ export const PriceBreakupModal: React.FC<PriceBreakupModalProps> = ({
         <View style={[styles.modalContainer, { maxWidth: Math.min(width - 32, 640) }]}>
           {/* Top Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Bill Estimator (Breakup)</Text>
+            <View>
+              <Text style={styles.modalTitle}>Detailed Price Breakup</Text>
+              <Text style={styles.modalSubtitle}>{product.name}</Text>
+            </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
               <FontAwesome5 name="times" size={16} color="#D4AF37" />
             </TouchableOpacity>

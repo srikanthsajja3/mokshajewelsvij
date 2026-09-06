@@ -46,100 +46,46 @@ const GOLD_API_KEY = process.env.EXPO_PUBLIC_GOLD_API_KEY || 'goldapi-placeholde
 
 export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { countryCode } = useCountry();
-  const [baseRate, setBaseRate] = useState<number>(75); 
+  const [rates, setRates] = useState<GoldRate[]>([
+    { purity: '24K', rate: 75 },
+    { purity: '22K', rate: 68.75 },
+    { purity: '18K', rate: 56.25 },
+  ]);
+  const [exchangeRate, setExchangeRate] = useState<number>(83);
+  const [currency, setCurrency] = useState<string>('INR');
+  const [locale, setLocale] = useState<string>('en-IN');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchGoldRate = async () => {
+    const fetchGoldRatesFromServer = async () => {
       setIsLoading(true);
       try {
-        // 0. Manual Override: Check if rate is set in Supabase database
-        try {
-          const { data: dbRates, error: dbError } = await supabase
-            .from('gold_rates')
-            .select('rate_per_gram_usd, updated_at')
-            .eq('purity', '24K')
-            .order('updated_at', { ascending: false })
-            .limit(1);
+        const { data, error } = await supabase.rpc('get_latest_gold_rates', {
+          p_country_code: countryCode || 'IN',
+        });
 
-          if (dbError) {
-            console.warn("GoldRateContext: Supabase SELECT error (check RLS SELECT policy):", dbError.message);
-          } else if (dbRates && dbRates.length > 0) {
-            const rawRate = parseFloat(dbRates[0].rate_per_gram_usd);
-            console.log("GoldRateContext: Found rate in Supabase:", rawRate);
-            if (rawRate > 0) {
-              // Smart Auto-detection: If rawRate > 1000, admin entered rate in INR per gram (e.g. 14362 or 7500).
-              // Convert to base USD per gram using INR exchange rate (83).
-              const usdRate = rawRate > 1000 ? rawRate / 83 : rawRate;
-              setBaseRate(usdRate);
-              setIsLoading(false);
-              return;
-            }
-          }
-        } catch (dbErr) {
-          console.warn("Failed to check gold rates override in Supabase:", dbErr);
+        if (error) {
+          console.warn('GoldRateContext: Server RPC error:', error.message);
+        } else if (data && data.rates && Array.isArray(data.rates)) {
+          setRates(
+            data.rates.map((r: any) => ({
+              purity: r.purity,
+              rate: r.usd_rate,
+            }))
+          );
+          if (data.exchange_rate) setExchangeRate(data.exchange_rate);
+          if (data.currency) setCurrency(data.currency);
+          if (data.locale) setLocale(data.locale);
         }
-
-        // Primary: GoldAPI.io with 3s Timeout
-        if (GOLD_API_KEY && GOLD_API_KEY !== 'goldapi-placeholder-key') {
-          const controllerIO = new AbortController();
-          const timeoutId = setTimeout(() => controllerIO.abort(), 3000);
-          try {
-            const responseIO = await fetch('https://www.goldapi.io/api/XAU/USD', {
-              headers: {
-                'x-access-token': GOLD_API_KEY,
-                'Content-Type': 'application/json'
-              },
-              signal: controllerIO.signal
-            });
-            clearTimeout(timeoutId);
-            if (responseIO.ok) {
-              const data = await responseIO.json();
-              if (data.price_gram_24k) {
-                setBaseRate(data.price_gram_24k);
-                setIsLoading(false);
-                return;
-              }
-            }
-          } catch (e) {
-            clearTimeout(timeoutId);
-          }
-        }
-
-        // Secondary: freegoldapi.com with 3s Timeout
-        const controllerFree = new AbortController();
-        const timeoutIdFree = setTimeout(() => controllerFree.abort(), 3000);
-        try {
-          const response = await fetch('https://freegoldapi.com/data/latest.json', { signal: controllerFree.signal });
-          clearTimeout(timeoutIdFree);
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-              const latest = data[data.length - 1];
-              if (latest.price) {
-                setBaseRate(latest.price);
-                setIsLoading(false);
-                return;
-              }
-            }
-          }
-        } catch (e) {
-          clearTimeout(timeoutIdFree);
-        }
-
-        // Final Fallback
-        const mockBase = 74.5;
-        setBaseRate(mockBase);
-      } catch (error) {
-        setBaseRate(74.5);
+      } catch (err) {
+        console.warn('GoldRateContext: Failed to fetch server gold rates:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchGoldRate();
+    fetchGoldRatesFromServer();
 
-    // Subscribe to Supabase Realtime changes for gold_rates table if supported
     let goldRateChannel: any = null;
     if (typeof supabase.channel === 'function') {
       goldRateChannel = supabase
@@ -147,46 +93,42 @@ export const GoldRateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'gold_rates' },
-          (payload) => {
-            console.log("GoldRateContext: Realtime gold rate change detected:", payload);
-            fetchGoldRate();
+          () => {
+            fetchGoldRatesFromServer();
           }
         )
         .subscribe();
     }
 
-    // Refresh every 30 minutes to stay within free tier limits
-    const interval = setInterval(fetchGoldRate, 1800000);
+    const interval = setInterval(fetchGoldRatesFromServer, 1800000);
     return () => {
       clearInterval(interval);
       if (goldRateChannel && typeof supabase.removeChannel === 'function') {
         supabase.removeChannel(goldRateChannel);
       }
     };
-  }, []);
-
-  const rates = useMemo((): GoldRate[] => [
-    { purity: '24K', rate: baseRate },
-    { purity: '22K', rate: baseRate * 0.9167 },
-    { purity: '18K', rate: baseRate * 0.75 },
-  ], [baseRate]);
-
-  const getLocalizedRate = useCallback((usdRate: number) => {
-    const config = COUNTRY_CONFIGS[countryCode] || DEFAULT_CONFIG;
-    const localizedValue = usdRate * config.exchangeRate * config.factor;
-    
-    return new Intl.NumberFormat(config.locale, {
-      style: 'currency',
-      currency: config.currency,
-      maximumFractionDigits: config.currency === 'INR' ? 0 : 2,
-    }).format(localizedValue) + ` (${config.unit})`;
   }, [countryCode]);
 
-  const value = useMemo(() => ({ 
-    rates, 
-    getLocalizedRate, 
-    isLoading 
-  }), [rates, getLocalizedRate, isLoading]);
+  const getLocalizedRate = useCallback(
+    (usdRate: number) => {
+      const localizedValue = usdRate * exchangeRate;
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: currency,
+        maximumFractionDigits: currency === 'INR' ? 0 : 2,
+      }).format(localizedValue) + ' (1g)';
+    },
+    [exchangeRate, locale, currency]
+  );
+
+  const value = useMemo(
+    () => ({
+      rates,
+      getLocalizedRate,
+      isLoading,
+    }),
+    [rates, getLocalizedRate, isLoading]
+  );
 
   return (
     <GoldRateContext.Provider value={value}>

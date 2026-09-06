@@ -30,29 +30,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   // Helper to map DB response to CartItem
-  const mapDbToCartItem = useCallback((item: any): CartItem => {
-    const product = item.product;
+  const mapDbToCartItem = useCallback((item: any): CartItem | null => {
+    const product = item?.product;
+    if (!product) return null;
     return {
       id: product.id,
-      name: product.name,
-      category: product.category_name || 'Uncategorized',
-      image: product.image_url,
-      productCode: product.product_code,
-      grossWeight: parseFloat(product.gross_weight || 0),
-      goldWeight: parseFloat(product.gold_weight || 0),
-      purity: product.purity,
-      metalColor: product.metal_color,
-      price: parseFloat(product.base_price_usd || 0),
+      name: product.name || 'Moksha Masterpiece',
+      category: product.category_name || product.category || 'Uncategorized',
+      image: product.image_url || product.image || 'https://tnvdmftovccgfrllaffq.supabase.co/storage/v1/object/public/products/logo.jpg',
+      productCode: product.product_code || product.productCode || `MJ-${product.id ? product.id.slice(0, 6) : '000000'}`,
+      grossWeight: parseFloat(product.gross_weight || product.grossWeight || 0),
+      goldWeight: parseFloat(product.gold_weight || product.goldWeight || 0),
+      purity: product.purity || '22K',
+      metalColor: product.metal_color || product.metalColor || 'Yellow Gold',
+      price: parseFloat(product.base_price_usd || product.price || 0),
       priceBreakup: {
-        metal: parseFloat(product.metal_price_usd || 0),
-        vaMaking: parseFloat(product.va_making_usd || 0),
-        stoneBeads: parseFloat(product.stone_beads_usd || 0),
-        tax: parseFloat(product.tax_usd || 0),
+        metal: parseFloat(product.metal_price_usd || product.priceBreakup?.metal || 0),
+        vaMaking: parseFloat(product.va_making_usd || product.priceBreakup?.vaMaking || 0),
+        stoneBeads: parseFloat(product.stone_beads_usd || product.priceBreakup?.stoneBeads || 0),
+        tax: parseFloat(product.tax_usd || product.priceBreakup?.tax || 0),
       },
-      rating: parseFloat(product.rating || 0),
-      popularity: parseInt(product.popularity || 0),
-      createdAt: product.created_at,
-      quantity: item.quantity,
+      rating: parseFloat(product.rating || 4.8),
+      popularity: parseInt(product.popularity || 100),
+      createdAt: product.created_at || new Date().toISOString(),
+      quantity: item.quantity || 1,
     };
   }, []);
 
@@ -69,7 +70,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (error) throw error;
         if (data) {
-          setCart(data.map(mapDbToCartItem));
+          const mapped = data.map(mapDbToCartItem).filter((i): i is CartItem => i !== null);
+          setCart(mapped);
         }
       } else {
         if (Platform.OS === 'web') {
@@ -130,6 +132,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cart, isInitialized, user?.id]);
 
   const addToCart = useCallback(async (product: Product) => {
+    if (!product || !product.id) return;
+
+    // 1. Optimistically update local cart state immediately
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { ...product, quantity: 1 }];
+    });
+
+    // 2. Persist to DB asynchronously if user is logged in
     if (user?.id) {
       try {
         const existingItem = cart.find(item => item.id === product.id);
@@ -137,18 +151,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error } = await supabase
           .from('cart_items')
           .upsert({ user_id: user.id, product_id: product.id, quantity: newQuantity }, { onConflict: 'user_id,product_id' });
-        if (!error) loadCart();
+        if (error) {
+          console.warn('Add to cart Supabase error:', error.message);
+        }
       } catch (error) {
-        console.warn('Add to cart error:', error);
+        console.warn('Add to cart exception:', error);
       }
-    } else {
-      setCart(prev => {
-        const existing = prev.find(item => item.id === product.id);
-        if (existing) return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-        return [...prev, { ...product, quantity: 1 }];
-      });
     }
-  }, [user?.id, cart, loadCart]);
+  }, [user?.id, cart]);
 
   const removeFromCart = useCallback(async (productId: string) => {
     if (user?.id) {
@@ -190,12 +200,46 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.id]);
 
-  const cartTotal = useMemo(() => cart.reduce((total, item) => total + (item.price * item.quantity), 0), [cart]);
-  const cartCount = useMemo(() => cart.reduce((count, item) => count + item.quantity, 0), [cart]);
+  const [serverSummary, setServerSummary] = useState<any>(null);
+
+  const fetchServerCartSummary = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase.rpc('get_cart_summary', {
+        p_user_id: user.id,
+        p_country_code: 'IN',
+      });
+      if (!error && data) {
+        setServerSummary(data);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch server cart summary:', e);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchServerCartSummary();
+    }
+  }, [user?.id, cart, fetchServerCartSummary]);
+
+  const cartTotal = useMemo(() => {
+    if (serverSummary?.grand_total_local !== undefined) {
+      return serverSummary.grand_total_local;
+    }
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  }, [serverSummary, cart]);
+
+  const cartCount = useMemo(() => {
+    if (serverSummary?.total_items !== undefined) {
+      return serverSummary.total_items;
+    }
+    return cart.reduce((count, item) => count + item.quantity, 0);
+  }, [serverSummary, cart]);
 
   const value = useMemo(() => ({
-    cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount, isLoading
-  }), [cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount, isLoading]);
+    cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount, isLoading, serverSummary
+  }), [cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount, isLoading, serverSummary]);
 
   return (
     <CartContext.Provider value={value}>

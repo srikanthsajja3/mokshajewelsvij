@@ -24,7 +24,7 @@ import { RootStackParamList } from "../navigation/types";
 import { useUI } from "../contexts/UIContext";
 import { useGoldRate } from "../contexts/GoldRateContext";
 import { fetchProductById } from "../data/products";
-import { calculateApkEstimate } from "../utils/apkEstimationEngine";
+import { calculateApkEstimate, fetchServerApkEstimate, EstimationResult } from "../utils/apkEstimationEngine";
 
 interface ProductDetailsScreenProps {
   scrollY?: Animated.Value;
@@ -94,6 +94,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
   const [addGiftWrapping, setAddGiftWrapping] = useState<boolean>(false);
   const [giftMessage, setGiftMessage] = useState<string>("");
   const [giftOptionsExpanded, setGiftOptionsExpanded] = useState<boolean>(false);
+  const [isPriceBreakupVisible, setIsPriceBreakupVisible] = useState<boolean>(false);
 
   const jewelryType = useMemo(() => {
     if (!product) return "";
@@ -148,10 +149,13 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     }
   }, [product]);
 
-  const dynamicPriceInfo = useMemo(() => {
-    if (!product || !selectedPurity) return null;
+  const [serverEst, setServerEst] = useState<EstimationResult | null>(null);
 
-    const est = calculateApkEstimate({
+  useEffect(() => {
+    let isMounted = true;
+    if (!product || !selectedPurity) return;
+
+    fetchServerApkEstimate({
       productCode: product.productCode || product.sku || product.name,
       sku: product.sku || product.productCode,
       name: product.name,
@@ -162,27 +166,63 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
       labourRateOverride: product.labourRate && product.labourRate > 0 ? product.labourRate : undefined,
       labourAmtOverride: product.labourAmt && product.labourAmt > 0 ? product.labourAmt : undefined,
       stones: product.stonesInDetail || []
+    }).then(res => {
+      if (isMounted && res) {
+        setServerEst(res);
+      }
     });
 
-    const metalCost = est.goldValue / 83;
-    const vaMaking = (est.labourCharges + est.certCharges) / 83;
-    const stoneBeads = est.totalStoneValue / 83;
-    const tax = est.gstAmount / 83;
-    
-    let total = est.totalEstimateUSD;
-    if (addGiftWrapping) {
-      total += 10.00; // Gift wrap fee
+    return () => { isMounted = false; };
+  }, [product, selectedPurity]);
+
+  const dynamicPriceInfo = useMemo(() => {
+    if (!product) return null;
+
+    if (serverEst && serverEst.totalEstimateUSD > 0) {
+      const est = serverEst;
+      const metalCost = est.goldValue / 83;
+      const vaMaking = (est.labourCharges + est.certCharges) / 83;
+      const stoneBeads = est.totalStoneValue / 83;
+      const tax = est.gstAmount / 83;
+      
+      let total = est.totalEstimateUSD;
+      if (addGiftWrapping) {
+        total += 10.00; // Gift wrap fee
+      }
+      
+      return {
+        metalCost,
+        vaMaking,
+        stoneBeads,
+        tax,
+        subTotal: metalCost + vaMaking + stoneBeads,
+        total,
+        rawEst: est
+      };
     }
-    
+
+    // Authoritative fallback using product priceBreakup parameters when server RPC is pending
+    const pb = product.priceBreakup;
+    const metalCost = pb?.metal && pb.metal > 0 ? pb.metal : (product.price * 0.85);
+    const vaMaking = pb?.vaMaking && pb.vaMaking > 0 ? pb.vaMaking : (product.price * 0.12);
+    const stoneBeads = pb?.stoneBeads || 0;
+    const tax = pb?.tax && pb.tax > 0 ? pb.tax : (product.price * 0.03);
+
+    let total = product.price;
+    if (addGiftWrapping) {
+      total += 10.00;
+    }
+
     return {
       metalCost,
       vaMaking,
       stoneBeads,
       tax,
+      subTotal: metalCost + vaMaking + stoneBeads,
       total,
-      rawEst: est
+      rawEst: null
     };
-  }, [product, selectedPurity, addGiftWrapping]);
+  }, [product, selectedPurity, addGiftWrapping, serverEst]);
 
   const handlePriceAlertToggle = () => {
     setPriceAlertSubscribed(prev => !prev);
@@ -370,8 +410,10 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     }
   };
 
-  const handleBuyNow = () => {
-    if (product) addToCart(product);
+  const handleBuyNow = async () => {
+    if (product) {
+      await addToCart(product);
+    }
     if (!user) {
       setLoginVisible(true);
     } else {
@@ -379,10 +421,12 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
     }
   };
 
-  const handleAddToCart = () => {
-    if (product) addToCart(product);
-    setShowAddedMsg(true);
-    setTimeout(() => setShowAddedMsg(false), 3000);
+  const handleAddToCart = async () => {
+    if (product) {
+      await addToCart(product);
+      setShowAddedMsg(true);
+      setTimeout(() => setShowAddedMsg(false), 3000);
+    }
   };
 
   const handleWishlistToggle = async () => {
@@ -514,10 +558,18 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
               
               {/* Dynamic Price Display */}
               <View style={styles.priceContainer}>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={styles.price}>
                     {formatPrice(dynamicPriceInfo?.total || product.price, countryCode)}
                   </Text>
+                  <TouchableOpacity
+                    onPress={() => setIsPriceBreakupVisible(true)}
+                    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#382614', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: '#4a3520' }}
+                    activeOpacity={0.8}
+                  >
+                    <FontAwesome5 name="list-alt" size={12} color="#D4AF37" style={{ marginRight: 6 }} />
+                    <Text style={{ color: '#D4AF37', fontSize: 12, fontWeight: '600' }}>Price Breakup</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
               
@@ -733,14 +785,14 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                         const wt = parseFloat(st.weight?.toString() || st.pcs?.toString() || '0') || 0;
                         const rate = parseFloat(st.rate?.toString() || '0') || 0;
                         const totINR = wt * rate;
-                        const totUSD = countryCode === 'IN' ? totINR / 83 : totINR;
+                        const totUSD = totINR / 83;
                         return (
                           <View key={sIdx} style={styles.bhimaTableRow}>
                             <Text style={[styles.bhimaTd, { flex: 2, color: '#fff', fontWeight: '600' }]}>
                               {st.name}
                             </Text>
                             <Text style={[styles.bhimaTd, { flex: 1.5, textAlign: 'right', color: '#ccc' }]}>
-                              {rate > 0 ? (countryCode === 'IN' ? `₹${rate.toLocaleString('en-IN')}` : `$${rate}`) : '-'}
+                              {rate > 0 ? (countryCode === 'IN' ? `₹${rate.toLocaleString('en-IN')}` : formatPrice(rate / 83, countryCode)) : '-'}
                             </Text>
                             <Text style={[styles.bhimaTd, { flex: 1.2, textAlign: 'right' }]}>
                               {wt} ct
@@ -805,6 +857,15 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                         {formatPrice(dynamicPriceInfo?.total || product.price, countryCode)}
                       </Text>
                     </View>
+
+                    <TouchableOpacity 
+                      style={{ marginTop: 14, backgroundColor: '#4a3520', paddingVertical: 10, borderRadius: 6, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }} 
+                      onPress={() => setIsPriceBreakupVisible(true)}
+                      activeOpacity={0.8}
+                    >
+                      <FontAwesome5 name="calculator" size={12} color="#D4AF37" style={{ marginRight: 8 }} />
+                      <Text style={{ color: '#D4AF37', fontSize: 13, fontWeight: 'bold' }}>VIEW DETAILED BILL ESTIMATOR MODAL</Text>
+                    </TouchableOpacity>
                   </View>
                 </AccordionSection>
               </View>
@@ -1052,6 +1113,17 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
           countryCode={countryCode}
           matchingProducts={suiteItems}
           onSelectProduct={onSelectProduct}
+        />
+      )}
+
+      {/* Detailed Price Breakup & Bill Estimator Modal */}
+      {product && (
+        <PriceBreakupModal
+          visible={isPriceBreakupVisible}
+          onClose={() => setIsPriceBreakupVisible(false)}
+          product={product}
+          selectedPurity={selectedPurity}
+          addGiftWrapping={addGiftWrapping}
         />
       )}
 
