@@ -253,19 +253,38 @@ const ProductList: React.FC<ProductListProps> = ({
       } else {
         const sub = rawSub.toLowerCase();
         result = result.filter(p => {
+          const typeLower = (p.type || '').toLowerCase();
+          const catLower = (p.category || '').toLowerCase();
+          const nameLower = (p.name || '').toLowerCase();
+          
+          if (sub === 'all items' || sub === 'all') return true;
+          if (sub === 'ear rings' || sub === 'earrings' || sub === 'hangings') {
+            return ['ear rings', 'earrings', 'hangings', 'studs', 'jumkies', 'fancy', 'tops', 'jumka', 'bali'].includes(typeLower) || nameLower.includes('top') || nameLower.includes('jumka') || nameLower.includes('bali') || nameLower.includes('hanging');
+          }
+          if (sub === 'necklaces' || sub === 'necklace') {
+            return ['necklaces', 'necklace', 'pendants', 'choker', 'haaram', 'lockets / pendents'].includes(typeLower) || nameLower.includes('necklace') || nameLower.includes('haaram') || nameLower.includes('pendant') || nameLower.includes('choker') || nameLower.includes('mala');
+          }
+          if (sub === 'bangles' || sub === 'bangle') {
+            return ['bangles', 'bangle', 'kada', 'bracelete', 'bracelet'].includes(typeLower) || nameLower.includes('bangle') || nameLower.includes('kada') || nameLower.includes('bracelete') || nameLower.includes('bracelet');
+          }
+          if (sub === 'chains' || sub === 'chain') {
+            return ['chains', 'chain', 'black beeds', 'blackbeeds'].includes(typeLower) || nameLower.includes('chain') || nameLower.includes('black beed') || nameLower.includes('blackbeed');
+          }
+          if (sub === 'rings' || sub === 'ring') {
+            return ['rings', 'ring'].includes(typeLower) || nameLower.includes('ring');
+          }
+          if (sub === 'bajubands' || sub === 'bajuband') {
+            return ['bajubands', 'bajuband', 'vaddanam'].includes(typeLower) || nameLower.includes('bajuband') || nameLower.includes('vaddanam');
+          }
+
           const matchesOther = (sub === 'other' || sub === 'accessories') && 
-                               ['coins', 'bhajubandh', 'watch', 'tikka'].includes(p.type?.toLowerCase() || '');
-          return (p.type?.toLowerCase() === sub) || 
-                 (p.category?.toLowerCase() === sub) ||
+                               ['coins', 'bhajubandh', 'watch', 'tikka'].includes(typeLower);
+          return (typeLower === sub) || 
+                 (catLower === sub) ||
                  (p.collection?.toLowerCase() === sub) ||
-                 (p.name?.toLowerCase().includes(sub)) ||
+                 (nameLower.includes(sub)) ||
                  (p.gender?.toLowerCase() === sub) ||
-                 matchesOther ||
-                 (sub === 'lockets' && (p.type?.toLowerCase() === 'lockets / pendents' || p.collection?.toLowerCase() === 'lockets / pendents')) ||
-                 (sub === 'earrings' && ['studs', 'jumkies', 'fancy'].includes(p.type?.toLowerCase() || '')) ||
-                 (sub === 'necklace' && ['necklace short/medium', 'necklace set'].includes(p.type?.toLowerCase() || '')) ||
-                 (sub === 'bracelet' && ['plain', 'stones'].includes(p.type?.toLowerCase() || '')) ||
-                 (sub === 'bangles' && ['plain', 'stones'].includes(p.type?.toLowerCase() || ''));
+                 matchesOther;
         });
       }
     }
@@ -277,7 +296,10 @@ const ProductList: React.FC<ProductListProps> = ({
       result = result.filter(p => p.price <= (filters.maxPrice || Infinity));
     }
     if (filters.purity && filters.purity.length > 0) {
-      result = result.filter(p => filters.purity?.includes(p.purity));
+      result = result.filter(p => {
+        const itemPurityNorm = (p.purity || '').replace(/\s+/g, '').replace('KT', 'K').toUpperCase();
+        return filters.purity?.some(fp => fp.replace(/\s+/g, '').replace('KT', 'K').toUpperCase() === itemPurityNorm);
+      });
     }
     if (filters.metalColor && filters.metalColor.length > 0) {
       result = result.filter(p => filters.metalColor?.includes(p.metalColor));
