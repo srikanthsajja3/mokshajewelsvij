@@ -99,11 +99,6 @@ export const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
             />
           </TouchableOpacity>
         </View>
-
-        {/* Total Product Count */}
-        <View style={styles.productCountBadge}>
-          <Text style={styles.productCountText}>{productCount} Products</Text>
-        </View>
       </View>
 
       {/* Full Window Modal Overlay for Sort Options Dropdown */}
