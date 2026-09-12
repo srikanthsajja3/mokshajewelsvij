@@ -24,6 +24,7 @@ interface ProductListProps {
   onClearFilters?: () => void;
   hasSidebar?: boolean;
   userColumns?: number;
+  horizontalMargin?: number;
 }
 
 const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, handleWishlistToggle, isInWishlist, formatPrice, countryCode, addedToCartId, handleAddToCart, index, shouldLoad }: any) => {
@@ -145,7 +146,8 @@ const ProductList: React.FC<ProductListProps> = ({
   stickyHeaderIndices,
   onClearFilters,
   hasSidebar = false,
-  userColumns
+  userColumns,
+  horizontalMargin
 }) => {
   const { width } = useWindowDimensions();
   const { countryCode } = useCountry();
@@ -326,15 +328,15 @@ const ProductList: React.FC<ProductListProps> = ({
   const gridWidth = width - (hasSidebar ? 284 : 0);
 
   const isMobile = width < 768;
-  const spacing = isMobile ? 10 : (Platform.OS === 'web' ? 16 : 12);
-  const padding = isMobile ? 10 : (gridWidth > 1200 ? gridWidth * 0.02 : 12);
+  const spacing = isMobile ? 12 : (Platform.OS === 'web' ? 14 : 14);
+  const padding = horizontalMargin !== undefined 
+    ? horizontalMargin 
+    : (isMobile ? 16 : Math.round(gridWidth * 0.10));
   const containerWidth = Platform.OS === 'web' ? Math.min(gridWidth, 2500) : gridWidth;
   const availableWidth = containerWidth - (padding * 2);
 
-  // Dynamically calculate columns based on user selection or target compact card width
-  // In mobile view (<768px), enforce exactly 2 columns for optimal responsive display
-  const targetCardWidth = Platform.OS === 'web' ? 180 : 140;
-  let numColumns = isMobile ? 2 : (userColumns || Math.floor((availableWidth + spacing) / (targetCardWidth + spacing)));
+  // Default to 4 items per row on desktop web view, 2 on mobile
+  let numColumns = isMobile ? 2 : (userColumns || 4);
   numColumns = Math.max(2, numColumns); // Minimum 2 columns
 
   const itemWidth = (availableWidth - (spacing * (numColumns - 1))) / numColumns;
@@ -367,14 +369,15 @@ const ProductList: React.FC<ProductListProps> = ({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={[
         styles.list, 
-        Platform.OS === 'web' && { alignSelf: 'center', width: '100%', maxWidth: 2500, paddingHorizontal: padding }
+        { paddingHorizontal: padding },
+        Platform.OS === 'web' && { alignSelf: 'center', width: '100%', maxWidth: 2500 }
       ]}
       columnWrapperStyle={numColumns > 1 ? { gap: spacing } : undefined}
       ListHeaderComponent={() => (
         <>
           {ListHeaderComponent ? (
             <View style={{ 
-              marginHorizontal: Platform.OS === 'web' ? -padding : -15,
+              marginHorizontal: -padding,
               zIndex: 9999,
               position: 'relative',
               overflow: 'visible'
@@ -432,7 +435,6 @@ const ProductList: React.FC<ProductListProps> = ({
 
 const styles = StyleSheet.create({
   list: {
-    paddingHorizontal: 15,
     paddingBottom: 40,
     backgroundColor: "#291c0e",
   },

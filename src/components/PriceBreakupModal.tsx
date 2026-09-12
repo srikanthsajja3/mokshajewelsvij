@@ -350,6 +350,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
+  modalTitle: {
+    fontFamily: Platform.OS === 'ios' ? 'TrajanPro' : 'serif',
+    fontSize: 18,
+    color: '#D4AF37',
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  modalSubtitle: {
+    color: '#aaa',
+    fontSize: 12,
+    marginTop: 2,
+  },
   closeBtn: {
     width: 32,
     height: 32,

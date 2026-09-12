@@ -19,7 +19,7 @@ export const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
   onSortChange,
   onPressFilter,
   activeFilterCount,
-  currentColumns = 4,
+  currentColumns = 5,
   onColumnsChange,
 }) => {
   const { width } = useWindowDimensions();
@@ -75,50 +75,6 @@ export const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Center: Grid View Columns Switcher (Desktop & Tablet) */}
-      {!isMobile && onColumnsChange && (
-        <View style={styles.viewGridSwitcher}>
-          <TouchableOpacity
-            style={[styles.viewGridBtn, currentColumns === 2 && styles.activeViewGridBtn]}
-            onPress={() => onColumnsChange(2)}
-            activeOpacity={0.7}
-            accessibilityLabel="2 Columns Grid"
-          >
-            <MaterialCommunityIcons 
-              name="view-grid-outline" 
-              size={18} 
-              color={currentColumns === 2 ? '#D4AF37' : '#888'} 
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.viewGridBtn, currentColumns === 3 && styles.activeViewGridBtn]}
-            onPress={() => onColumnsChange(3)}
-            activeOpacity={0.7}
-            accessibilityLabel="3 Columns Grid"
-          >
-            <MaterialCommunityIcons 
-              name="view-grid" 
-              size={18} 
-              color={currentColumns === 3 ? '#D4AF37' : '#888'} 
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.viewGridBtn, currentColumns === 4 && styles.activeViewGridBtn]}
-            onPress={() => onColumnsChange(4)}
-            activeOpacity={0.7}
-            accessibilityLabel="4 Columns Grid"
-          >
-            <MaterialCommunityIcons 
-              name="view-comfy" 
-              size={18} 
-              color={currentColumns === 4 ? '#D4AF37' : '#888'} 
-            />
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Right: Sort By Dropdown & Product Counter */}
       <View style={styles.rightSection}>

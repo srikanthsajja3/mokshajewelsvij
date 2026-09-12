@@ -28,11 +28,11 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
   const category = route.params?.category || "All";
   const [subCategory, setSubCategory] = useState(route.params?.subCategory || "All Items");
   const { width } = useWindowDimensions();
-  const isMobile = width < 1024;
-  const gridPadding = Platform.OS === 'web'
-    ? (width > 1200 ? Math.max(width * 0.02, 50) : 50)
-    : 15;
-  
+  const isMobile = width < 768;
+  const pageMargin = isMobile ? 16 : Math.round(width * 0.10);
+  const gridPadding = pageMargin;
+  const paddingHorz = pageMargin;
+
   const localScrollY = useRef(new Animated.Value(0)).current;
   const scrollY = scrollYProp || globalScrollY || localScrollY;
   
@@ -51,10 +51,6 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
     });
     setSubCategory(route.params?.subCategory || "All Items");
   }, [route.params?.minPrice, route.params?.maxPrice, route.params?.subCategory]);
-
-  const paddingHorz = Platform.OS === 'web'
-    ? (width > 1400 ? 30 : 15)
-    : (width < 380 ? 8 : 12);
 
   const onSelectProduct = (product: Product) => {
     setSearchQuery("");
@@ -210,6 +206,7 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
           searchQuery={searchQuery} 
           filters={effectiveFilters}
           userColumns={userColumns}
+          horizontalMargin={pageMargin}
           ListHeaderComponent={(count: number) => (
             <View style={Platform.OS === 'web' ? { zIndex: 9999, position: 'relative', overflow: 'visible' } : undefined}>
               <CategorySlider 
@@ -218,15 +215,17 @@ const CategoryScreen: React.FC<CategoryScreenProps> = ({ scrollY: scrollYProp })
                 onSelectSubCategory={setSubCategory} 
                 contentPadding={gridPadding}
               />
-              <CollectionToolbar
-                productCount={count}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
-                onPressFilter={() => setIsFilterVisible(true)}
-                activeFilterCount={activeFilterCount}
-                currentColumns={userColumns || 4}
-                onColumnsChange={setUserColumns}
-              />
+              <View style={{ paddingHorizontal: pageMargin }}>
+                <CollectionToolbar
+                  productCount={count}
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                  onPressFilter={() => setIsFilterVisible(true)}
+                  activeFilterCount={activeFilterCount}
+                  currentColumns={userColumns || 4}
+                  onColumnsChange={setUserColumns}
+                />
+              </View>
             </View>
           )}
           onClearFilters={handleClearAll}

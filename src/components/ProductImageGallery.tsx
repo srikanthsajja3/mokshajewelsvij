@@ -161,10 +161,10 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   const thumbnailSpacing = 12;
 
   return (
-    <View style={styles.container}>
-      <View style={{ flexDirection: isLargeScreen ? "row" : "column" }}>
+    <View style={[styles.container, { width: '100%' }]}>
+      <View style={{ flexDirection: isLargeScreen ? "row" : "column", width: '100%' }}>
         {isLargeScreen && allImages.length > 1 && (
-          <View style={[styles.thumbnailColumn, { maxHeight: mainImageWidth }]}>
+          <View style={styles.thumbnailColumn}>
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.thumbnailScrollContent}
@@ -192,10 +192,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
           </View>
         )}
 
-        <View style={[styles.imageSection, { 
-          width: mainImageWidth, 
-          height: mainImageWidth,
-        }]}>
+        <View style={[styles.imageSection, isLargeScreen ? { flex: 1, width: '100%', aspectRatio: 1 } : { width: mainImageWidth, height: mainImageWidth }]}>
           <ScrollView
             ref={imageScrollRef}
             horizontal
@@ -203,16 +200,14 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
             showsHorizontalScrollIndicator={false}
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            contentContainerStyle={isLargeScreen ? { width: '100%', height: '100%' } : undefined}
           >
             {allImages.map((img, index) => (
               <TouchableOpacity 
                 key={index} 
                 style={[
                   styles.imageWrapper, 
-                  { 
-                    width: mainImageWidth,
-                    height: mainImageWidth
-                  }
+                  isLargeScreen ? { width: '100%', height: '100%', aspectRatio: 1 } : { width: mainImageWidth, height: mainImageWidth }
                 ]}
                 activeOpacity={0.9}
                 onPress={() => {
@@ -223,7 +218,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 <OptimizedImage 
                   url={img} 
                   style={styles.mainImage} 
-                  contentFit="contain" 
+                  contentFit="cover" 
                   shouldLoad={true} 
                 />
               </TouchableOpacity>

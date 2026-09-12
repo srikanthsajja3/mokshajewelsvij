@@ -261,9 +261,9 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
   const thumbnailWidth = 64;
   const thumbnailSpacing = 12;
-  const maxWindowHeightConstraint = isLargeScreen ? Math.min(height - 140, 520) : Math.min(width - 32, 420);
+  const maxWindowHeightConstraint = isLargeScreen ? Math.min(height - 100, 680) : Math.min(width - 32, 450);
   const mainImageWidth = isLargeScreen 
-    ? Math.min((width * 0.45 - 40) - (allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0), maxWindowHeightConstraint)
+    ? Math.min((width * 0.50 - 20) - (allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0), maxWindowHeightConstraint)
     : Math.min(width - 32, maxWindowHeightConstraint);
 
   const contentStyle: ViewStyle = isLargeScreen 
@@ -539,7 +539,8 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
               {/* Action Buttons under Image */}
               <View style={[styles.imageActions, { 
                 marginLeft: isLargeScreen && allImages.length > 1 ? (thumbnailWidth + thumbnailSpacing) : 0,
-                width: mainImageWidth,
+                width: isLargeScreen ? undefined : mainImageWidth,
+                flex: isLargeScreen ? 1 : undefined,
               }]}>
                 <TouchableOpacity style={styles.actionButton} onPress={handleBuyNow}>
                   <Text style={styles.actionButtonText}>Buy Now</Text>
