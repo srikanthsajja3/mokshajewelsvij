@@ -157,11 +157,12 @@ const ProductList: React.FC<ProductListProps> = ({
   
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 24;
   const [error, setError] = useState<string | null>(null);
   const [addedToCartId, setAddedToCartId] = useState<string | null>(null);
-
-  // Visibility Tracking
-
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -176,18 +177,19 @@ const ProductList: React.FC<ProductListProps> = ({
   useEffect(() => {
     let isMounted = true;
     const loadProducts = async () => {
-      // Only set loading indicator if we don't already have products loaded
-      if (products.length === 0) {
-        setLoading(true);
-      }
+      setLoading(true);
       setError(null);
+      setPage(1);
+      setHasMore(true);
       try {
         let data: Product[] = [];
         if (category === "Wishlist") {
           const all = await fetchProductsFromSupabase("All");
           data = all.filter(p => wishlist.includes(p.id));
+          if (isMounted) setHasMore(false);
         } else {
-          data = await fetchProductsFromSupabase(category);
+          data = await fetchProductsFromSupabase(category, 1, PAGE_SIZE);
+          if (isMounted) setHasMore(data.length >= PAGE_SIZE);
         }
         if (isMounted) {
           setProducts(data);
@@ -205,6 +207,32 @@ const ProductList: React.FC<ProductListProps> = ({
       isMounted = false;
     };
   }, [category, category === "Wishlist" ? wishlistKey : null]);
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore || category === "Wishlist") return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    try {
+      const nextBatch = await fetchProductsFromSupabase(category, nextPage, PAGE_SIZE);
+      if (nextBatch && nextBatch.length > 0) {
+        setProducts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNew = nextBatch.filter(p => !existingIds.has(p.id));
+          return [...prev, ...uniqueNew];
+        });
+        setPage(nextPage);
+        if (nextBatch.length < PAGE_SIZE) {
+          setHasMore(false);
+        }
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Error loading more products:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loading, loadingMore, hasMore, category, page]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
@@ -422,6 +450,31 @@ const ProductList: React.FC<ProductListProps> = ({
           )}
         </View>
       ) : null}
+      ListFooterComponent={() => (
+        hasMore && !loading ? (
+          <View style={{ paddingVertical: 30, alignItems: "center", justifyContent: "center" }}>
+            {loadingMore ? (
+              <>
+                <ActivityIndicator size="small" color="#D4AF37" />
+                <Text style={{ color: "#D4AF37", fontSize: 11, marginTop: 8, letterSpacing: 1, fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro' }}>
+                  Loading more masterpieces...
+                </Text>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.viewMoreBtn}
+                onPress={loadMore}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.viewMoreBtnText}>VIEW MORE PRODUCTS</Text>
+                <FontAwesome5 name="chevron-down" size={10} color="#D4AF37" />
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null
+      )}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.4}
       onScroll={onScrollProp}
       scrollEventThrottle={16}
       stickyHeaderIndices={stickyHeaderIndices}
@@ -775,6 +828,32 @@ const styles = StyleSheet.create({
   },
   addToCartBtnCompactTextSuccess: {
     color: '#291c0e',
+  },
+  viewMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 4,
+    gap: 10,
+    marginTop: 10,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.25s ease',
+      }
+    })
+  },
+  viewMoreBtnText: {
+    color: '#D4AF37',
+    fontSize: 11.5,
+    fontWeight: 'bold',
+    letterSpacing: 2,
+    fontFamily: Platform.OS === 'web' ? 'Trajan Pro' : 'TrajanPro',
   },
 });
 

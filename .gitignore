@@ -45,3 +45,5 @@ yarn-error.*
 .vercel
 coverage/
 *.log
+razorpay.exe
+*.zip

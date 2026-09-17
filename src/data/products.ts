@@ -193,41 +193,88 @@ export const clearProductCache = () => {
   Object.keys(productCache).forEach(key => delete productCache[key]);
 };
 
-export const fetchProductsFromSupabase = async (category: string = "All", forceRefresh = false): Promise<Product[]> => {
-  const cacheKey = category || "All";
+export const fetchProductsFromSupabase = async (
+  category: string = "All",
+  pageOrForceRefresh?: number | boolean,
+  pageSize: number = 24,
+  forceRefresh = false
+): Promise<Product[]> => {
+  let page = 0;
+  let isForceRefresh = forceRefresh;
+
+  if (typeof pageOrForceRefresh === "boolean") {
+    isForceRefresh = pageOrForceRefresh;
+    page = 0;
+  } else if (typeof pageOrForceRefresh === "number") {
+    page = pageOrForceRefresh;
+  }
+
+  const cacheKey = page > 0 ? `${category}_p${page}_s${pageSize}` : (category || "All");
   const now = Date.now();
 
-  if (!forceRefresh && productCache[cacheKey] && (now - productCache[cacheKey].timestamp < CACHE_TTL_MS)) {
+  if (!isForceRefresh && productCache[cacheKey] && (now - productCache[cacheKey].timestamp < CACHE_TTL_MS)) {
     return productCache[cacheKey].data;
   }
 
   try {
     let query = supabase.from("products").select("*");
+    let itemsQuery = supabase.from("items").select("*");
+
     if (category && category !== "All") {
       query = query.eq("category_name", category);
+      itemsQuery = itemsQuery.eq("category_name", category);
     }
 
-    const { data: prodData, error: prodError } = await query;
-    let itemsData: any[] = [];
-    try {
-      const { data: iData } = await supabase.from("items").select("*");
-      if (iData) itemsData = iData;
-    } catch (e) {}
+    if (page > 0 && pageSize > 0) {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+      itemsQuery = itemsQuery.range(from, to);
+    }
 
-    const combinedRaw = [...(prodData || []), ...itemsData];
+    // Execute both queries in parallel to drastically improve load time
+    const [prodResult, itemsResult] = await Promise.all([
+      query,
+      Promise.resolve(itemsQuery).catch(() => ({ data: [] }))
+    ]);
+
+    const prodData = prodResult?.data || [];
+    const itemsData = itemsResult?.data || [];
+
+    const combinedRaw = [...prodData, ...itemsData];
 
     if (combinedRaw.length > 0) {
-      const mapped = combinedRaw.map(mapProduct);
-      productCache[cacheKey] = { data: mapped, timestamp: now };
-      return mapped;
+      const mapped = combinedRaw
+        .map(mapProduct)
+        .filter(p => category === "All" || p.category?.toLowerCase() === category.toLowerCase());
+
+      if (mapped.length > 0) {
+        productCache[cacheKey] = { data: mapped, timestamp: now };
+        return mapped;
+      }
     }
     
-    const fallback = category === "All" ? PRODUCTS : PRODUCTS.filter(p => p.category === category);
+    let fallback = category === "All" 
+      ? PRODUCTS 
+      : PRODUCTS.filter(p => p.category?.toLowerCase() === category.toLowerCase());
+
+    if (page > 0 && pageSize > 0) {
+      const from = (page - 1) * pageSize;
+      fallback = fallback.slice(from, from + pageSize);
+    }
+
     productCache[cacheKey] = { data: fallback, timestamp: now };
     return fallback;
   } catch (err) {
     if (productCache[cacheKey]) return productCache[cacheKey].data;
-    return PRODUCTS;
+    let fallback = category === "All" 
+      ? PRODUCTS 
+      : PRODUCTS.filter(p => p.category?.toLowerCase() === category.toLowerCase());
+    if (page > 0 && pageSize > 0) {
+      const from = (page - 1) * pageSize;
+      fallback = fallback.slice(from, from + pageSize);
+    }
+    return fallback;
   }
 };
 

@@ -11,7 +11,7 @@ import ProductImageGallery from "../components/ProductImageGallery";
 import { StoreAvailabilityModal } from "../components/StoreAvailabilityModal";
 import { PriceBreakupModal } from "../components/PriceBreakupModal";
 import { supabase } from "../../supabase";
-import { Product, fetchProductsFromSupabase } from "../data/products";
+import { Product, fetchProductsFromSupabase, PRODUCTS } from "../data/products";
 import { useCountry } from "../contexts/CountryContext";
 import { formatPrice } from "../utils/currency";
 import { useAuth } from "../contexts/AuthContext";
@@ -284,8 +284,18 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
       try {
         const data = await fetchProductsFromSupabase("All");
         
+        // Merge Supabase fetched data with static PRODUCTS catalog as guaranteed fallback
+        const allCatalog = [...(data || [])];
+        if (PRODUCTS && PRODUCTS.length > 0) {
+          PRODUCTS.forEach(p => {
+            if (!allCatalog.some(existing => existing.id === p.id)) {
+              allCatalog.push(p);
+            }
+          });
+        }
+        
         // Find explicitly linked matching products (both directions: direct and reverse)
-        const explicitMatches = data.filter(p => {
+        const explicitMatches = allCatalog.filter(p => {
           if (p.id === product.id) return false;
           const isDirectMatch = product.matchingProductId && p.id === product.matchingProductId;
           const isReverseMatch = p.matchingProductId && p.matchingProductId === product.id;
@@ -295,17 +305,25 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
         const finalSuiteItems = explicitMatches;
 
         // Recommendations: same category products as fallback
-        const categoryMates = data.filter(p => p.category === product.category && p.id !== product.id);
+        const categoryMates = allCatalog.filter(p => p.category === product.category && p.id !== product.id);
         
-        // Merge suite items and category mates, avoiding duplicates
+        // Other store products as fallback if same category has few items
+        const otherStoreProducts = allCatalog.filter(p => p.id !== product.id && p.category !== product.category);
+
+        // Merge suite items, category mates, and general store products, avoiding duplicates
         const combined = [...finalSuiteItems];
         categoryMates.forEach(item => {
           if (!combined.some(c => c.id === item.id)) {
             combined.push(item);
           }
         });
+        otherStoreProducts.forEach(item => {
+          if (!combined.some(c => c.id === item.id)) {
+            combined.push(item);
+          }
+        });
 
-        setRecommendations(combined.slice(0, 6));
+        setRecommendations(combined.slice(0, 15));
         setSuiteItems(finalSuiteItems.slice(0, 4));
       } catch (err) {
         console.error("Error loading recommendations:", err);
@@ -964,7 +982,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.recScrollContent}
               >
-                {recommendations.slice(0, 6).map((item) => (
+                {recommendations.slice(0, 15).map((item) => (
                   <TouchableOpacity 
                     key={item.id} 
                     style={styles.recommendationCard}

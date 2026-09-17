@@ -66,12 +66,12 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ scrollY: scrollYProp }) => 
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchOrders();
     } else {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   const fetchOrders = async () => {
     try {

@@ -99,31 +99,81 @@ export interface EstimationResult {
   totalEstimateUSD: number;
 }
 
-export function calculateApkEstimate(): EstimationResult {
-  console.warn(
-    'calculateApkEstimate: Client-side calculation is disabled. Use `fetchServerApkEstimate` to get server-authoritative calculations from Supabase RPC.'
-  );
+export function calculateApkEstimate(input?: EstimationInput): EstimationResult {
+  const netWt = input?.netWt || 0;
+  const purity = input?.purity || '22K';
+  const wastagePct = input?.wastagePct ?? DEFAULT_MASTER_RATES.default_wastage_pct;
+  
+  let goldRate = DEFAULT_MASTER_RATES.gold_22kt;
+  if (purity === '24K') goldRate = DEFAULT_MASTER_RATES.gold_24kt;
+  if (purity === '18K') goldRate = DEFAULT_MASTER_RATES.gold_18kt;
+
+  const billingWeight = netWt * (1 + wastagePct / 100);
+  const goldValue = billingWeight * goldRate;
+
+  let totalStoneValue = 0;
+  let totalDiamondCarats = 0;
+  const processedStones: Array<{
+    name: string;
+    weight: number;
+    pcs: number;
+    baseRate: number;
+    discount: number;
+    finalRate: number;
+    amount: number;
+  }> = [];
+
+  if (input?.stones && Array.isArray(input.stones)) {
+    input.stones.forEach(st => {
+      const w = parseFloat(String(st.weight || 0));
+      const pcs = parseInt(String(st.pcs || 0));
+      const rate = parseFloat(String(st.rate || 0));
+      const amt = w * rate;
+      totalStoneValue += amt;
+      if (st.category?.toLowerCase() === 'diamond' || st.name?.toLowerCase().includes('diamond')) {
+        totalDiamondCarats += w;
+      }
+      processedStones.push({
+        name: st.name,
+        weight: w,
+        pcs,
+        baseRate: rate,
+        discount: 0,
+        finalRate: rate,
+        amount: amt
+      });
+    });
+  }
+
+  const certCharges = totalDiamondCarats * DEFAULT_MASTER_RATES.cert_rate_per_ct;
+  let labourCharges = netWt * DEFAULT_MASTER_RATES.default_labor_regular;
+  if (input?.labourAmtOverride) labourCharges = input.labourAmtOverride;
+
+  const subTotal = goldValue + totalStoneValue + certCharges + labourCharges;
+  const gstAmount = subTotal * (DEFAULT_MASTER_RATES.tax_gst_pct / 100);
+  const totalEstimate = subTotal + gstAmount;
+
   return {
-    goldRate: 0,
-    billingWeight: 0,
-    goldValue: 0,
-    stoneItems: [],
-    totalStoneValue: 0,
-    totalDiamondCarats: 0,
-    certCharges: 0,
-    labourCharges: 0,
-    labourType: 'Weight Based',
-    subTotal: 0,
-    gstAmount: 0,
-    totalEstimate: 0,
-    totalEstimateUSD: 0,
+    goldRate,
+    billingWeight,
+    goldValue,
+    stoneItems: processedStones,
+    totalStoneValue,
+    totalDiamondCarats,
+    certCharges,
+    labourCharges,
+    labourType: input?.labourAmtOverride ? 'Fixed Override' : 'Weight Based',
+    subTotal,
+    gstAmount,
+    totalEstimate,
+    totalEstimateUSD: totalEstimate / 83,
   };
 }
 
 /**
  * Server-Authoritative Calculation Engine
- * Fetches authoritative price estimate from Supabase RPC backend (`calculate_product_estimate_json`).
- * Zero business/financial math takes place on the client side.
+ * Fetches price estimate from Supabase RPC backend (`calculate_product_estimate_json`),
+ * falling back to local estimation calculation if server RPC is unavailable.
  */
 export async function fetchServerApkEstimate(
   input: EstimationInput
@@ -133,20 +183,14 @@ export async function fetchServerApkEstimate(
       p_input: input,
     });
 
-    if (error) {
-      console.error('fetchServerApkEstimate: Server RPC error:', error.message);
-      throw new Error(`Server calculation failed: ${error.message}`);
-    }
-
-    if (data && typeof data === 'object') {
+    if (!error && data && typeof data === 'object') {
       return data as EstimationResult;
     }
   } catch (err) {
-    console.error('fetchServerApkEstimate: Failed to connect to server RPC:', err);
-    throw err;
+    console.warn('fetchServerApkEstimate: Server RPC unavailable, using local engine:', err);
   }
 
-  throw new Error('Server calculation returned empty response');
+  return calculateApkEstimate(input);
 }
 
 

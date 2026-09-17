@@ -1,72 +1,59 @@
 import { Alert, Platform } from 'react-native';
 
-// Use a safer way to import native modules to prevent startup crashes in Expo Go
-let useStripe: any = () => ({ initPaymentSheet: () => {}, presentPaymentSheet: () => {} });
 let RazorpayCheckout: any = null;
 
 if (Platform.OS !== 'web') {
   try {
-    // Attempt to require the native modules
-    const StripeModule = require('@stripe/stripe-react-native');
-    useStripe = StripeModule.useStripe;
-    
     RazorpayCheckout = require('react-native-razorpay').default;
   } catch (e) {
-    console.warn("Native payment modules not found. Payments will only work in a Development Build.");
+    console.warn("Native Razorpay module not found. Payments will work in a Development Build or on Web.");
   }
 }
 
 export const usePaymentGateway = (countryCode: string) => {
-  const isIndia = countryCode === 'IN';
-  
-  // Initialize stripe hook (only works if module exists)
-  let stripeHook: any = { initPaymentSheet: async () => {}, presentPaymentSheet: async () => {} };
-  try {
-    stripeHook = useStripe();
-  } catch (e) {}
-
-  // 1. Stripe Handler
-  const handleStripePayment = async () => {
-    if (!stripeHook.presentPaymentSheet) {
-      Alert.alert("Development Build Required", "Stripe is not available in Expo Go. Please use a Development Build.");
-      return { error: { code: 'Unavailable', message: 'Module not found' } };
-    }
-    const { error } = await stripeHook.presentPaymentSheet();
-    return { error };
-  };
-
-  // 2. Razorpay Handler
   const handleRazorpayPayment = async (params: { 
     amount: number; 
-    currency: string; 
-    email: string; 
+    currency?: string; 
+    email?: string; 
+    name?: string;
+    phone?: string;
   }) => {
     if (!RazorpayCheckout) {
-      Alert.alert("Development Build Required", "Razorpay is not available in Expo Go. Please use a Development Build.");
+      Alert.alert("Development Build Required", "Razorpay native module is not available in Expo Go. Please test on Web or in a Development Build.");
       return { error: { code: 'Unavailable', message: 'Module not found' } };
     }
     try {
+      const currency = params.currency || (countryCode === 'IN' ? 'INR' : 'USD');
+      const razorpayKey = process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_test_placeholder';
+
       const options = {
-        description: 'Moksha Jewels Purchase',
+        description: `Moksha Jewels Purchase (${currency} ${params.amount})`,
         image: 'https://i.imgur.com/3giU0H1.png',
-        currency: params.currency || 'INR',
-        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_test_placeholder', 
-        amount: Math.round(params.amount * 100),
+        currency: currency,
+        key: razorpayKey, 
+        amount: Math.round((params.amount || 0) * 100),
         name: 'MOKSHA JEWELS',
-        prefill: { email: params.email },
+        prefill: { 
+          name: params.name || '',
+          email: params.email || '',
+          contact: params.phone || ''
+        },
         theme: { color: '#D4AF37' }
       };
       const data = await RazorpayCheckout.open(options);
       return { error: null, payment_id: data.razorpay_payment_id };
     } catch (error: any) {
-      return { error: { code: 'Failed', message: error.description || 'Payment failed' } };
+      if (error?.code === 0 || error?.description?.includes('cancel')) {
+        return { error: { code: 'Canceled', message: 'User canceled payment' } };
+      }
+      return { error: { code: 'Failed', message: error?.description || 'Payment failed' } };
     }
   };
 
   return {
-    initPaymentSheet: isIndia ? async () => ({ error: null }) : stripeHook.initPaymentSheet,
-    presentPaymentSheet: isIndia ? handleRazorpayPayment : handleStripePayment,
-    isAvailable: Platform.OS === 'web' ? false : (!!RazorpayCheckout || !!stripeHook.presentPaymentSheet),
-    provider: isIndia ? 'razorpay' : 'stripe'
+    initPaymentSheet: async (_params?: any) => ({ error: null }),
+    presentPaymentSheet: handleRazorpayPayment,
+    isAvailable: Platform.OS === 'web' ? true : !!RazorpayCheckout,
+    provider: 'razorpay'
   };
 };

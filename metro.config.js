@@ -8,8 +8,8 @@ const { resolver } = config;
 
 config.resolver = {
   ...resolver,
-  // Add .bin and .glb to assetExts for TensorFlow.js models and 3D assets
-  assetExts: [...resolver.assetExts, 'bin', 'glb', 'binarypb'],
+  // Add .glb for 3D assets (TensorFlow .bin and .binarypb commented out)
+  assetExts: [...resolver.assetExts, 'glb'/*, 'bin', 'binarypb'*/],
   // Prioritize 'react-native' and 'browser' to avoid ESM issues (like import.meta) in dual-environment packages
   resolverMainFields: ['react-native', 'browser', 'main'],
   

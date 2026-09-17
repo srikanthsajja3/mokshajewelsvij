@@ -54,8 +54,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
-    const origin = Linking.createURL('reset-password');
-    return await supabase.auth.resetPasswordForEmail(email, { redirectTo: origin });
+    const redirectUrl = Platform.OS === 'web' 
+      ? window.location.origin 
+      : Linking.createURL('reset-password');
+    return await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
   }, []);
 
   const verifyOtp = useCallback(async (email: string, token: string) => {
@@ -116,6 +118,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+
+    // Detect recovery token in URL hash/search on Web startup
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+        setIsRecovering(true);
+      }
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       setSession(session);
@@ -128,12 +140,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!mounted) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovering(true);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         fetchUserRole(newSession?.user?.id || '');
       } else if (event === 'SIGNED_OUT') {
         setRole(null);
-      } else if (event === 'PASSWORD_RECOVERY') {
-        setIsRecovering(true);
+        setIsRecovering(false);
       }
       setIsLoading(false);
     });

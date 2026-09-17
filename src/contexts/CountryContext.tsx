@@ -68,21 +68,21 @@ export const CountryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         console.warn("SecureStore error:", e);
       }
 
-      // 2. Check Browser/Device Language
+      let detectedCode = 'IN';
+
       const locales = Localization.getLocales();
       const deviceCountry = locales[0]?.regionCode;
-      
       if (deviceCountry) {
         console.log("Device locale country detected:", deviceCountry);
-        setCountryCodeState(deviceCountry);
+        detectedCode = deviceCountry;
       }
 
-      // 3. Try IP Geolocation
       const ipCountry = await fetchCountryByIP();
       if (ipCountry) {
-        setCountryCodeState(ipCountry);
+        detectedCode = ipCountry;
       }
 
+      setCountryCodeState(detectedCode);
       setIsLoading(false);
     };
 

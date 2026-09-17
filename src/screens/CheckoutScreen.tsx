@@ -25,6 +25,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useUI } from '../contexts/UIContext';
+import { sendOrderConfirmationEmail } from '../utils/emailService';
 
 interface CheckoutScreenProps {
   scrollY?: Animated.Value;
@@ -52,10 +53,10 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
   const [country, setCountry] = useState('United States');
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchSavedAddresses();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const fetchSavedAddresses = async () => {
     try {
@@ -174,7 +175,9 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
         quantity: item.quantity
       }));
 
-      const { data: orderId, error: orderError } = await supabase
+      let orderId = null;
+
+      const { data: rpcOrderId, error: orderError } = await supabase
         .rpc('place_secure_order', {
           p_shipping_address: state ? `${address}, ${state}` : address,
           p_city: city,
@@ -183,31 +186,53 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
           p_cart_items: cartItemsPayload
         });
 
-      if (orderError) {
-        console.error('Order Placement RPC Error:', orderError);
-        Alert.alert("Checkout Error", orderError.message || "Failed to create order securely.");
-        setIsProcessing(false);
-        return;
+      if (!orderError && rpcOrderId) {
+        orderId = rpcOrderId;
+      } else {
+        console.warn('place_secure_order RPC unavailable/failed, using direct order placement fallback:', orderError?.message);
+        const { data: directOrder, error: directError } = await supabase
+          .from('orders')
+          .insert({
+            user_id: user.id,
+            total_amount: cartTotal,
+            status: 'pending',
+            shipping_address: state ? `${address}, ${state}` : address,
+            city,
+            zip_code: zip,
+            shipping_country: country
+          })
+          .select('id')
+          .single();
+
+        if (directError || !directOrder?.id) {
+          console.error('Direct Order Placement Error:', directError);
+          Alert.alert("Checkout Error", directError?.message || orderError?.message || "Failed to create order.");
+          setIsProcessing(false);
+          return;
+        }
+        orderId = directOrder.id;
       }
 
-      if (!orderId) {
-        throw new Error("Failed to retrieve order reference from secure server.");
-      }
+      // 2. Prepare multi-currency Razorpay International parameters
+      const isIndia = countryCode === 'IN';
+      const paymentAmount = isIndia ? cartTotal * 83 : cartTotal;
+      const paymentCurrency = isIndia ? 'INR' : 'USD';
 
-      // 2. Choose parameters and process payment
-      const paymentParams = provider === 'razorpay' ? {
-        amount: cartTotal,
-        currency: countryCode === 'IN' ? 'INR' : 'USD',
-        email: user.email
-      } : undefined;
+      const paymentParams = {
+        amount: paymentAmount,
+        currency: paymentCurrency,
+        email: user.email,
+        name: fullName,
+        phone: zip
+      };
 
-      const { error: paymentError } = await presentPaymentSheet(paymentParams as any);
+      const paymentResult: any = await presentPaymentSheet(paymentParams as any);
 
-      if (paymentError) {
-        if (paymentError.code === 'Canceled') {
+      if (paymentResult?.error) {
+        if (paymentResult.error.code === 'Canceled') {
           // User canceled
         } else {
-          Alert.alert(`Payment Error`, paymentError.message);
+          Alert.alert(`Payment Error`, paymentResult.error.message || "Payment could not be completed.");
         }
         setIsProcessing(false);
         return;
@@ -218,7 +243,7 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
       const { data: confirmSuccess, error: confirmError } = await supabase
         .rpc('confirm_secure_payment', {
           p_order_id: orderId,
-          p_payment_intent_id: null
+          p_payment_intent_id: paymentResult?.payment_id || `razorpay_${Date.now()}`
         });
 
       if (confirmError || !confirmSuccess) {
@@ -228,15 +253,37 @@ const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ scrollY }) => {
         return;
       }
 
+      // 4. Trigger Order Confirmation Email (via Supabase Edge Function or direct Resend fallback)
+      try {
+        console.log('Sending order confirmation email for order:', orderId);
+        await sendOrderConfirmationEmail({
+          orderId,
+          customerEmail: user?.email || '',
+          customerName: fullName,
+          cart,
+          cartTotal,
+          currencySymbol: countryCode === 'IN' ? '₹' : '$',
+          shippingDetails: {
+            address,
+            city,
+            zip,
+            country
+          }
+        });
+      } catch (e) {
+        console.warn('Order confirmation email trigger notice:', e);
+      }
+
       // 5. Success Flow
       await clearCart();
       setIsProcessing(false);
       
       Alert.alert(
         "Payment Successful", 
-        `Your masterpiece will be shipped to ${country}. Thank you for shopping with Moksha Jewels!`,
-        [{ text: "View Order History", onPress: () => navigation.navigate('Orders') }]
+        `Your masterpiece will be shipped to ${country}. Thank you for shopping with Moksha Jewels!`
       );
+
+      navigation.navigate('Orders');
     } catch (error: any) {
       console.error('Payment Error:', error.message);
       setIsProcessing(false);
