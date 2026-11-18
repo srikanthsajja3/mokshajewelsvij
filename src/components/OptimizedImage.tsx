@@ -17,9 +17,9 @@ interface OptimizedImageProps {
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
   url,
-  width = 400,
-  height = 400,
-  quality = 80,
+  width = 1200,
+  height = 1200,
+  quality = 100,
   style,
   containerStyle,
   contentFit = 'cover',
@@ -62,6 +62,8 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
           source={{ uri: imageUrl }}
           style={[styles.image, style]}
           contentFit={contentFit}
+          cachePolicy="memory-disk"
+          priority="high"
           transition={300}
           onLoadEnd={() => setLoading(false)}
           onError={(e) => {

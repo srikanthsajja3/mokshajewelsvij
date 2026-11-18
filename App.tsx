@@ -64,6 +64,12 @@ function AppContent() {
     }
   }, [isRecovering]);
 
+  React.useEffect(() => {
+    if (user) {
+      setLoginVisible(false);
+    }
+  }, [user]);
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query.trim().length > 0 && currentRoute !== "Category") {

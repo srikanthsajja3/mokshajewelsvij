@@ -294,19 +294,7 @@ const Header: React.FC<HeaderProps> = ({
                       ) : null}
                     </View>
                   </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity 
-                    style={[styles.actionItem, { marginLeft: iconMargin }]} 
-                    onPress={() => {
-                      const url = `https://wa.me/${FEATURE_FLAGS.WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent("Namaste Moksha Jewels! I would like to inquire about your jewelry collection.")}`;
-                      if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(url, '_blank');
-                      else Linking.openURL(url);
-                    }}
-                    accessibilityLabel="WhatsApp Inquiry"
-                  >
-                    <FontAwesome5 name="whatsapp" size={iconSize + 2} color="#25D366" />
-                  </TouchableOpacity>
-                )}
+                ) : null}
 
                 <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={onPressMenu}>
                   <FontAwesome5 name="bars" size={iconSize} color="#D4AF37" />
@@ -335,19 +323,7 @@ const Header: React.FC<HeaderProps> = ({
                       ) : null}
                     </View>
                   </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity 
-                    style={[styles.actionItem, { marginLeft: iconMargin }]} 
-                    onPress={() => {
-                      const url = `https://wa.me/${FEATURE_FLAGS.WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent("Namaste Moksha Jewels! I would like to inquire about your jewelry collection.")}`;
-                      if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(url, '_blank');
-                      else Linking.openURL(url);
-                    }}
-                    accessibilityLabel="WhatsApp Inquiry"
-                  >
-                    <FontAwesome5 name="whatsapp" size={iconSize + 2} color="#25D366" />
-                  </TouchableOpacity>
-                )}
+                ) : null}
 
                 {isAdmin ? (
                   <TouchableOpacity style={[styles.actionItem, { marginLeft: iconMargin }]} onPress={navigateToAdmin}>

@@ -54,7 +54,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   onClose, 
   initialIsUpdatingPassword = false 
 }) => {
-  const { resetPassword, verifyOtp, setIsRecovering, signInWithOAuth } = useAuth();
+  const { user, resetPassword, verifyOtp, setIsRecovering, signInWithOAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -64,6 +64,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const [showCodeEntry, setShowCodeEntry] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(initialIsUpdatingPassword);
   const [successMessage, setSuccessMessage] = useState("");
+
+  React.useEffect(() => {
+    if (user && visible) {
+      onLoginSuccess();
+    }
+  }, [user, visible]);
 
   // Reset state when modal becomes visible or initialIsUpdatingPassword changes
   React.useEffect(() => {

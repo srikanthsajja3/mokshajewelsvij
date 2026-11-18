@@ -134,20 +134,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (code) {
           try {
             const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-            if (!error && data?.session) {
-              if (mounted) {
-                setSession(data.session);
-                setUser(data.session.user);
-                setIsLoading(false);
-                fetchUserRole(data.session.user.id);
-              }
-              // Clean the ?code=... from the browser URL without reload
-              const cleanUrl = window.location.pathname;
-              window.history.replaceState({}, document.title, cleanUrl);
-              return;
+            if (data?.session && mounted) {
+              setSession(data.session);
+              setUser(data.session.user);
+              fetchUserRole(data.session.user.id);
             }
           } catch (e) {
-            console.error('Failed to exchange auth code:', e);
+            console.warn('exchangeCodeForSession notice:', e);
+          } finally {
+            try {
+              const cleanUrl = window.location.pathname;
+              window.history.replaceState({}, document.title, cleanUrl);
+            } catch (_) {}
           }
         }
       }
