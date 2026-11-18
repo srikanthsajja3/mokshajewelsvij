@@ -119,22 +119,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
-    // Detect recovery token in URL hash/search on Web startup
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const hash = window.location.hash || '';
-      const search = window.location.search || '';
-      if (hash.includes('type=recovery') || search.includes('type=recovery')) {
-        setIsRecovering(true);
-      }
-    }
+    const initAuth = async () => {
+      // Handle Web OAuth PKCE code or recovery token in URL
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const hash = window.location.hash || '';
+        const search = window.location.search || '';
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+          setIsRecovering(true);
+        }
+
+        const urlParams = new URLSearchParams(search);
+        const code = urlParams.get('code');
+        if (code) {
+          try {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            if (!error && data?.session) {
+              if (mounted) {
+                setSession(data.session);
+                setUser(data.session.user);
+                setIsLoading(false);
+                fetchUserRole(data.session.user.id);
+              }
+              // Clean the ?code=... from the browser URL without reload
+              const cleanUrl = window.location.pathname;
+              window.history.replaceState({}, document.title, cleanUrl);
+              return;
+            }
+          } catch (e) {
+            console.error('Failed to exchange auth code:', e);
+          }
+        }
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
       if (session?.user) fetchUserRole(session.user.id);
-    });
+    };
+
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
