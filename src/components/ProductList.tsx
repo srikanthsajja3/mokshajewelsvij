@@ -292,7 +292,23 @@ const ProductList: React.FC<ProductListProps> = ({
             return ['ear rings', 'earrings', 'hangings', 'studs', 'jumkies', 'fancy', 'tops', 'jumka', 'bali'].includes(typeLower) || nameLower.includes('top') || nameLower.includes('jumka') || nameLower.includes('bali') || nameLower.includes('hanging');
           }
           if (sub === 'necklaces' || sub === 'necklace') {
-            return ['necklaces', 'necklace', 'pendants', 'choker', 'haaram', 'lockets / pendents'].includes(typeLower) || nameLower.includes('necklace') || nameLower.includes('haaram') || nameLower.includes('pendant') || nameLower.includes('choker') || nameLower.includes('mala');
+            return (['necklaces', 'necklace', 'choker', 'haaram'].includes(typeLower) || 
+                   nameLower.includes('necklace') || 
+                   nameLower.includes('neklace') || 
+                   nameLower.includes('necklese') || 
+                   nameLower.includes('haaram') || 
+                   nameLower.includes('choker') || 
+                   nameLower.includes('mala')) && 
+                   !typeLower.includes('pendant') && 
+                   !nameLower.includes('pendant') &&
+                   !nameLower.includes('pendent');
+          }
+          if (sub === 'lockets' || sub === 'pendants' || sub === 'pendant' || sub === 'lockets / pendents') {
+            return ['pendants', 'pendant', 'lockets', 'locket', 'lockets / pendents'].includes(typeLower) || 
+                   nameLower.includes('pendant') || 
+                   nameLower.includes('pendent') || 
+                   nameLower.includes('locket') || 
+                   (p.sku && (p.sku.toLowerCase().startsWith('gpd') || p.sku.toLowerCase().startsWith('dpnt') || p.sku.toLowerCase().startsWith('gpl') || p.sku.toLowerCase().startsWith('dlk')));
           }
           if (sub === 'bangles' || sub === 'bangle') {
             return ['bangles', 'bangle', 'kada', 'bracelete', 'bracelet'].includes(typeLower) || nameLower.includes('bangle') || nameLower.includes('kada') || nameLower.includes('bracelete') || nameLower.includes('bracelet');
