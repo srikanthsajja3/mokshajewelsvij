@@ -343,24 +343,51 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
 
         const finalSuiteItems = explicitMatches;
 
-        // Recommendations: same category products as fallback
-        const categoryMates = allCatalog.filter(p => p.category === product.category && p.id !== product.id);
-        
-        // Other store products as fallback if same category has few items
-        const otherStoreProducts = allCatalog.filter(p => p.id !== product.id && p.category !== product.category);
+        const currentType = (product.type || '').toLowerCase();
 
-        // Merge suite items, category mates, and general store products, avoiding duplicates
-        const combined = [...finalSuiteItems];
-        categoryMates.forEach(item => {
-          if (!combined.some(c => c.id === item.id)) {
-            combined.push(item);
-          }
-        });
-        otherStoreProducts.forEach(item => {
-          if (!combined.some(c => c.id === item.id)) {
-            combined.push(item);
-          }
-        });
+        // 1. Same jewelry type in same category (e.g. other Diamond Earrings if viewing Diamond Earrings)
+        const sameTypeSameCat = allCatalog.filter(p => 
+          p.id !== product.id && 
+          currentType && (p.type || '').toLowerCase() === currentType && 
+          p.category === product.category
+        );
+
+        // 2. Same jewelry type in other categories (e.g. Gold or Polki Earrings)
+        const sameTypeOtherCat = allCatalog.filter(p => 
+          p.id !== product.id && 
+          currentType && (p.type || '').toLowerCase() === currentType && 
+          p.category !== product.category
+        );
+
+        // 3. Fallback: same category products
+        const categoryMates = allCatalog.filter(p => 
+          p.id !== product.id && 
+          p.category === product.category && 
+          (!currentType || (p.type || '').toLowerCase() !== currentType)
+        );
+        
+        // 4. Other store products as fallback
+        const otherStoreProducts = allCatalog.filter(p => 
+          p.id !== product.id && 
+          p.category !== product.category && 
+          (!currentType || (p.type || '').toLowerCase() !== currentType)
+        );
+
+        // Merge: Same type & same category -> Suite matches -> Same type & other category -> Fallbacks
+        const combined: Product[] = [];
+        const addUnique = (items: Product[]) => {
+          items.forEach(item => {
+            if (!combined.some(c => c.id === item.id) && combined.length < 20) {
+              combined.push(item);
+            }
+          });
+        };
+
+        addUnique(sameTypeSameCat);
+        addUnique(finalSuiteItems);
+        addUnique(sameTypeOtherCat);
+        if (combined.length < 15) addUnique(categoryMates);
+        if (combined.length < 15) addUnique(otherStoreProducts);
 
         setRecommendations(combined.slice(0, 15));
         setSuiteItems(finalSuiteItems.slice(0, 4));

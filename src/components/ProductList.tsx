@@ -30,9 +30,11 @@ interface ProductListProps {
 
 const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, handleWishlistToggle, isInWishlist, formatPrice, countryCode, addedToCartId, handleAddToCart, index, shouldLoad }: any) => {
   const [hovered, setHovered] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(20)).current;
-  const useNativeDriver = Platform.OS !== 'web';
+  const isWeb = Platform.OS === 'web';
+  // On web, start fully visible to prevent blank white/dark screen lag while scrolling
+  const fadeAnim = useRef(new Animated.Value(isWeb ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(isWeb ? 0 : 20)).current;
+  const useNativeDriver = !isWeb;
   const navigation = useNavigation<any>();
 
   const images = useMemo(() => {
@@ -40,21 +42,23 @@ const AnimatedProductCard = React.memo(({ item, itemWidth, onSelectProduct, hand
   }, [item.image, item.galleryUrls]);
 
   useEffect(() => {
+    // Only animate on native initial render; on web keep instant visibility to eliminate scroll lag
+    if (isWeb) return;
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 400,
-        delay: Math.min(index, 8) * 100, 
+        duration: 300,
+        delay: Math.min(index, 4) * 50, 
         useNativeDriver,
       }),
       Animated.timing(translateY, {
         toValue: 0,
-        duration: 400,
-        delay: Math.min(index, 8) * 100,
+        duration: 300,
+        delay: Math.min(index, 4) * 50,
         useNativeDriver,
       })
     ]).start();
-  }, [index, fadeAnim, translateY, useNativeDriver]);
+  }, [index, fadeAnim, translateY, useNativeDriver, isWeb]);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   
@@ -474,9 +478,9 @@ const ProductList: React.FC<ProductListProps> = ({
       onScroll={onScrollProp}
       scrollEventThrottle={16}
       stickyHeaderIndices={stickyHeaderIndices}
-      windowSize={5}
-      initialNumToRender={6}
-      maxToRenderPerBatch={20}
+      windowSize={Platform.OS === 'web' ? 21 : 9}
+      initialNumToRender={Platform.OS === 'web' ? 24 : 8}
+      maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 12}
       removeClippedSubviews={Platform.OS === 'android'}
     />
   );
