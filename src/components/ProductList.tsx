@@ -297,7 +297,7 @@ const ProductList: React.FC<ProductListProps> = ({
             return ['chains', 'chain', 'black beeds', 'blackbeeds'].includes(typeLower) || nameLower.includes('chain') || nameLower.includes('black beed') || nameLower.includes('blackbeed');
           }
           if (sub === 'rings' || sub === 'ring') {
-            return ['rings', 'ring'].includes(typeLower) || nameLower.includes('ring');
+            return (['rings', 'ring'].includes(typeLower) || nameLower.includes('ring')) && !typeLower.includes('ear') && !nameLower.includes('ear');
           }
           if (sub === 'bajubands' || sub === 'bajuband') {
             return ['bajubands', 'bajuband', 'vaddanam'].includes(typeLower) || nameLower.includes('bajuband') || nameLower.includes('vaddanam');

@@ -674,8 +674,8 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ scrollY: sc
                   </View>
                 )}
 
-                {/* 2. Size Selector & Interactive Finder */}
-                {jewelryType.includes('ring') && (
+                {/* 2. Size Selector & Interactive Finder (Rings only, exclude earrings) */}
+                {(jewelryType.includes('ring') && !jewelryType.includes('ear')) && (
                   <View style={styles.configSection}>
                     <View style={styles.sizeHeaderRow}>
                       <Text style={styles.configTitle}>Ring Size</Text>

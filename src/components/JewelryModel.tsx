@@ -133,7 +133,7 @@ const PlaceholderModel: React.FC<{ type: string }> = ({ type }) => {
     />
   );
 
-  if (type.toLowerCase().includes('ring')) {
+  if (type.toLowerCase().includes('ring') && !type.toLowerCase().includes('ear')) {
     return (
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.3, 0.08, 16, 100]} />
@@ -227,7 +227,7 @@ const PlaceholderModel: React.FC<{ type: string }> = ({ type }) => {
 };
 
 const JewelryModel: React.FC<JewelryModelProps> = ({ type, imageUrl }) => {
-  const isRing = type.toLowerCase().includes('ring');
+  const isRing = type.toLowerCase().includes('ring') && !type.toLowerCase().includes('ear');
 
   if (isRing) {
     return (
